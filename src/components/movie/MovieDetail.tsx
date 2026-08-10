@@ -1,20 +1,23 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { Play, Star, ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { Play, Star, ArrowLeft, Calendar, Clock, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
+import { ProviderSelector } from './ProviderSelector';
+import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { MovieDetails } from '@/lib/types';
 
 export function MovieDetail() {
-  const { selectedMovie, goHome } = useAppStore();
+  const { selectedMovie, goHome, selectedProvider } = useAppStore();
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showProviderSelector, setShowProviderSelector] = useState(false);
   const prevIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -42,6 +45,14 @@ export function MovieDetail() {
   const similar = details?.similar?.results?.slice(0, 15) || [];
   const rating = movie.vote_average?.toFixed(1);
   const loading = isPending && !details;
+  const activeProvider = getProvider(selectedProvider);
+
+  const handlePlay = (providerId?: string) => {
+    const pid = providerId || selectedProvider;
+    const url = getEmbedUrl(pid, 'movie', movie.id);
+    setShowPlayer(true);
+    setShowProviderSelector(false);
+  };
 
   const renderStars = (avg: number) => {
     const full = Math.round(avg / 2);
@@ -57,11 +68,19 @@ export function MovieDetail() {
     <>
       {showPlayer && (
         <VideoPlayer
-          src={`https://vidsrc.sbs/embed/movie/${movie.id}`}
+          src={getEmbedUrl(selectedProvider, 'movie', movie.id)}
           title={title}
           onClose={() => setShowPlayer(false)}
+          mediaType="movie"
+          tmdbId={movie.id}
         />
       )}
+
+      <ProviderSelector
+        open={showProviderSelector}
+        onClose={() => setShowProviderSelector(false)}
+        onPlay={handlePlay}
+      />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -169,14 +188,24 @@ export function MovieDetail() {
                     ))}
                   </div>
 
-                  {/* Play button */}
-                  <Button
-                    onClick={() => setShowPlayer(true)}
-                    className="bg-[#e50914] hover:bg-[#dc2626] text-white px-8 h-12 text-base font-semibold gap-2.5 rounded-xl shadow-lg shadow-[#e50914]/25 hover:shadow-xl hover:shadow-[#e50914]/30 mb-8"
-                  >
-                    <Play className="w-5 h-5 fill-white" />
-                    Play Movie
-                  </Button>
+                  {/* Play button + Provider selector */}
+                  <div className="flex items-center gap-3 mb-8">
+                    <Button
+                      onClick={() => setShowProviderSelector(true)}
+                      className="bg-[#e50914] hover:bg-[#dc2626] text-white px-8 h-12 text-base font-semibold gap-2.5 rounded-xl shadow-lg shadow-[#e50914]/25 hover:shadow-xl hover:shadow-[#e50914]/30"
+                    >
+                      <Play className="w-5 h-5 fill-white" />
+                      Play Movie
+                    </Button>
+                    <button
+                      onClick={() => setShowProviderSelector(true)}
+                      className="flex items-center gap-2 px-4 h-12 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white/90 text-sm font-medium transition-all duration-200"
+                    >
+                      <Zap className="w-4 h-4" style={{ color: activeProvider.color }} />
+                      <span className="hidden sm:inline">{activeProvider.name}</span>
+                      <span className="sm:hidden">Source</span>
+                    </button>
+                  </div>
 
                   {/* Synopsis */}
                   <div className="mb-8">

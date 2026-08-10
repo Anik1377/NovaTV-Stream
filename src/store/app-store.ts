@@ -15,6 +15,7 @@ interface AppState {
   selectedEpisode: Episode | null;
   selectedGenreId: number | null;
   selectedGenreName: string;
+  selectedProvider: string;
 
   setView: (view: ViewType) => void;
   setMediaFilter: (filter: MediaFilter) => void;
@@ -25,6 +26,7 @@ interface AppState {
   setSelectedSeason: (season: number) => void;
   setSelectedEpisode: (episode: Episode | null) => void;
   selectGenre: (id: number, name: string) => void;
+  setSelectedProvider: (provider: string) => void;
   goHome: () => void;
   showMovies: () => void;
   showTvShows: () => void;
@@ -41,6 +43,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedEpisode: null,
   selectedGenreId: null,
   selectedGenreName: '',
+  selectedProvider: 'vidsrc-sbs',
 
   setView: (view) => set({ view }),
   setMediaFilter: (mediaFilter) => set({ view: 'home', mediaFilter, selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
@@ -51,6 +54,7 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedSeason: (season) => set({ selectedSeason: season, selectedEpisode: null }),
   setSelectedEpisode: (episode) => set({ selectedEpisode: episode }),
   selectGenre: (id, name) => set({ view: 'genre', selectedGenreId: id, selectedGenreName: name }),
+  setSelectedProvider: (provider) => set({ selectedProvider: provider }),
   goHome: () => set({ view: 'home', mediaFilter: 'all', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
   showMovies: () => set({ view: 'home', mediaFilter: 'movie', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
   showTvShows: () => set({ view: 'home', mediaFilter: 'tv', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),

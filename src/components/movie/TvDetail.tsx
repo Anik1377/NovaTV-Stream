@@ -1,22 +1,25 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Play, Star, ArrowLeft, Calendar, Tv } from 'lucide-react';
+import { Play, Star, ArrowLeft, Calendar, Tv, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
+import { ProviderSelector } from './ProviderSelector';
+import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 
 export function TvDetail() {
-  const { selectedTv, goHome, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode } = useAppStore();
+  const { selectedTv, goHome, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, selectedProvider } = useAppStore();
   const [details, setDetails] = useState<TvShowDetails | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showProviderSelector, setShowProviderSelector] = useState(false);
   const prevIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -56,15 +59,18 @@ export function TvDetail() {
   const seasons = details?.seasons?.filter(s => s.season_number > 0) || [];
   const cast = details?.credits?.cast?.slice(0, 12) || [];
   const similar = details?.similar?.results?.slice(0, 15) || [];
+  const activeProvider = getProvider(selectedProvider);
 
   const playEpisode = (episode: Episode) => {
     setSelectedEpisode(episode);
-    setShowPlayer(true);
+    setShowProviderSelector(true);
   };
 
-  const playerUrl = selectedEpisode
-    ? `https://vidsrc.sbs/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode.episode_number}`
-    : `https://vidsrc.sbs/embed/tv/${show.id}/1/1`;
+  const handleProviderPlay = (providerId?: string) => {
+    const pid = providerId || selectedProvider;
+    setShowPlayer(true);
+    setShowProviderSelector(false);
+  };
 
   const renderStars = (avg: number) => {
     const full = Math.round(avg / 2);
@@ -80,11 +86,21 @@ export function TvDetail() {
     <>
       {showPlayer && (
         <VideoPlayer
-          src={playerUrl}
+          src={getEmbedUrl(selectedProvider, 'tv', show.id, selectedSeason, selectedEpisode?.episode_number)}
           title={`${title} S${String(selectedSeason).padStart(2,'0')}E${String(selectedEpisode?.episode_number || 1).padStart(2,'0')}`}
           onClose={() => setShowPlayer(false)}
+          mediaType="tv"
+          tmdbId={show.id}
+          season={selectedSeason}
+          episode={selectedEpisode?.episode_number}
         />
       )}
+
+      <ProviderSelector
+        open={showProviderSelector}
+        onClose={() => setShowProviderSelector(false)}
+        onPlay={handleProviderPlay}
+      />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -174,6 +190,30 @@ export function TvDetail() {
                         {g.name}
                       </span>
                     ))}
+                  </div>
+
+                  {/* Provider indicator + Play first episode */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <Button
+                      onClick={() => {
+                        if (episodes.length > 0) {
+                          setSelectedEpisode(episodes[0]);
+                        }
+                        setShowProviderSelector(true);
+                      }}
+                      className="bg-[#e50914] hover:bg-[#dc2626] text-white px-8 h-12 text-base font-semibold gap-2.5 rounded-xl shadow-lg shadow-[#e50914]/25 hover:shadow-xl hover:shadow-[#e50914]/30"
+                    >
+                      <Play className="w-5 h-5 fill-white" />
+                      Play S{String(selectedSeason).padStart(2,'0')}E01
+                    </Button>
+                    <button
+                      onClick={() => setShowProviderSelector(true)}
+                      className="flex items-center gap-2 px-4 h-12 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white/90 text-sm font-medium transition-all duration-200"
+                    >
+                      <Zap className="w-4 h-4" style={{ color: activeProvider.color }} />
+                      <span className="hidden sm:inline">{activeProvider.name}</span>
+                      <span className="sm:hidden">Source</span>
+                    </button>
                   </div>
 
                   {/* Overview */}
