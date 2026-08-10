@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Heart, Clapperboard, TrendingUp, Award, Clock, MonitorPlay } from 'lucide-react';
+import { Loader2, Clapperboard } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Header } from '@/components/movie/Header';
 import { Hero } from '@/components/movie/Hero';
@@ -13,23 +13,25 @@ import { GenreView } from '@/components/movie/GenreView';
 import type { Movie, Genre } from '@/lib/types';
 
 function HomePage() {
-  const { selectGenre } = useAppStore();
+  const { selectGenre, mediaFilter } = useAppStore();
   const [trending, setTrending] = useState<Movie[]>([]);
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [popularTv, setPopularTv] = useState<Movie[]>([]);
   const [topRated, setTopRated] = useState<Movie[]>([]);
   const [upcoming, setUpcoming] = useState<Movie[]>([]);
+  const [topRatedTv, setTopRatedTv] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [trendingRes, moviesRes, tvRes, topRatedRes, upcomingRes, genresRes] = await Promise.all([
+      const [trendingRes, moviesRes, tvRes, topRatedRes, upcomingRes, topRatedTvRes, genresRes] = await Promise.all([
         fetch('/api/tmdb/trending?time_window=week').then((r) => r.json()),
         fetch('/api/tmdb/popular-movies').then((r) => r.json()),
         fetch('/api/tmdb/popular-tv').then((r) => r.json()),
         fetch('/api/tmdb/top-rated').then((r) => r.json()),
         fetch('/api/tmdb/upcoming').then((r) => r.json()),
+        fetch('/api/tmdb/top-rated-tv').then((r) => r.json()),
         fetch('/api/tmdb/genres').then((r) => r.json()),
       ]);
 
@@ -38,6 +40,7 @@ function HomePage() {
       setPopularTv((tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
       setTopRated((topRatedRes.results || []).slice(0, 20));
       setUpcoming((upcomingRes.results || []).slice(0, 20));
+      setTopRatedTv((topRatedTvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
       setGenres(genresRes.genres || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -49,6 +52,12 @@ function HomePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const filteredTrending = mediaFilter === 'movie'
+    ? trending.filter(m => m.media_type === 'movie')
+    : mediaFilter === 'tv'
+    ? trending.filter(m => m.media_type === 'tv')
+    : trending;
 
   if (loading) {
     return (
@@ -63,12 +72,12 @@ function HomePage() {
 
   return (
     <div className="pb-20">
-      {/* Hero */}
-      <Hero movies={trending.slice(0, 8)} />
+      {mediaFilter === 'all' && <Hero movies={trending.slice(0, 8)} />}
+      {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
+      {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
 
-      {/* Genre pills */}
       {genres.length > 0 && (
-        <div className="px-4 md:px-8 -mt-4 relative z-10 mb-6">
+        <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-20')}>
           <div className="flex gap-2 overflow-x-auto content-scroll pb-2">
             {genres.slice(0, 15).map((genre) => (
               <button
@@ -83,16 +92,22 @@ function HomePage() {
         </div>
       )}
 
-      {/* Content Rows */}
-      <ContentRow title="🔥 Trending This Week" movies={trending} />
-      <ContentRow title="🎬 Popular Movies" movies={popularMovies} />
-      <ContentRow title="📺 Popular TV Shows" movies={popularTv} />
-      <ContentRow title="⭐ Top Rated" movies={topRated} />
-      {upcoming.length > 0 && (
-        <ContentRow title="🆕 Coming Soon" movies={upcoming} />
+      {mediaFilter !== 'tv' && (
+        <div>
+          <ContentRow title="🔥 Trending This Week" movies={mediaFilter === 'all' ? trending : filteredTrending} />
+          <ContentRow title="🎬 Popular Movies" movies={popularMovies} />
+          <ContentRow title="⭐ Top Rated Movies" movies={topRated} />
+          {upcoming.length > 0 && <ContentRow title="🆕 Coming Soon" movies={upcoming} />}
+        </div>
       )}
 
-      {/* Footer */}
+      {mediaFilter !== 'movie' && (
+        <div>
+          <ContentRow title="📺 Popular TV Shows" movies={popularTv} />
+          <ContentRow title="⭐ Top Rated TV Shows" movies={topRatedTv} />
+        </div>
+      )}
+
       <footer className="mt-16 border-t border-white/10 px-4 md:px-8 py-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">

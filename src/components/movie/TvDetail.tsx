@@ -1,4 +1,4 @@
-'client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { Play, Star, ArrowLeft, Calendar, Loader2, ChevronDown, Tv } from 'lucide-react';
@@ -22,22 +22,26 @@ export function TvDetail() {
 
   useEffect(() => {
     if (!selectedTv) return;
-    setLoading(true);
+    let cancelled = false;
+    Promise.resolve().then(() => { if (!cancelled) setLoading(true); });
     fetch(`/api/tmdb/tv/${selectedTv.id}`)
       .then((res) => res.json())
-      .then((data) => setDetails(data))
+      .then((data) => { if (!cancelled) setDetails(data); })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [selectedTv]);
 
   useEffect(() => {
     if (!selectedTv) return;
-    setSeasonLoading(true);
+    let cancelled = false;
+    Promise.resolve().then(() => { if (!cancelled) setSeasonLoading(true); });
     fetch(`/api/tmdb/tv/${selectedTv.id}/season/${selectedSeason}`)
       .then((res) => res.json())
-      .then((data) => setSeasonDetails(data))
+      .then((data) => { if (!cancelled) setSeasonDetails(data); })
       .catch(console.error)
-      .finally(() => setSeasonLoading(false));
+      .finally(() => { if (!cancelled) setSeasonLoading(false); });
+    return () => { cancelled = true; };
   }, [selectedTv, selectedSeason]);
 
   if (!selectedTv) return null;
