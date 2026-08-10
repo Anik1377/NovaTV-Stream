@@ -1,4 +1,4 @@
-'client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Film, Tv } from 'lucide-react';
@@ -16,16 +16,22 @@ export function GenreView() {
 
   useEffect(() => {
     if (!selectedGenreId) return;
-    setLoading(true);
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoading(true);
+    });
     Promise.all([
       fetch(`/api/tmdb/popular-movies?page=1`).then(r => r.json()).catch(() => ({ results: [] })),
       fetch(`/api/tmdb/popular-tv?page=1`).then(r => r.json()).catch(() => ({ results: [] })),
     ]).then(([movieData, tvData]) => {
+      if (cancelled) return;
       const filteredMovies = movieData.results?.filter((m: Movie) => m.genre_ids?.includes(selectedGenreId!)) || [];
       const filteredTv = tvData.results?.filter((m: Movie) => m.genre_ids?.includes(selectedGenreId!)) || [];
       setMovies(filteredMovies);
       setTvShows(filteredTv);
-    }).finally(() => setLoading(false));
+    }).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [selectedGenreId]);
 
   const displayItems = tab === 'movie' ? movies : tab === 'tv' ? tvShows : [...movies, ...tvShows];

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Film, Tv, Home, X, Menu } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
-  const { view, searchQuery, setSearchQuery, goHome, setView, setSearchResults } = useAppStore();
+  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = useCallback(async (query: string) => {
     setInputValue(query);
@@ -39,11 +40,31 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [inputValue, searchQuery, handleSearch]);
 
+  // Focus input when search opens
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [searchOpen]);
+
+  const isActive = (filter: 'all' | 'movie' | 'tv') => {
+    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre') return false;
+    return mediaFilter === filter;
+  };
+
   const navItems = [
-    { icon: Home, label: 'Home', action: goHome },
-    { icon: Film, label: 'Movies', action: () => setView('home') },
-    { icon: Tv, label: 'TV Shows', action: () => setView('home') },
+    { icon: Home, label: 'Home', filter: 'all' as const, action: goHome },
+    { icon: Film, label: 'Movies', filter: 'movie' as const, action: showMovies },
+    { icon: Tv, label: 'TV Shows', filter: 'tv' as const, action: showTvShows },
   ];
+
+  const handleNavClick = (action: () => void) => {
+    setSearchOpen(false);
+    setInputValue('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    action();
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
@@ -61,18 +82,25 @@ export function Header() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {navItems.map((item) => (
-            <Button
-              key={item.label}
-              variant="ghost"
-              size="sm"
-              onClick={item.action}
-              className="text-white/80 hover:text-white hover:bg-white/10 gap-2"
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </Button>
-          ))}
+          {navItems.map((item) => {
+            const active = isActive(item.filter);
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavClick(item.action)}
+                className={`gap-2 transition-colors ${
+                  active
+                    ? 'text-white bg-white/15 hover:bg-white/15'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${active ? 'text-red-500' : ''}`} />
+                {item.label}
+              </Button>
+            );
+          })}
         </nav>
 
         {/* Search */}
@@ -87,7 +115,7 @@ export function Header() {
               >
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                 <Input
-                  autoFocus
+                  ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Search movies, TV shows..."
@@ -120,7 +148,7 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu button */}
         <Button
           variant="ghost"
           size="icon"
@@ -141,20 +169,24 @@ export function Header() {
             className="md:hidden bg-black/95 backdrop-blur-xl border-t border-white/10 overflow-hidden"
           >
             <nav className="flex flex-col p-2">
-              {navItems.map((item) => (
-                <Button
-                  key={item.label}
-                  variant="ghost"
-                  className="text-white/80 hover:text-white hover:bg-white/10 justify-start gap-3 py-3"
-                  onClick={() => {
-                    item.action();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                </Button>
-              ))}
+              {navItems.map((item) => {
+                const active = isActive(item.filter);
+                return (
+                  <Button
+                    key={item.label}
+                    variant="ghost"
+                    className={`justify-start gap-3 py-3 transition-colors ${
+                      active
+                        ? 'text-white bg-white/15 hover:bg-white/15'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                    }`}
+                    onClick={() => handleNavClick(item.action)}
+                  >
+                    <item.icon className={`w-5 h-5 ${active ? 'text-red-500' : ''}`} />
+                    {item.label}
+                  </Button>
+                );
+              })}
             </nav>
           </motion.div>
         )}

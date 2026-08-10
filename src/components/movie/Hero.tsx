@@ -13,7 +13,10 @@ export function Hero({ movies }: { movies: Movie[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const moviesRef = useRef(movies);
-  moviesRef.current = movies;
+
+  useEffect(() => {
+    moviesRef.current = movies;
+  }, [movies]);
 
   const goTo = useCallback((index: number) => {
     setCurrentIndex((prev) => {
