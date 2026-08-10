@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, Film, Tv } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { MovieCard } from './MovieCard';
-import type { Movie, PaginatedResponse } from '@/lib/types';
+import type { Movie } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 export function GenreView() {
@@ -16,6 +16,7 @@ export function GenreView() {
 
   useEffect(() => {
     if (!selectedGenreId) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     let cancelled = false;
     Promise.resolve().then(() => {
       if (cancelled) return;
@@ -37,42 +38,54 @@ export function GenreView() {
   const displayItems = tab === 'movie' ? movies : tab === 'tv' ? tvShows : [...movies, ...tvShows];
 
   return (
-    <div className="pt-24 pb-10 px-4 md:px-8">
-      <div className="max-w-7xl mx-auto mb-8">
-        <button onClick={goHome} className="flex items-center gap-2 text-white/70 hover:text-white mb-4 transition-colors">
+    <div className="pt-24 pb-10 px-6 md:px-12 lg:px-16">
+      {/* Back button */}
+      <button
+        onClick={goHome}
+        className="flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors duration-300 group"
+      >
+        <div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Home</span>
-        </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">{selectedGenreName}</h1>
-      </div>
+        </div>
+        <span className="text-sm font-medium">Back to Home</span>
+      </button>
 
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto mb-6 flex gap-2">
+      <h1 className="text-2xl md:text-4xl font-bold text-white mb-6 tracking-tight">{selectedGenreName}</h1>
+
+      {/* Pill/segment control tabs */}
+      <div className="flex items-center bg-white/[0.04] rounded-full p-1 w-fit mb-8 border border-white/[0.06]">
         {(['all', 'movie', 'tv'] as const).map((t) => (
-          <Button
+          <button
             key={t}
-            variant={tab === t ? 'default' : 'secondary'}
             onClick={() => setTab(t)}
-            className={tab === t ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-white/10 hover:bg-white/15 text-white/80'}
+            className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+              tab === t
+                ? 'bg-[#e50914] text-white shadow-md shadow-[#e50914]/20'
+                : 'text-white/50 hover:text-white/80'
+            }`}
           >
             {t === 'all' ? 'All' : t === 'movie' ? 'Movies' : 'TV Shows'}
-          </Button>
+          </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+        <div className="flex justify-center py-24">
+          <Loader2 className="w-8 h-8 text-[#e50914] animate-spin" />
         </div>
       ) : displayItems.length === 0 ? (
-        <div className="text-center py-20 text-white/50">
-          <p className="text-lg">No content found for this genre</p>
-          <Button onClick={goHome} variant="secondary" className="mt-4 bg-white/10 hover:bg-white/15 text-white">
+        <div className="text-center py-24">
+          <div className="w-20 h-20 rounded-full bg-white/[0.04] flex items-center justify-center mx-auto mb-5">
+            <Loader2 className="w-9 h-9 text-white/10" />
+          </div>
+          <p className="text-white/50 text-lg font-medium mb-2">No content found</p>
+          <p className="text-white/30 text-sm mb-6">No movies or TV shows available in this genre yet.</p>
+          <Button onClick={goHome} className="bg-white/[0.08] hover:bg-white/15 text-white border border-white/[0.08] rounded-xl">
             Browse Home
           </Button>
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 md:gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
           {displayItems.map((m, i) => (
             <MovieCard key={`${m.id}-${m.media_type}`} movie={m} index={i} />
           ))}
