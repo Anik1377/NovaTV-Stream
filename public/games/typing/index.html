@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Typing Speed Test</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⌨️</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:linear-gradient(135deg,#080012,#0a0a24,#0d0d30);color:#e0e0e0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;overflow:hidden;touch-action:manipulation}
+#app{width:100%;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12px;position:relative}
+.top-bar{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.back-link{color:#8888cc;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);transition:all .2s}
+.back-link:hover{color:#aaaaff;background:rgba(255,255,255,0.1)}
+.mute-btn{font-size:22px;cursor:pointer;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;transition:all .2s;user-select:none}
+.mute-btn:hover{background:rgba(255,255,255,0.12)}
+h1{font-size:28px;font-weight:700;background:linear-gradient(90deg,#43e97b,#38f9d7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;text-align:center}
+.game-container{width:100%;max-width:620px;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.stats{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.stat-box{flex:1;min-width:70px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:8px 10px;text-align:center}
+.stat-box .label{font-size:11px;text-transform:uppercase;color:#888;letter-spacing:0.5px}
+.stat-box .value{font-size:22px;font-weight:700;color:#e0e0e0;margin-top:2px}
+.stat-box .value.wpm{background:linear-gradient(90deg,#43e97b,#38f9d7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-box .value.acc{color:#f9ca24}
+.stat-box .value.time{color:#ee5a24}
+.time-controls{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.time-controls button{padding:6px 18px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);color:#ccc;font-family:inherit}
+.time-controls button:hover{background:rgba(255,255,255,0.14)}
+.time-controls button.active{background:rgba(0,200,150,0.2);border-color:rgba(0,200,150,0.35);color:#5fffcb}
+.word-display{margin:20px 0;min-height:80px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.05)}
+.word-display .word{font-size:clamp(18px,4vw,28px);font-weight:500;padding:2px 6px;border-radius:4px;transition:all .15s;letter-spacing:0.5px;font-family:'Courier New',monospace}
+.word-display .word.current{background:rgba(100,100,255,0.15);border-left:2px solid rgba(100,150,255,0.5);padding-left:8px}
+.word-display .word.done{color:#555;font-size:clamp(14px,3vw,20px)}
+.word-display .word .char{transition:color .1s}
+.word-display .word .char.correct{color:#43e97b}
+.word-display .word .char.incorrect{color:#ff6b6b;text-decoration:underline;text-decoration-color:#ff6b6b}
+.word-display .word .char.current-char{animation:blink 0.8s infinite;border-right:2px solid #88bbff}
+@keyframes blink{0%,100%{border-color:#88bbff}50%{border-color:transparent}}
+.input-area{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+#wordInput{flex:1;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.05);color:#e0e0e0;font-size:18px;font-family:'Courier New',monospace;outline:none;transition:border-color .2s}
+#wordInput:focus{border-color:rgba(100,200,255,0.4)}
+#wordInput:disabled{opacity:0.4}
+.start-btn{padding:12px 28px;border:none;border-radius:12px;cursor:pointer;font-size:16px;font-weight:700;background:linear-gradient(135deg,#667eea,#764ba2);color:white;transition:all .3s;font-family:inherit;white-space:nowrap}
+.start-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.4)}
+.start-btn:active{transform:translateY(0)}
+.start-btn.running{background:linear-gradient(135deg,#e74c3c,#c0392b)}
+.start-btn.finished{background:linear-gradient(135deg,#00b894,#00cec9)}
+.progress-bar{width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;margin-bottom:14px;overflow:hidden}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:4px;transition:width .3s;width:0%}
+.result-screen{display:none;margin-top:12px;padding:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;text-align:center}
+.result-screen.show{display:block;animation:fadeIn .4s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.result-screen h2{font-size:22px;margin-bottom:12px;background:linear-gradient(90deg,#43e97b,#38f9d7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.result-item{padding:10px;background:rgba(255,255,255,0.03);border-radius:8px}
+.result-item .rlabel{font-size:11px;color:#888;text-transform:uppercase}
+.result-item .rvalue{font-size:24px;font-weight:700;margin-top:4px}
+.result-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.result-actions button{padding:8px 22px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s;background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);color:#ccc;font-family:inherit}
+.result-actions button:hover{background:rgba(255,255,255,0.14);transform:translateY(-1px)}
+.result-actions button.primary{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none}
+.high-scores{margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
+.high-scores h3{font-size:14px;color:#888;margin-bottom:8px;text-align:center}
+.high-scores table{width:100%;border-collapse:collapse}
+.high-scores th{font-size:11px;color:#666;padding:4px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.05)}
+.high-scores td{font-size:13px;padding:5px 8px;text-align:center;color:#bbb;border-bottom:1px solid rgba(255,255,255,0.03)}
+.high-scores tr:last-child td{border-bottom:none}
+.high-scores .rank{color:#888;width:30px}
+.high-scores .hs-wpm{color:#43e97b;font-weight:600}
+.high-scores .hs-acc{color:#f9ca24}
+.high-scores .hs-date{color:#666;font-size:11px}
+@media(max-width:500px){#app{padding:6px}.game-container{padding:14px}.stat-box .value{font-size:18px}.result-grid{grid-template-columns:repeat(2,1fr)}h1{font-size:22px}.word-display .word{font-size:20px}}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="top-bar">
+<a href="../../index.html" class="back-link">&larr; Back to Hub</a>
+<div class="mute-btn" id="muteBtn">🔊</div>
+</div>
+<h1>Typing Speed Test</h1>
+<div class="game-container">
+<div class="stats">
+<div class="stat-box"><div class="label">WPM</div><div class="value wpm" id="wpmDisplay">0</div></div>
+<div class="stat-box"><div class="label">Accuracy</div><div class="value acc" id="accDisplay">100%</div></div>
+<div class="stat-box"><div class="label">Keystrokes</div><div class="value" id="keystrokesDisplay">0</div></div>
+<div class="stat-box"><div class="label">Time</div><div class="value time" id="timeDisplay">60</div></div>
+</div>
+<div class="time-controls">
+<button data-time="30">30s</button>
+<button data-time="60" class="active">60s</button>
+</div>
+<div class="word-display" id="wordDisplay">
+<div style="color:#666;font-size:18px">Press Start to begin</div>
+</div>
+<div class="input-area">
+<input type="text" id="wordInput" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" disabled>
+<button class="start-btn" id="startBtn">Start</button>
+</div>
+<div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+<div class="result-screen" id="resultScreen">
+<h2>🏆 Results</h2>
+<div class="result-grid">
+<div class="result-item"><div class="rlabel">WPM</div><div class="rvalue" style="color:#43e97b" id="resWpm">0</div></div>
+<div class="result-item"><div class="rlabel">Top WPM</div><div class="rvalue" style="color:#38f9d7" id="resTopWpm">0</div></div>
+<div class="result-item"><div class="rlabel">Accuracy</div><div class="rvalue" style="color:#f9ca24" id="resAcc">0%</div></div>
+<div class="result-item"><div class="rlabel">Keystrokes</div><div class="rvalue" id="resKeys">0</div></div>
+<div class="result-item"><div class="rlabel">Correct</div><div class="rvalue" style="color:#43e97b" id="resCorrect">0</div></div>
+<div class="result-item"><div class="rlabel">Incorrect</div><div class="rvalue" style="color:#ff6b6b" id="resIncorrect">0</div></div>
+</div>
+<div class="result-actions">
+<button class="primary" id="retryBtn">Try Again</button>
+<button id="shareBtn">Share Score</button>
+</div>
+<div class="high-scores" id="highScores"><h3>🏅 High Scores</h3><div id="hsContent"><p style="color:#666;text-align:center;font-size:13px">No scores yet</p></div></div>
+</div>
+</div>
+</div>
+<div id="pauseOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity .4s">
+<div style="background:rgba(14,14,38,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:36px 28px;text-align:center;max-width:280px;width:90%">
+<div style="font-size:48px;margin-bottom:8px">⏸️</div>
+<h2 style="font-size:24px;margin-bottom:8px;background:linear-gradient(90deg,#43e97b,#38f9d7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Paused</h2>
+<p style="color:#888;font-size:14px">Press <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">P</span> or <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">Esc</span> to resume</p>
+</div>
+</div>
+<script>
+// ===== Audio Engine =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let masterGain = null;
+let musicGain = null;
+let sfxGain = null;
+let musicNodes = [];
+let isMuted = false;
+let isMusicPlaying = false;
+
+function initAudio(){
+if(audioCtx){
+if(audioCtx.state==='suspended')audioCtx.resume();
+return;
+}
+audioCtx = new AudioCtx();
+if(audioCtx.state==='suspended')audioCtx.resume();
+masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.22;
+masterGain.connect(audioCtx.destination);
+musicGain = audioCtx.createGain();
+musicGain.gain.value = 0.55;
+musicGain.connect(masterGain);
+sfxGain = audioCtx.createGain();
+sfxGain.gain.value = 0.7;
+sfxGain.connect(masterGain);
+}
+
+function playNote(freq,duration,type,gainVal,connectTo){
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = type||'sine';
+osc.frequency.value = freq;
+gain.gain.setValueAtTime(gainVal||0.15,audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration);
+osc.connect(gain);
+gain.connect(connectTo||sfxGain);
+osc.start(audioCtx.currentTime);
+osc.stop(audioCtx.currentTime+duration);
+return {osc,gain};
+}
+
+function playSfxCorrect(){
+if(!audioCtx||isMuted) return;
+playNote(880,0.08,'sine',0.1);
+}
+
+function playSfxIncorrect(){
+if(!audioCtx||isMuted) return;
+playNote(200,0.15,'sawtooth',0.06);
+}
+
+function playSfxComplete(){
+if(!audioCtx||isMuted) return;
+const notes = [523,659,784,1047];
+notes.forEach((f,i)=>{
+setTimeout(()=>playNote(f,0.2,'triangle',0.12),i*100);
+});
+}
+
+function playSfxWordComplete(){
+if(!audioCtx||isMuted) return;
+playNote(660,0.08,'sine',0.07);
+}
+
+// Procedural background music - lo-fi study beats inspired
+function startMusic(){
+if(!audioCtx||isMusicPlaying) return;
+isMusicPlaying = true;
+musicNodes = [];
+const bpm = 85;
+const beat = 60/bpm;
+const notes = [261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25];
+let bar = 0;
+
+function scheduleLoop(){
+if(!isMusicPlaying) return;
+try{
+const now = audioCtx.currentTime;
+const root = 220 + (bar%4)*11;
+
+// Pad chord (sustained)
+const pg = audioCtx.createGain();
+pg.gain.setValueAtTime(0.05,now);
+pg.gain.linearRampToValueAtTime(0.05,now+beat*8);
+pg.connect(musicGain);
+musicNodes.push(pg);
+[0,4,7,12].forEach(semi=>{
+const osc = audioCtx.createOscillator();
+osc.type = 'sine';
+osc.frequency.value = root * Math.pow(2,semi/12);
+osc.connect(pg);
+osc.start(now);
+osc.stop(now+beat*8);
+musicNodes.push(osc);
+});
+
+// Percussive kick-like (filtered noise + low osc)
+for(let i=0;i<4;i++){
+const kg = audioCtx.createGain();
+kg.gain.setValueAtTime(0.12,now+i*beat*2);
+kg.gain.exponentialRampToValueAtTime(0.001,now+i*beat*2+beat*0.5);
+kg.connect(musicGain);
+musicNodes.push(kg);
+const kosc = audioCtx.createOscillator();
+kosc.type = 'triangle';
+kosc.frequency.value = 80;
+kosc.connect(kg);
+kosc.start(now+i*beat*2);
+kosc.stop(now+i*beat*2+beat*0.5);
+musicNodes.push(kosc);
+}
+
+// Hi-hat like (short noise bursts)
+for(let i=0;i<8;i++){
+if(i%2===0) continue;
+const hg = audioCtx.createGain();
+hg.gain.setValueAtTime(0.04,now+i*beat);
+hg.gain.exponentialRampToValueAtTime(0.001,now+i*beat+beat*0.08);
+hg.connect(musicGain);
+musicNodes.push(hg);
+const hosc = audioCtx.createOscillator();
+hosc.type = 'square';
+hosc.frequency.value = 1200;
+hosc.connect(hg);
+hosc.start(now+i*beat);
+hosc.stop(now+i*beat+beat*0.08);
+musicNodes.push(hosc);
+}
+
+// Random melodic notes
+for(let i=0;i<4;i++){
+const mg = audioCtx.createGain();
+mg.gain.setValueAtTime(0.04,now+i*beat*2+beat*0.3);
+mg.gain.exponentialRampToValueAtTime(0.001,now+i*beat*2+beat*0.7);
+mg.connect(musicGain);
+musicNodes.push(mg);
+const idx = Math.floor(Math.random()*notes.length);
+const mosc = audioCtx.createOscillator();
+mosc.type = 'sine';
+mosc.frequency.value = notes[idx]*1.5;
+mosc.connect(mg);
+mosc.start(now+i*beat*2+beat*0.3);
+mosc.stop(now+i*beat*2+beat*0.7);
+musicNodes.push(mosc);
+}
+
+bar++;
+const next = now+beat*8;
+const delay = Math.max(0,next-audioCtx.currentTime)*1000;
+setTimeout(scheduleLoop,delay);
+}catch(e){isMusicPlaying=false}
+}
+scheduleLoop();
+}
+
+function stopMusic(){
+isMusicPlaying = false;
+musicNodes.forEach(n=>{
+try{n.disconnect()}catch(e){}
+try{n.stop&&n.stop()}catch(e){}
+});
+musicNodes = [];
+}
+
+function toggleMute(){
+isMuted = !isMuted;
+document.getElementById('muteBtn').textContent = isMuted?'🔇':'🔊';
+if(audioCtx){
+masterGain.gain.value = isMuted?0:0.22;
+}
+if(!isMuted&&!isMusicPlaying&&audioCtx) startMusic();
+}
+
+// ===== Word List =====
+const WORD_LIST = [
+"the","be","to","of","and","a","in","that","have","i","it","for","not","on","with","he","as","you","do","at",
+"this","but","his","by","from","they","we","say","her","she","or","an","will","my","one","all","would","there","their","what",
+"so","up","out","if","about","who","get","which","go","me","when","make","can","like","time","no","just","him","know","take",
+"people","into","year","your","good","some","could","them","see","other","than","then","now","look","only","come","its","over","think","also",
+"back","after","use","two","how","our","work","first","well","way","even","new","want","because","any","these","give","day","most","us",
+"great","between","need","large","often","hand","high","place","small","under","long","right","still","house","world","last","school","never","city","tree",
+"cross","farm","hard","start","might","story","saw","far","sea","draw","left","late","run","while","press","close","night","real","life","few",
+"open","seem","together","next","white","children","begin","got","walk","example","ease","paper","group","always","music","those","both","mark","book","letter",
+"until","mile","river","car","feet","care","second","enough","plain","girl","usual","young","ready","above","ever","red","list","though","feel","talk",
+"bird","soon","body","dog","family","direct","pose","leave","song","measure","door","product","black","short","number","class","wind","question","happen","complete",
+"ship","area","half","rock","order","fire","south","problem","piece","told","knew","pass","since","top","whole","king","space","heard","best","hour",
+"better","true","during","hundred","five","remember","step","early","hold","west","ground","interest","touch","include","row","word","almost","showed","serve","heart",
+"free","quick","develop","ocean","warm","minute","strong","special","mind","behind","clear","tail","produce","fact","street","inch","lot","stone","forward","hill",
+"buy","society","distance","wood","table","arm","particular","map","game","figure","create","tell","fun","quite","square","simple","surface","force","wait","spring",
+"brown","deep","moon","island","foot","yet","busy","test","record","boat","common","gold","possible","plane","age","dry","wonder","laugh","thousand","ago",
+"ran","check","game","shape","equal","miss","brought","heat","snow","tire","bring","yes","distant","fill","east","paint","language","among","grand","ball",
+"farm","wave","drop","heart","am","present","heavy","dance","engine","position","arm","wide","sail","material","size","vary","settle","speak","weight","general",
+"ice","matter","circle","pair","include","divide","syllable","felt","perhaps","pick","sudden","count","square","reason","length","represent","art","subject","region","energy",
+"hunt","probable","bed","brother","egg","ride","cell","believe","fraction","forest","sit","race","window","store","summer","train","sleep","prove","lone","leg",
+"exercise","wall","catch","mount","wish","sky","board","joy","winter","sat","written","wild","instrument","kept","glass","grass","cow","job","edge","sign",
+"visit","past","soft","fun","bright","gas","weather","month","million","bear","finish","happy","hope","flower","clothe","strange","gone","jump","baby","eight",
+"village","meet","root","buy","raise","solve","metal","whether","push","seven","paragraph","third","shall","held","hair","describe","cook","floor","either","result",
+"burn","hill","safe","cat","century","consider","type","law","bit","coast","copy","phrase","silent","tall","sand","soil","roll","temperature","finger","industry",
+"value","fight","lie","beat","excite","natural","view","sense","ear","else","quite","broke","case","middle","kill","son","lake","moment","scale","loud",
+"spring","observe","child","straight","consonant","nation","dictionary","milk","speed","method","organ","pay","age","section","dress","cloud","surprise","quiet","stone","tiny",
+"climb","cool","design","poor","lot","experiment","bottom","key","iron","single","stick","flat","twenty","skin","smile","crease","hole","trade","melody","trip",
+"office","receive","row","mouth","exact","symbol","die","least","trouble","shout","except","wrote","seed","tone","join","suggest","clean","break","lady","yard",
+"rise","bad","blow","oil","blood","touch","grew","cent","mix","team","wire","cost","lost","brown","wear","garden","equal","sent","choose","fell",
+"fit","flow","fair","bank","collect","save","control","decimal","gentle","woman","captain","practice","separate","difficult","doctor","please","protect","noon","whose","locate",
+"ring","character","insect","caught","period","indicate","radio","spoke","atom","human","history","effect","electric","expect","crop","modern","element","hit","student","corner",
+"party","supply","bone","rail","imagine","provide","agree","thus","capital","won't","chair","danger","fruit","rich","thick","soldier","process","operate","guess","necessary",
+"sharp","wing","create","neighbor","wash","bat","rather","crowd","corn","compare","poem","string","bell","depend","meat","rub","tube","famous","dollar","stream",
+"fear","sight","thin","triangle","planet","hurry","chief","colony","clock","mine","tie","enter","major","fresh","search","send","yellow","gun","allow","print",
+"dead","spot","desert","suit","current","lift","rose","continue","block","chart","hat","cell","sell","success","company","subtract","event","particular","deal","swim",
+"term","opposite","wife","shoe","shoulder","spread","arrange","camp","invent","cotton","born","determine","quart","nine","truck","noise","level","chance","gather","shop",
+"stretch","throw","shine","property","column","molecule","select","wrong","gray","repeat","require","broad","prepare","salt","nose","plural","anger","claim","continent","oxygen",
+"sugar","death","pretty","skill","women","season","solution","magnet","silver","thank","branch","match","suffix","especially","fig","afraid","huge","sister","steel","discuss",
+"forward","similar","guide","experience","score","apple","bought","led","pitch","coat","mass","card","band","rope","slip","win","dream","evening","condition","feed",
+"tool","total","basic","smell","valley","nor","double","seat","arrive","master","track","parent","shore","division","sheet","substance","favor","connect","post","spend",
+"chord","fat","glad","original","share","station","dad","bread","charge","proper","bar","offer","segment","slave","duck","instant","market","degree","populate","chick",
+"dear","enemy","reply","drink","occur","support","speech","nature","range","steam","motion","path","liquid","log","meant","quotient","teeth","shell","neck"
+];
+
+// ===== Game State =====
+let timeLimit = 60;
+let timeRemaining = 60;
+let isRunning = false;
+let isPaused = false;
+let words = [];
+let currentWordIdx = 0;
+let currentCharIdx = 0;
+let correctKeys = 0;
+let incorrectKeys = 0;
+let totalKeys = 0;
+// let wpmValues = [];
+let timerInterval = null;
+let topWpm = 0;
+
+// ===== DOM refs =====
+const wordDisplay = document.getElementById('wordDisplay');
+const wordInput = document.getElementById('wordInput');
+const startBtn = document.getElementById('startBtn');
+const wpmDisplay = document.getElementById('wpmDisplay');
+const accDisplay = document.getElementById('accDisplay');
+const keystrokesDisplay = document.getElementById('keystrokesDisplay');
+const timeDisplay = document.getElementById('timeDisplay');
+const progressFill = document.getElementById('progressFill');
+const resultScreen = document.getElementById('resultScreen');
+const highScores = document.getElementById('highScores');
+const hsContent = document.getElementById('hsContent');
+
+// ===== Functions =====
+function pickWords(count){
+const shuffled = [...WORD_LIST].sort(()=>Math.random()-0.5);
+return shuffled.slice(0,count);
+}
+
+function startGame(){
+initAudio();
+if(!isMusicPlaying) startMusic();
+hideResult();
+if(isPaused){isPaused=false;document.getElementById('pauseOverlay').style.opacity='0';document.getElementById('pauseOverlay').style.pointerEvents='none'}
+timeRemaining = timeLimit;
+isRunning = true;
+currentWordIdx = 0;
+currentCharIdx = 0;
+correctKeys = 0;
+incorrectKeys = 0;
+totalKeys = 0;
+// wpmValues = [];
+words = pickWords(50);
+wordInput.value = '';
+wordInput.disabled = false;
+wordInput.focus();
+startBtn.textContent = 'Running';
+startBtn.className = 'start-btn running';
+updateStats();
+renderWords();
+startTimer();
+}
+
+function startTimer(){
+clearInterval(timerInterval);
+timerInterval = setInterval(()=>{
+timeRemaining--;
+updateStats();
+if(timeRemaining<=0){
+endGame();
+}
+},1000);
+}
+
+function endGame(){
+isRunning = false;
+isPaused = false;
+clearInterval(timerInterval);
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
+wordInput.disabled = true;
+startBtn.textContent = 'Finished';
+startBtn.className = 'start-btn finished';
+playSfxComplete();
+const wpm = calculateWpm();
+const acc = totalKeys>0 ? Math.round((correctKeys/totalKeys)*100) : 100;
+const elapsed = timeLimit - timeRemaining;
+topWpm = Math.max(topWpm,wpm);
+showResult(wpm,acc);
+saveScore(wpm,acc);
+updateHighScores();
+}
+
+function calculateWpm(){
+const elapsed = timeLimit - timeRemaining;
+if(elapsed<=0) return 0;
+const minutes = elapsed/60;
+// WPM = (correct chars / 5) / minutes
+const wpm = Math.round((correctKeys/5)/minutes);
+return Math.max(0,wpm);
+}
+
+function renderWords(){
+wordDisplay.innerHTML = '';
+words.forEach((word,i)=>{
+const span = document.createElement('span');
+span.className = 'word';
+if(i===currentWordIdx) span.classList.add('current');
+else if(i<currentWordIdx) span.classList.add('done');
+word.split('').forEach((ch,j)=>{
+const cspan = document.createElement('span');
+cspan.className = 'char';
+cspan.textContent = ch;
+if(i===currentWordIdx){
+if(j<currentCharIdx){
+cspan.classList.add('correct');
+} else if(j===currentCharIdx){
+cspan.classList.add('current-char');
+}
+}
+span.appendChild(cspan);
+});
+wordDisplay.appendChild(span);
+});
+// Scroll current word into view
+const currentEl = wordDisplay.querySelector('.word.current');
+if(currentEl){
+currentEl.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+}
+
+function updateStats(){
+const wpm = calculateWpm();
+// if(isRunning&&wpm>0) wpmValues.push(wpm);
+const acc = totalKeys>0 ? Math.round((correctKeys/totalKeys)*100) : 100;
+wpmDisplay.textContent = wpm;
+accDisplay.textContent = acc+'%';
+keystrokesDisplay.textContent = totalKeys;
+timeDisplay.textContent = Math.max(0,timeRemaining);
+const pct = ((timeLimit-timeRemaining)/timeLimit)*100;
+progressFill.style.width = Math.min(100,pct)+'%';
+}
+
+function showResult(wpm,acc){
+resultScreen.classList.add('show');
+document.getElementById('resWpm').textContent = wpm;
+document.getElementById('resTopWpm').textContent = topWpm;
+document.getElementById('resAcc').textContent = acc+'%';
+document.getElementById('resKeys').textContent = totalKeys;
+document.getElementById('resCorrect').textContent = correctKeys;
+document.getElementById('resIncorrect').textContent = incorrectKeys;
+}
+
+function hideResult(){
+resultScreen.classList.remove('show');
+}
+
+function saveScore(wpm,acc){
+let scores = [];
+try{
+const stored = localStorage.getItem('typingScores');
+if(stored) scores = JSON.parse(stored);
+}catch(e){}
+scores.push({wpm,acc,date:new Date().toLocaleDateString(),time:timeLimit});
+scores.sort((a,b)=>b.wpm-a.wpm);
+scores = scores.slice(0,15);
+try{
+localStorage.setItem('typingScores',JSON.stringify(scores));
+}catch(e){}
+}
+
+function updateHighScores(){
+let scores = [];
+try{
+const stored = localStorage.getItem('typingScores');
+if(stored) scores = JSON.parse(stored);
+}catch(e){}
+if(scores.length===0){
+hsContent.innerHTML = '<p style="color:#666;text-align:center;font-size:13px">No scores yet</p>';
+return;
+}
+let html = '<table><tr><th>#</th><th>WPM</th><th>Acc</th><th>Time</th><th>Date</th></tr>';
+scores.forEach((s,i)=>{
+html += `<tr><td class="rank">${i+1}</td><td class="hs-wpm">${s.wpm}</td><td class="hs-acc">${s.acc}%</td><td>${s.time||60}s</td><td class="hs-date">${s.date}</td></tr>`;
+});
+html += '</table>';
+hsContent.innerHTML = html;
+}
+
+// ===== Input Handling =====
+wordInput.addEventListener('input',function(e){
+  if(!isRunning||isPaused) return;
+  const val = this.value;
+  if(val.length===0){
+    currentCharIdx = 0;
+    renderWords();
+    updateStats();
+    return;
+  }
+const lastChar = val[val.length-1];
+const word = words[currentWordIdx];
+if(!word) return;
+
+if(lastChar===' '||val.endsWith(' ')){
+// Word completed
+const typed = val.trim();
+if(typed===word){
+correctKeys += word.length;
+totalKeys += word.length;
+playSfxWordComplete();
+} else {
+// Count correct chars
+let correct = 0;
+for(let i=0;i<Math.min(typed.length,word.length);i++){
+if(typed[i]===word[i]) correct++;
+}
+incorrectKeys += Math.max(typed.length,word.length)-correct;
+correctKeys += correct;
+totalKeys += typed.length;
+playSfxIncorrect();
+}
+currentWordIdx++;
+currentCharIdx = 0;
+this.value = '';
+if(currentWordIdx>=words.length-5){
+  const extra = pickWords(30);
+  while(extra.length>0&&words[words.length-1]===extra[0])extra.shift();
+  words = words.concat(extra);
+}
+renderWords();
+updateStats();
+return;
+}
+
+// Character by character
+const charIdx = val.length-1;
+currentCharIdx = val.length;
+const expectedChar = word[charIdx];
+if(!expectedChar){
+totalKeys++;
+incorrectKeys++;
+playSfxIncorrect();
+return;
+}
+if(lastChar===expectedChar){
+playSfxCorrect();
+} else {
+playSfxIncorrect();
+}
+totalKeys++;
+if(lastChar===expectedChar){
+correctKeys++;
+} else {
+incorrectKeys++;
+}
+updateStats();
+renderWords();
+});
+
+  wordInput.addEventListener('keydown',function(e){
+    if(e.repeat) return;
+    if(e.key==='Backspace'){
+// Allow backspace but track it
+}
+if(!isRunning&&e.key==='Enter'){
+e.preventDefault();startGame();
+}
+});
+
+// ===== Pause =====
+function pauseGame(){
+if(!isRunning||isPaused)return;
+isPaused=true;
+clearInterval(timerInterval);
+document.getElementById('pauseOverlay').style.opacity='1';
+document.getElementById('pauseOverlay').style.pointerEvents='auto';
+wordInput.disabled=true;
+}
+function resumeGame(){
+if(!isPaused)return;
+isPaused=false;
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
+wordInput.disabled=false;
+wordInput.focus();
+timerInterval=setInterval(()=>{
+timeRemaining--;
+updateStats();
+if(timeRemaining<=0)endGame();
+},1000);
+}
+document.getElementById('pauseOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)resumeGame()});
+
+// ===== Keyboard =====
+document.addEventListener('keydown',e=>{
+if(e.repeat)return;const k=e.key;
+if((k==='p'||k==='P'||k==='Escape')&&isRunning){e.preventDefault();if(isPaused)resumeGame();else pauseGame();return}
+if(k==='m'||k==='M'){e.preventDefault();if(!audioCtx)initAudio();toggleMute();return}
+if((k===' '||k==='Enter')&&!isRunning){e.preventDefault();if(!audioCtx)initAudio();startGame();return}
+});
+
+document.addEventListener('visibilitychange',()=>{
+if(document.hidden&&isRunning&&!isPaused)pauseGame();
+});
+
+// ===== Time controls =====
+document.querySelectorAll('.time-controls button').forEach(btn=>{
+btn.addEventListener('click',function(){
+document.querySelectorAll('.time-controls button').forEach(b=>b.classList.remove('active'));
+this.classList.add('active');
+timeLimit = parseInt(this.dataset.time);
+timeRemaining = timeLimit;
+timeDisplay.textContent = timeLimit;
+if(!isRunning){
+startBtn.textContent = 'Start';
+startBtn.className = 'start-btn';
+}
+});
+});
+
+// ===== Event Listeners =====
+document.getElementById('muteBtn').addEventListener('click',()=>{
+if(!audioCtx) initAudio();
+toggleMute();
+});
+
+document.addEventListener('click',()=>{
+if(!audioCtx){
+initAudio();
+startMusic();
+}
+},{once:true});
+
+startBtn.addEventListener('click',function(){
+if(isRunning) return;
+startGame();
+});
+
+document.getElementById('retryBtn').addEventListener('click',function(){
+startGame();
+});
+
+document.getElementById('shareBtn').addEventListener('click',function(){
+const wpm = document.getElementById('resWpm').textContent;
+const acc = document.getElementById('resAcc').textContent;
+if(navigator.share){
+navigator.share({title:'Typing Speed Test',text:`I typed ${wpm} WPM with ${acc} accuracy!`});
+} else {
+navigator.clipboard.writeText(`Typing Speed Test: ${wpm} WPM with ${acc} accuracy!`);
+document.getElementById('shareBtn').textContent = 'Copied!';
+setTimeout(()=>document.getElementById('shareBtn').textContent='Share Score',2000);
+}
+});
+
+// Init
+updateStats();
+updateHighScores();
+</script>
+</body>
+</html>

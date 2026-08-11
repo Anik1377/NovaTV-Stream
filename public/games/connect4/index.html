@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Connect 4</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔴</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:linear-gradient(135deg,#080012,#0a0a24,#0d0d30);color:#e0e0e0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app{width:100%;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12px;position:relative}
+.top-bar{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.back-link{color:#8888cc;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);transition:all .2s}
+.back-link:hover{color:#aaaaff;background:rgba(255,255,255,0.1)}
+.mute-btn{font-size:22px;cursor:pointer;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;transition:all .2s;user-select:none}
+.mute-btn:hover{background:rgba(255,255,255,0.12)}
+h1{font-size:28px;font-weight:700;background:linear-gradient(90deg,#ff6b6b,#ffd93d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;text-align:center}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;align-items:center}
+.controls button{padding:7px 18px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);color:#ccc;font-family:inherit}
+.controls button:hover{background:rgba(255,255,255,0.14);transform:translateY(-1px)}
+.controls button.active{background:rgba(100,100,255,0.25);border-color:rgba(100,100,255,0.4);color:#fff}
+.controls button.reset-btn{background:rgba(255,80,80,0.15);border-color:rgba(255,80,80,0.2);color:#ff8888}
+.controls button.reset-btn:hover{background:rgba(255,80,80,0.25)}
+.scoreboard{display:flex;gap:20px;margin-bottom:8px;font-size:15px;font-weight:600;background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:8px 22px}
+.score-red{color:#ff6b6b}
+.score-yellow{color:#ffd93d}
+.score-draw{color:#888}
+.turn-indicator{margin-bottom:8px;font-size:16px;font-weight:600;padding:6px 20px;border-radius:10px;background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);min-width:180px;text-align:center}
+.board-wrap{position:relative;background:rgba(10,10,35,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.board{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;position:relative}
+.col{display:flex;flex-direction:column-reverse;gap:6px;cursor:pointer;padding:4px;border-radius:10px;transition:all .2s;position:relative}
+.col:hover{background:rgba(255,255,255,0.06)}
+.col{touch-action:manipulation}
+.col.dim{opacity:0.4}
+.cell{width:clamp(38px,10vw,62px);height:clamp(38px,10vw,62px);border-radius:50%;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.08);transition:all .3s ease;position:relative}
+.cell.red{background:radial-gradient(circle at 35% 35%,#ff8888,#cc2222);border-color:#ff4444;box-shadow:0 0 12px rgba(255,50,50,0.3)}
+.cell.yellow{background:radial-gradient(circle at 35% 35%,#ffee88,#ccaa00);border-color:#ddcc00;box-shadow:0 0 12px rgba(255,220,50,0.3)}
+.cell.dropping{animation:dropPiece .35s cubic-bezier(.36,.07,.19,.97) forwards}
+@keyframes dropPiece{0%{transform:translateY(-300px);opacity:0}60%{transform:translateY(8px)}80%{transform:translateY(-4px)}100%{transform:translateY(0);opacity:1}}
+.cell.win{animation:pulse 0.6s ease-in-out infinite alternate}
+@keyframes pulse{0%{box-shadow:0 0 8px rgba(255,255,255,0.3);transform:scale(1)}100%{box-shadow:0 0 25px rgba(255,255,255,0.7);transform:scale(1.08)}}
+.col-hint{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+.col:hover .col-hint{opacity:0.8}
+.game-over-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;opacity:0;pointer-events:none;transition:opacity .4s}
+.game-over-overlay.show{opacity:1;pointer-events:auto}
+.game-over-overlay h2{font-size:clamp(22px,5vw,36px);margin-bottom:8px}
+.game-over-overlay p{font-size:clamp(16px,3vw,20px);margin-bottom:6px;color:#bbb}
+.game-over-overlay .btn-play-again{margin-top:10px;padding:10px 30px;border:none;border-radius:12px;cursor:pointer;font-size:16px;font-weight:700;background:linear-gradient(135deg,#667eea,#764ba2);color:white;transition:all .3s;font-family:inherit}
+.game-over-overlay .btn-play-again:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.4)}
+.game-over-overlay .btn-play-again:active{transform:translateY(0)}
+@media(max-width:500px){#app{padding:6px}.board-wrap{padding:8px}.board{gap:4px}.col{gap:4px;padding:2px}.controls button{padding:5px 12px;font-size:12px}.scoreboard{gap:12px;font-size:13px;padding:6px 14px}h1{font-size:22px}}
+@media(max-width:380px){.cell{width:38px;height:38px}.board{gap:3px}.col{gap:3px}}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="top-bar">
+<a href="../../index.html" class="back-link">&larr; Back to Hub</a>
+<div class="mute-btn" id="muteBtn">🔊</div>
+</div>
+<h1>Connect 4</h1>
+<div class="controls">
+<button id="modePvp" class="active">👥 PvP</button>
+<button id="modeAi">🤖 PvAI</button>
+<button class="reset-btn" id="resetBtn">↻ New Game</button>
+</div>
+<div class="scoreboard">
+<span class="score-red">🔴 Red: <span id="scoreRed">0</span></span>
+<span class="score-yellow">🟡 Yellow: <span id="scoreYellow">0</span></span>
+<span class="score-draw">Draws: <span id="scoreDraw">0</span></span>
+</div>
+<div class="turn-indicator" id="turnIndicator">🔴 Red's turn</div>
+<div class="board-wrap" id="boardWrap">
+<div class="board" id="board"></div>
+<div class="game-over-overlay" id="gameOverOverlay">
+<h2 id="resultTitle">🎉 Winner!</h2>
+<p id="resultSub"></p>
+<button class="btn-play-again" id="playAgainBtn">Play Again</button>
+</div>
+</div>
+</div>
+<script>
+// ===== Audio Engine =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let masterGain = null;
+let musicGain = null;
+let sfxGain = null;
+let musicNodes = [];
+let isMuted = false;
+let isMusicPlaying = false;
+let audioStarted = false;
+
+function initAudio(){
+if(audioCtx) return;
+audioCtx = new AudioCtx();
+masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.2;
+masterGain.connect(audioCtx.destination);
+musicGain = audioCtx.createGain();
+musicGain.gain.value = 0.6;
+musicGain.connect(masterGain);
+sfxGain = audioCtx.createGain();
+sfxGain.gain.value = 0.8;
+sfxGain.connect(masterGain);
+}
+
+function playNote(freq,duration,type,gainVal,connectTo){
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = type || 'sine';
+osc.frequency.value = freq;
+gain.gain.setValueAtTime(gainVal||0.15,audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration);
+osc.connect(gain);
+gain.connect(connectTo||sfxGain);
+osc.start(audioCtx.currentTime);
+osc.stop(audioCtx.currentTime+duration);
+return {osc,gain};
+}
+
+function playSfxDrop(){
+if(!audioCtx||isMuted) return;
+playNote(220,0.15,'triangle',0.2);
+playNote(180,0.2,'triangle',0.15,sfxGain);
+setTimeout(()=>playNote(150,0.12,'triangle',0.1),50);
+}
+
+function playSfxWin(){
+if(!audioCtx||isMuted) return;
+playNote(523,0.2,'square',0.12);
+setTimeout(()=>playNote(659,0.2,'square',0.12),120);
+setTimeout(()=>playNote(784,0.2,'square',0.12),240);
+setTimeout(()=>playNote(1047,0.4,'square',0.15),360);
+}
+
+function playSfxInvalid(){
+if(!audioCtx||isMuted) return;
+playNote(120,0.25,'sawtooth',0.08);
+}
+
+function playSfxAiThinking(){
+if(!audioCtx||isMuted) return;
+playNote(400,0.08,'sine',0.06);
+}
+
+// Procedural background music
+function startMusic(){
+if(!audioCtx||isMusicPlaying) return;
+isMusicPlaying = true;
+musicNodes = [];
+const bpm = 80;
+const beat = 60/bpm;
+const chords = [
+[261.63,329.63,392.00],
+[293.66,369.99,440.00],
+[329.63,415.30,493.88],
+[261.63,329.63,392.00],
+];
+const bassNotes = [130.81,146.83,164.81,130.81];
+const arpNotes = [
+[261.63,329.63,392.00,523.25],
+[293.66,369.99,440.00,587.33],
+[329.63,415.30,493.88,659.25],
+[261.63,329.63,392.00,523.25],
+];
+let bar = 0;
+
+function scheduleLoop(){
+if(!isMusicPlaying) return;
+const now = audioCtx.currentTime;
+const ch = chords[bar%4];
+const bassFreq = bassNotes[bar%4];
+const arp = arpNotes[bar%4];
+
+// Pad
+const padGain = audioCtx.createGain();
+padGain.gain.setValueAtTime(0.06,now);
+padGain.gain.linearRampToValueAtTime(0.06,now+beat*16);
+padGain.connect(musicGain);
+musicNodes.push(padGain);
+ch.forEach(f=>{
+const osc = audioCtx.createOscillator();
+osc.type = 'sine';
+osc.frequency.value = f;
+osc.connect(padGain);
+osc.start(now);
+osc.stop(now+beat*16);
+musicNodes.push(osc);
+});
+
+// Bass
+for(let i=0;i<4;i++){
+const bg = audioCtx.createGain();
+bg.gain.setValueAtTime(0.1,now+i*beat*2);
+bg.gain.linearRampToValueAtTime(0.001,now+i*beat*2+beat*1.9);
+bg.connect(musicGain);
+musicNodes.push(bg);
+const bosc = audioCtx.createOscillator();
+bosc.type = 'triangle';
+bosc.frequency.value = bassFreq;
+bosc.connect(bg);
+bosc.start(now+i*beat*2);
+bosc.stop(now+i*beat*2+beat*1.9);
+musicNodes.push(bosc);
+}
+
+// Arp
+for(let i=0;i<16;i++){
+if(i%4===3) continue;
+const ag = audioCtx.createGain();
+ag.gain.setValueAtTime(0.04,now+i*beat/2);
+ag.gain.exponentialRampToValueAtTime(0.001,now+i*beat/2+beat*0.4);
+ag.connect(musicGain);
+musicNodes.push(ag);
+const aosc = audioCtx.createOscillator();
+aosc.type = 'sine';
+aosc.frequency.value = arp[i%4];
+aosc.connect(ag);
+aosc.start(now+i*beat/2);
+aosc.stop(now+i*beat/2+beat*0.4);
+musicNodes.push(aosc);
+}
+
+bar++;
+const next = now+beat*8;
+const delay = Math.max(0,next-audioCtx.currentTime)*1000;
+setTimeout(scheduleLoop,delay);
+}
+scheduleLoop();
+}
+
+function stopMusic(){
+isMusicPlaying = false;
+musicNodes.forEach(n=>{
+try{n.disconnect()}catch(e){}
+try{n.stop&&n.stop()}catch(e){}
+});
+musicNodes = [];
+}
+
+function toggleMute(){
+isMuted = !isMuted;
+document.getElementById('muteBtn').textContent = isMuted?'🔇':'🔊';
+if(audioCtx){
+if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+masterGain.gain.value = isMuted?0:0.2;
+}
+if(!isMuted&&!isMusicPlaying&&audioCtx) startMusic();
+}
+
+// ===== Game State =====
+const COLS = 7;
+const ROWS = 6;
+let board = [];
+let currentPlayer = 1; // 1=red, 2=yellow
+let gameActive = false;
+let isAiMode = false;
+let isAnimating = false;
+let scores = {red:0,yellow:0,draw:0};
+try{const s=JSON.parse(localStorage.getItem('connect4_scores'));if(s)scores=s;}catch(e){}
+let winningCells = [];
+
+function createBoard(){
+board = Array.from({length:COLS},()=>Array(ROWS).fill(0));
+}
+
+function getValidColumns(){
+return board.map((col,i)=>col.some(c=>c===0)?i:-1).filter(i=>i>=0);
+}
+
+function getLowestRow(col){
+for(let r=0;r<ROWS;r++){
+if(board[col][r]===0) return r;
+}
+return -1;
+}
+
+function checkWin(col,row,player){
+const directions = [[1,0],[0,1],[1,1],[1,-1]];
+for(const [dc,dr] of directions){
+let cells = [[col,row]];
+for(let d=-1;d<=1;d+=2){
+let c=col+dc*d, r=row+dr*d;
+while(c>=0&&c<COLS&&r>=0&&r<ROWS&&board[c][r]===player){
+cells.push([c,r]);
+c+=dc*d; r+=dr*d;
+}
+}
+if(cells.length>=4) return cells;
+}
+return null;
+}
+
+function isBoardFull(){
+return board.every(col=>col.every(c=>c!==0));
+}
+
+// ===== Rendering =====
+function renderBoard(){
+const boardEl = document.getElementById('board');
+boardEl.innerHTML = '';
+for(let c=0;c<COLS;c++){
+const colEl = document.createElement('div');
+colEl.className = 'col';
+colEl.dataset.col = c;
+if(!gameActive) colEl.classList.add('dim');
+const hint = document.createElement('div');
+hint.className = 'col-hint';
+hint.textContent = currentPlayer===1?'🔴':'🟡';
+colEl.appendChild(hint);
+for(let r=0;r<ROWS;r++){
+const cell = document.createElement('div');
+cell.className = 'cell';
+cell.dataset.col = c;
+cell.dataset.row = r;
+const val = board[c][r];
+if(val===1) cell.classList.add('red');
+else if(val===2) cell.classList.add('yellow');
+if(winningCells.some(([wc,wr])=>wc===c&&wr===r)){
+cell.classList.add('win');
+}
+colEl.appendChild(cell);
+}
+colEl.addEventListener('click',()=>handleColumnClick(c));
+boardEl.appendChild(colEl);
+}
+updateTurnIndicator();
+}
+
+function updateTurnIndicator(){
+const el = document.getElementById('turnIndicator');
+if(!gameActive){
+el.textContent = 'Game Over';
+return;
+}
+if(isAnimating){
+el.textContent = currentPlayer===1?'🔴 Dropping...':'🟡 Dropping...';
+return;
+}
+if(isAiMode&&currentPlayer===2){
+el.textContent = '🤖 AI thinking...';
+return;
+}
+el.textContent = currentPlayer===1?'🔴 Red\'s turn':'🟡 Yellow\'s turn';
+}
+
+function showGameOver(title,sub){
+const overlay = document.getElementById('gameOverOverlay');
+document.getElementById('resultTitle').textContent = title;
+document.getElementById('resultSub').textContent = sub;
+overlay.classList.add('show');
+}
+
+function hideGameOver(){
+document.getElementById('gameOverOverlay').classList.remove('show');
+}
+
+// ===== Game Logic =====
+function handleColumnClick(col){
+  if(!gameActive||isAnimating) return;
+  if(isAiMode&&currentPlayer===2) return;
+  initAudio();
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  dropPiece(col);
+}
+
+  function dropPiece(col){
+  const row = getLowestRow(col);
+  if(row===-1){
+    playSfxInvalid();
+    return;
+  }
+  isAnimating = true;
+  board[col][row] = currentPlayer;
+  renderBoard();
+
+  // Animate drop
+    const cells = document.querySelectorAll('.cell');
+    const cellIdx = col*ROWS + row;
+  const targetCell = cells[cellIdx];
+  if(targetCell){
+    targetCell.classList.add('dropping');
+  }
+
+    playSfxDrop();
+
+    setTimeout(()=>{
+      const winCells = checkWin(col,row,currentPlayer);
+      if(winCells){
+        winningCells = winCells;
+        gameActive = false;
+        const existingCells = document.querySelectorAll('.cell');
+        winningCells.forEach(([wc,wr])=>{
+          const idx = wc*ROWS + wr;
+          if(existingCells[idx]) existingCells[idx].classList.add('win');
+        });
+        playSfxWin();
+        const winner = currentPlayer===1?'Red':'Yellow';
+        const emoji = currentPlayer===1?'🔴':'🟡';
+        if(currentPlayer===1) scores.red++;
+        else scores.yellow++;
+        updateScore();
+        showGameOver(`${emoji} ${winner} Wins!`,`Connect 4!`);
+      } else if(isBoardFull()){
+        gameActive = false;
+        scores.draw++;
+        updateScore();
+        showGameOver('🤝 Draw!','Board is full');
+      } else {
+        currentPlayer = currentPlayer===1?2:1;
+        renderBoard();
+        if(isAiMode&&currentPlayer===2&&gameActive){
+          setTimeout(aiMove,300);
+        }
+      }
+      isAnimating = false;
+    },380);
+  }
+
+function aiMove(){
+if(!gameActive||currentPlayer!==2) return;
+playSfxAiThinking();
+const cols = getValidColumns();
+if(cols.length===0) return;
+const aiPlayer = 2;
+const humanPlayer = 1;
+
+// 1. Win if possible
+for(const c of cols){
+const r = getLowestRow(c);
+board[c][r] = aiPlayer;
+if(checkWin(c,r,aiPlayer)){
+board[c][r] = 0;
+dropPiece(c);
+return;
+}
+board[c][r] = 0;
+}
+
+// 2. Block human win
+for(const c of cols){
+const r = getLowestRow(c);
+board[c][r] = humanPlayer;
+if(checkWin(c,r,humanPlayer)){
+board[c][r] = 0;
+dropPiece(c);
+return;
+}
+board[c][r] = 0;
+}
+
+// 3. Heuristic: prefer center, score columns
+let scored = cols.map(c=>{
+let s = 0;
+const mid = 3;
+s += (4 - Math.abs(c-mid)) * 3;
+// Check if column leads to future threat
+const r = getLowestRow(c);
+board[c][r] = aiPlayer;
+for(let dc=-1;dc<=1;dc++){
+for(let dr=-1;dr<=1;dr++){
+if(dc===0&&dr===0) continue;
+if(dc<0||(dc===0&&dr<0)) continue;
+let count=1;
+for(let d=1;d<4;d++){
+let nc=c+dc*d, nr=r+dr*d;
+if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&board[nc][nr]===aiPlayer) count++;
+else break;
+}
+for(let d=1;d<4;d++){
+let nc=c-dc*d, nr=r-dr*d;
+if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&board[nc][nr]===aiPlayer) count++;
+else break;
+}
+if(count>=3) s+=5;
+}
+}
+board[c][r] = 0;
+return {col:c,score:s};
+});
+scored.sort((a,b)=>b.score-a.score);
+// Take top scorers, pick randomly among them
+const topScore = scored[0].score;
+const topCols = scored.filter(s=>s.score>=topScore-2);
+const chosen = topCols[Math.floor(Math.random()*topCols.length)].col;
+dropPiece(chosen);
+}
+
+function resetGame(){
+if(isAnimating) return;
+hideGameOver();
+createBoard();
+currentPlayer = 1;
+gameActive = true;
+winningCells = [];
+isAnimating = false;
+selectedCol = 3;
+renderBoard();
+if(isAiMode&&currentPlayer===2) setTimeout(aiMove,400);
+}
+
+function updateScore(){
+document.getElementById('scoreRed').textContent = scores.red;
+document.getElementById('scoreYellow').textContent = scores.yellow;
+document.getElementById('scoreDraw').textContent = scores.draw;
+try{localStorage.setItem('connect4_scores',JSON.stringify(scores));}catch(e){}
+}
+
+function setMode(ai){
+isAiMode = ai;
+document.getElementById('modePvp').classList.toggle('active',!ai);
+document.getElementById('modeAi').classList.toggle('active',ai);
+resetGame();
+}
+
+// ===== Init =====
+document.getElementById('muteBtn').addEventListener('click',()=>{
+if(!audioCtx) initAudio();
+toggleMute();
+});
+
+function startAudio(){
+if(!audioCtx){
+initAudio();
+startMusic();
+audioStarted=true;
+}
+}
+
+document.addEventListener('click',()=>{if(!audioStarted)startAudio();},{once:true});
+
+document.getElementById('resetBtn').addEventListener('click',resetGame);
+document.getElementById('playAgainBtn').addEventListener('click',resetGame);
+document.getElementById('modePvp').addEventListener('click',()=>setMode(false));
+document.getElementById('modeAi').addEventListener('click',()=>setMode(true));
+
+// Keyboard support
+let selectedCol = 3;
+document.addEventListener('keydown',e=>{
+  if(e.repeat) return;
+  if(!audioStarted&&e.key!=='m'&&e.key!=='M')startAudio();
+  if(e.key==='m'||e.key==='M'){e.preventDefault();document.getElementById('muteBtn').click();return;}
+  if(!gameActive) return;
+  if(isAiMode&&currentPlayer===2) return;
+  if(e.key==='ArrowLeft'){e.preventDefault();selectedCol=Math.max(0,selectedCol-1);}
+  else if(e.key==='ArrowRight'){e.preventDefault();selectedCol=Math.min(COLS-1,selectedCol+1);}
+  else if(e.key==='Enter'||e.key===' '){e.preventDefault();handleColumnClick(selectedCol);}
+});
+
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+createBoard();
+gameActive = true;
+renderBoard();
+updateScore();
+</script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>15-Puzzle</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔢</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:linear-gradient(135deg,#080012,#0a0a24,#080012);
+  min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;
+  color:#e0e0e0;padding:16px;-webkit-tap-highlight-color:transparent
+}
+.glass{
+  background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px;box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+#app{
+  width:min(95vw,500px);padding:24px;display:flex;flex-direction:column;
+  align-items:center;gap:16px;
+}
+.top-bar{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+}
+.back{
+  color:rgba(255,255,255,0.6);text-decoration:none;font-size:13px;
+  transition:color .3s;display:flex;align-items:center;gap:4px;
+}
+.back:hover{color:#fff}
+h1{
+  font-size:20px;letter-spacing:3px;text-transform:uppercase;
+  background:linear-gradient(135deg,#ff6ec7,#c56cf0);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.mute-btn{
+  background:none;border:none;font-size:22px;cursor:pointer;padding:4px 8px;
+  border-radius:8px;transition:background .3s;line-height:1;
+}
+.mute-btn:hover{background:rgba(255,255,255,0.1)}
+.stats-bar{
+  width:100%;display:flex;justify-content:space-around;font-size:14px;
+  color:rgba(255,255,255,0.5);
+}
+.stats-bar strong{color:#fff;font-weight:600}
+.puzzle-grid{
+  width:min(85vw,min(85vw,400px));aspect-ratio:1;position:relative;
+  background:rgba(0,0,0,0.25);border-radius:16px;overflow:hidden;
+  touch-action:manipulation;
+}
+.tile{
+  position:absolute;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;cursor:pointer;font-weight:700;font-size:1.3em;color:#fff;
+  user-select:none;-webkit-user-select:none;
+  transition:transform .15s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 4px 12px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.15);
+  -webkit-tap-highlight-color:transparent;
+}
+.tile:active{filter:brightness(0.8)}
+.tile.empty{opacity:0;pointer-events:none}
+.tile.correct{box-shadow:0 0 12px rgba(100,255,100,0.3)}
+.controls{
+  width:100%;display:flex;justify-content:center;align-items:center;gap:12px;
+  flex-wrap:wrap;
+}
+.btn{
+  padding:10px 24px;border:none;border-radius:12px;font-size:13px;
+  font-weight:600;cursor:pointer;letter-spacing:1px;text-transform:uppercase;
+  transition:all .3s;font-family:inherit;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#c56cf0,#ff6ec7);color:#fff;
+  box-shadow:0 4px 15px rgba(197,108,240,0.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(197,108,240,0.5)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.size-group{display:flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)}
+.size-btn{
+  padding:8px 16px;border:none;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;font-family:inherit;
+}
+.size-btn.active{
+  background:linear-gradient(135deg,#c56cf0,#ff6ec7);color:#fff;
+}
+.size-btn:not(.active):hover{background:rgba(255,255,255,0.1)}
+.best-display{
+  font-size:13px;color:rgba(255,255,255,0.4);text-align:center;
+}
+.modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  z-index:100;justify-content:center;align-items:center;padding:16px;
+}
+.modal.open{display:flex}
+.modal-content{
+  padding:40px 32px;text-align:center;display:flex;flex-direction:column;
+  align-items:center;gap:12px;min-width:280px;max-width:400px;animation:fadeIn .3s;
+}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+.modal-content h2{
+  font-size:28px;
+  background:linear-gradient(135deg,#ff6ec7,#c56cf0);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.modal-content .score{font-size:36px;font-weight:700;color:#fff}
+.modal-content p{font-size:15px;color:rgba(255,255,255,0.7)}
+.modal-content .new-best{font-size:13px;color:#ff6ec7;font-weight:600}
+@media(max-width:480px){
+  #app{padding:16px;gap:12px}
+  h1{font-size:16px}
+  .modal-content{padding:28px 20px}
+  .tile{font-size:1em}
+}
+</style>
+</head>
+<body>
+<div id="app" class="glass">
+  <div class="top-bar">
+    <a href="../../index.html" class="back">← Back to Hub</a>
+    <h1>15-Puzzle</h1>
+    <button class="mute-btn" id="muteBtn" aria-label="Toggle mute">🔊</button>
+  </div>
+  <div class="stats-bar">
+    <span>Moves <strong id="moveCount">0</strong></span>
+    <span>Time <strong id="timerDisplay">00:00</strong></span>
+  </div>
+  <div class="puzzle-grid" id="puzzleGrid"></div>
+  <div class="controls">
+    <button class="btn btn-primary" id="shuffleBtn">Shuffle</button>
+    <div class="size-group" id="sizeGroup">
+      <button class="size-btn" data-size="3">3×3</button>
+      <button class="size-btn active" data-size="4">4×4</button>
+    </div>
+  </div>
+  <div class="best-display" id="bestDisplay">Best: —</div>
+</div>
+<div class="modal" id="winModal">
+  <div class="modal-content glass">
+    <h2>Puzzle Solved!</h2>
+    <div class="score" id="winMoves">0</div>
+    <p>moves in <span id="winTime">00:00</span></p>
+    <p class="new-best" id="winBest"></p>
+    <button class="btn btn-primary" id="playAgainBtn">Play Again</button>
+  </div>
+</div>
+<script>
+(function(){
+  const GAP=4;
+  let gridSize=4,grid=[],emptyRow=0,emptyCol=0;
+  let moves=0,seconds=0,timer=null,timerStarted=false;
+  let isSolved=false,isShuffling=false,needsRender=false;
+  let audioCtx=null,masterGain=null,bgNodes=[],melodyTimer=null,muted=false;
+  let firstTap=true;
+
+  const $=s=>document.querySelector(s);
+  const puzzleGrid=$('#puzzleGrid');
+  const moveCount=$('#moveCount');
+  const timerDisplay=$('#timerDisplay');
+  const shuffleBtn=$('#shuffleBtn');
+  const sizeGroup=$('#sizeGroup');
+  const bestDisplay=$('#bestDisplay');
+  const muteBtn=$('#muteBtn');
+  const modal=$('#winModal');
+  const winMoves=$('#winMoves');
+  const winTime=$('#winTime');
+  const winBest=$('#winBest');
+  const playAgainBtn=$('#playAgainBtn');
+
+  function getCellSize(){
+    return puzzleGrid.offsetWidth/gridSize;
+  }
+
+  function initBoard(){
+    const n=gridSize;
+    grid=[];let v=1;
+    for(let r=0;r<n;r++){
+      const row=[];
+      for(let c=0;c<n;c++)row.push(v++);
+      grid.push(row);
+    }
+    grid[n-1][n-1]=0;
+    emptyRow=n-1;emptyCol=n-1;
+  }
+
+  function findTile(val){
+    for(let r=0;r<gridSize;r++)
+      for(let c=0;c<gridSize;c++)
+        if(grid[r][c]===val)return{r,c};
+    return null;
+  }
+
+  function getTileColor(val){
+    const maxVal=gridSize*gridSize-1;
+    const hue=220+(val/maxVal)*60;
+    return `linear-gradient(135deg, hsl(${hue},75%,55%), hsl(${hue+10},75%,40%))`;
+  }
+
+  function render(){
+    if(!puzzleGrid.offsetWidth)return;
+    puzzleGrid.innerHTML='';
+    const n=gridSize,cs=getCellSize(),ts=cs-GAP;
+    for(let r=0;r<n;r++){
+      for(let c=0;c<n;c++){
+        const val=grid[r][c];
+        if(val===0)continue;
+        const tile=document.createElement('div');
+        tile.className='tile';
+        tile.textContent=val;
+        tile.dataset.value=val;
+        tile.style.width=ts+'px';
+        tile.style.height=ts+'px';
+        tile.style.transform=`translate(${c*cs+GAP/2}px,${r*cs+GAP/2}px)`;
+        tile.style.background=getTileColor(val);
+        if(val===r*gridSize+c+1)tile.classList.add('correct');
+        tile.addEventListener('pointerdown',e=>{e.preventDefault();moveTile(val);});
+        puzzleGrid.appendChild(tile);
+      }
+    }
+  }
+
+  function startTimer(){
+    if(timer)return;
+    timer=setInterval(()=>{seconds++;updateTimerDisplay()},1000);
+  }
+
+  function stopTimer(){
+    if(timer){clearInterval(timer);timer=null}
+  }
+
+  function formatTime(s){
+    return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  }
+
+  function updateTimerDisplay(){
+    timerDisplay.textContent=formatTime(seconds);
+  }
+
+  function updateStats(){
+    moveCount.textContent=moves;
+    updateTimerDisplay();
+  }
+
+  function loadBest(){
+    const key=`puzzle_best_${gridSize}x${gridSize}`;
+    try{
+      const best=JSON.parse(localStorage.getItem(key));
+      if(best)bestDisplay.textContent=`Best: ${best.moves} moves in ${formatTime(best.time)}`;
+      else bestDisplay.textContent='Best: —';
+    }catch(e){bestDisplay.textContent='Best: —';}
+  }
+
+  function saveBest(){
+    const key=`puzzle_best_${gridSize}x${gridSize}`;
+    try{
+      const existing=JSON.parse(localStorage.getItem(key));
+      if(!existing||moves<existing.moves||(moves===existing.moves&&seconds<existing.time)){
+        localStorage.setItem(key,JSON.stringify({moves,time:seconds}));
+        return true;
+      }
+    }catch(e){}
+    return false;
+  }
+
+  function playSlideSound(){
+    if(!audioCtx)return;
+    const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+    osc.frequency.value=600+Math.random()*400;
+    osc.type='sine';
+    g.gain.setValueAtTime(0.12,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.06);
+    osc.connect(g);g.connect(masterGain);osc.start();
+    osc.stop(audioCtx.currentTime+0.08);
+  }
+
+  function playVictorySound(){
+    const notes=[523.25,659.25,783.99,1046.50,1174.66,1318.51];
+    notes.forEach((f,i)=>{
+      setTimeout(()=>{
+        if(!audioCtx)return;
+        const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+        osc.frequency.value=f;osc.type='sine';
+        g.gain.setValueAtTime(0.2,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.35);
+        osc.connect(g);g.connect(masterGain);osc.start();
+        osc.stop(audioCtx.currentTime+0.4);
+      },i*100);
+    });
+  }
+
+  function moveTile(val){
+    if(isShuffling||isSolved)return;
+    const pos=findTile(val);
+    if(!pos)return;
+    const{row,col}=pos;
+    const dr=Math.abs(row-emptyRow),dc=Math.abs(col-emptyCol);
+    if(!((dr===1&&dc===0)||(dr===0&&dc===1)))return;
+    if(firstTap&&!muted&&audioCtx){firstTap=false;if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});}
+    initAudio();
+    if(!timerStarted){timerStarted=true;startTimer();}
+    grid[emptyRow][emptyCol]=val;
+    grid[row][col]=0;
+    const tileEl=puzzleGrid.querySelector(`.tile[data-value="${val}"]`);
+    if(tileEl){
+      const cs=getCellSize();
+      tileEl.style.transform=`translate(${emptyCol*cs+GAP/2}px,${emptyRow*cs+GAP/2}px)`;
+      tileEl.classList.toggle('correct',val===emptyRow*gridSize+emptyCol+1);
+    }
+    emptyRow=row;emptyCol=col;
+    moves++;
+    playSlideSound();
+    updateStats();
+    checkWin();
+  }
+
+  function checkWin(){
+    const n=gridSize;
+    for(let r=0;r<n;r++)
+      for(let c=0;c<n;c++){
+        const expected=r*n+c+1;
+        if(expected===n*n)continue;
+        if(grid[r][c]!==expected)return;
+      }
+    if(grid[n-1][n-1]!==0)return;
+    isSolved=true;stopTimer();
+    const isNew=saveBest();
+    winMoves.textContent=moves;
+    winTime.textContent=formatTime(seconds);
+    winBest.textContent=isNew?'New Best!':'';
+    modal.classList.add('open');
+    playVictorySound();
+    loadBest();
+  }
+
+  function initAudio(){
+    if(audioCtx)return;
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=audioCtx.createGain();
+    masterGain.gain.value=muted?0:0.2;
+    masterGain.connect(audioCtx.destination);
+    startBgMusic();
+  }
+
+  function startBgMusic(){
+    stopBgMusic();
+    const pad=[110.00,130.81,164.81,196.00];
+    pad.forEach(f=>{
+      const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+      const lfo=audioCtx.createOscillator(),lg=audioCtx.createGain();
+      osc.type='sine';osc.frequency.value=f;g.gain.value=0.025;
+      lfo.frequency.value=0.2+Math.random()*0.3;lg.gain.value=0.015;
+      lfo.connect(lg);lg.connect(g.gain);
+      osc.connect(g);g.connect(masterGain);osc.start();lfo.start();
+      bgNodes.push(osc,lfo);
+    });
+    const bass=audioCtx.createOscillator(),bg=audioCtx.createGain();
+    bass.type='sine';bass.frequency.value=55.00;
+    bg.gain.value=0.035;
+    bass.connect(bg);bg.connect(masterGain);bass.start();
+    bgNodes.push(bass);
+    const pent=[220.00,261.63,293.66,329.63,392.00,440.00];
+    function melody(){
+      if(!audioCtx)return;
+      const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+      osc.type='triangle';
+      osc.frequency.value=pent[Math.random()*pent.length|0];
+      g.gain.setValueAtTime(0.012,audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+1.8);
+      osc.connect(g);g.connect(masterGain);osc.start();
+      osc.stop(audioCtx.currentTime+2);
+      melodyTimer=setTimeout(melody,2500+Math.random()*3500);
+    }
+    melody();
+  }
+
+  function stopBgMusic(){
+    bgNodes.forEach(n=>{try{n.stop()}catch(e){}});
+    bgNodes=[];clearTimeout(melodyTimer);
+  }
+
+  function resetAndShuffle(){
+    initAudio();
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(isShuffling)return;
+    isShuffling=true;
+    shuffleBtn.disabled=true;
+    document.querySelectorAll('.size-btn').forEach(b=>b.disabled=true);
+    modal.classList.remove('open');
+    puzzleGrid.querySelectorAll('.tile.correct').forEach(t=>t.classList.remove('correct'));
+    isSolved=false;timerStarted=false;stopTimer();
+    moves=0;seconds=0;
+    initBoard();
+    const n=gridSize,total=n*n*15;
+    for(let i=0;i<total;i++){
+      const movable=[];
+      if(emptyRow>0)movable.push(grid[emptyRow-1][emptyCol]);
+      if(emptyRow<n-1)movable.push(grid[emptyRow+1][emptyCol]);
+      if(emptyCol>0)movable.push(grid[emptyRow][emptyCol-1]);
+      if(emptyCol<n-1)movable.push(grid[emptyRow][emptyCol+1]);
+      const val=movable[Math.random()*movable.length|0];
+      const pos=findTile(val);
+      if(!pos)continue;
+      grid[emptyRow][emptyCol]=val;
+      grid[pos.row][pos.col]=0;
+      emptyRow=pos.row;emptyCol=pos.col;
+    }
+    isShuffling=false;shuffleBtn.disabled=false;
+    document.querySelectorAll('.size-btn').forEach(b=>b.disabled=false);
+    render();
+    updateStats();
+  }
+
+  function setSize(n){
+    if(n===gridSize||isShuffling)return;
+    gridSize=n;
+    document.querySelectorAll('.size-btn').forEach(b=>{
+      b.classList.toggle('active',parseInt(b.dataset.size)===n);
+    });
+    document.querySelector('h1').textContent=n===3?'8-Puzzle':'15-Puzzle';
+    modal.classList.remove('open');
+    isSolved=false;timerStarted=false;stopTimer();
+    initBoard();render();
+    moves=0;seconds=0;updateStats();
+    loadBest();
+  }
+
+  document.querySelectorAll('.size-btn').forEach(b=>{
+    b.addEventListener('click',()=>setSize(parseInt(b.dataset.size)));
+  });
+
+  shuffleBtn.addEventListener('click',resetAndShuffle);
+  playAgainBtn.addEventListener('click',resetAndShuffle);
+
+  modal.addEventListener('click',e=>{
+    if(e.target===modal)e.stopPropagation();
+  });
+
+  document.addEventListener('keydown',e=>{
+    if(e.repeat)return;
+    if(e.key==='m'||e.key==='M'){e.preventDefault();muteBtn.click();return;}
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(isShuffling||isSolved)return;
+    const k=e.key;
+    let val=null;
+    if(k==='ArrowUp'&&emptyRow<gridSize-1)val=grid[emptyRow+1][emptyCol];
+    else if(k==='ArrowDown'&&emptyRow>0)val=grid[emptyRow-1][emptyCol];
+    else if(k==='ArrowLeft'&&emptyCol<gridSize-1)val=grid[emptyRow][emptyCol+1];
+    else if(k==='ArrowRight'&&emptyCol>0)val=grid[emptyRow][emptyCol-1];
+    if(val!==null){e.preventDefault();moveTile(val);}
+    if((k==='Enter'||k===' ')&&modal.classList.contains('open')){e.preventDefault();resetAndShuffle();}
+    if(k==='r'||k==='R'){e.preventDefault();resetAndShuffle();}
+  });
+
+  muteBtn.addEventListener('click',()=>{
+    if(!audioCtx&&!muted)initAudio();
+    muted=!muted;
+    muteBtn.textContent=muted?'🔇':'🔊';
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(masterGain)masterGain.gain.value=muted?0:0.2;
+  });
+
+  puzzleGrid.addEventListener('pointerdown',e=>{
+    if(firstTap){firstTap=false;initAudio();}
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  });
+
+  let resizeTimer;
+  window.addEventListener('resize',()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer=setTimeout(()=>{
+      if(!isShuffling)render();
+      else needsRender=true;
+    },200);
+  });
+
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+  loadBest();resetAndShuffle();
+})();
+</script>
+</body>
+</html>

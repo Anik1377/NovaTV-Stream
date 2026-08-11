@@ -12,10 +12,11 @@ import {
   Puzzle,
   Joystick,
   Brain,
-  Users,
+  Trophy,
   Star,
   MonitorPlay,
   RotateCcw,
+  ExternalLink,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { GAMES, GAME_CATEGORIES, type Game } from '@/lib/games-data';
@@ -27,7 +28,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   puzzle: Puzzle,
   arcade: Joystick,
   strategy: Brain,
-  multiplayer: Users,
+  classic: Trophy,
 };
 
 function GameCard({ game, onPlay }: { game: Game; onPlay: (g: Game) => void }) {
@@ -345,7 +346,17 @@ export function GamesPage() {
             </span>
           </div>
           <p className="text-white/30 text-xs text-center">
-            All games built with HTML5 Canvas and React. Play instantly in your browser.
+            Open-source HTML5 games from{' '}
+            <a
+              href="https://github.com/KoRifCan/Classic-Games"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-emerald-400/60 hover:text-emerald-400 transition-colors"
+            >
+              KoRifCan/Classic-Games
+              <ExternalLink className="w-3 h-3" />
+            </a>{' '}
+            &middot; Play instantly in your browser.
           </p>
           <div className="flex items-center gap-1 text-white/30 text-xs">
             <Gamepad2 className="w-3 h-3 text-emerald-500" />

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Simon Says</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:linear-gradient(135deg,#080012,#0a0a24,#080012);
+  min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;
+  color:#e0e0e0;padding:16px;-webkit-tap-highlight-color:transparent
+}
+.glass{
+  background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);
+  border-radius:24px;box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+#app{
+  width:min(95vw,500px);padding:24px;display:flex;flex-direction:column;
+  align-items:center;gap:20px;
+}
+.top-bar{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+}
+.back{
+  color:rgba(255,255,255,0.6);text-decoration:none;font-size:13px;
+  transition:color .3s;display:flex;align-items:center;gap:4px;
+}
+.back:hover{color:#fff}
+h1{
+  font-size:20px;letter-spacing:3px;text-transform:uppercase;
+  background:linear-gradient(135deg,#ff6ec7,#c56cf0);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.mute-btn{
+  background:none;border:none;font-size:22px;cursor:pointer;padding:4px 8px;
+  border-radius:8px;transition:background .3s;line-height:1;
+}
+.mute-btn:hover{background:rgba(255,255,255,0.1)}
+.board-wrapper{
+  padding:12px;border-radius:50%;
+}
+.board{
+  position:relative;width:min(70vw,320px);aspect-ratio:1;display:grid;
+  grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;
+  background:rgba(10,10,36,0.6);border-radius:50%;
+  box-shadow:0 0 40px rgba(100,100,255,0.08),inset 0 0 40px rgba(0,0,0,0.4);
+}
+.quadrant{
+  border-radius:20px;cursor:pointer;position:relative;
+  transition:background .15s,box-shadow .15s,transform .1s;
+  -webkit-tap-highlight-color:transparent;user-select:none;
+  touch-action:manipulation;
+}
+.quadrant:active{transform:scale(0.95)}
+.quadrant[data-idx="0"]{background:#1a3a1a}
+.quadrant[data-idx="1"]{background:#3a1a1a}
+.quadrant[data-idx="2"]{background:#3a3a1a}
+.quadrant[data-idx="3"]{background:#1a1a3a}
+.quadrant.active[data-idx="0"]{background:#00c853;box-shadow:0 0 30px #00c853,0 0 60px rgba(0,200,83,0.4)}
+.quadrant.active[data-idx="1"]{background:#ff1744;box-shadow:0 0 30px #ff1744,0 0 60px rgba(255,23,68,0.4)}
+.quadrant.active[data-idx="2"]{background:#ffd600;box-shadow:0 0 30px #ffd600,0 0 60px rgba(255,214,0,0.4)}
+.quadrant.active[data-idx="3"]{background:#2979ff;box-shadow:0 0 30px #2979ff,0 0 60px rgba(41,121,255,0.4)}
+.center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:64px;height:64px;border-radius:50%;
+  background:rgba(8,0,18,0.9);border:2px solid rgba(255,255,255,0.15);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  font-weight:700;color:#fff;z-index:10;backdrop-filter:blur(8px);
+  letter-spacing:1px;
+}
+.status{
+  font-size:13px;color:rgba(255,255,255,0.5);text-align:center;
+  min-height:20px;transition:color .3s;
+}
+.status.active{color:rgba(255,255,255,0.8)}
+.controls{
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;
+}
+.btn{
+  padding:10px 24px;border:none;border-radius:12px;font-size:13px;
+  font-weight:600;cursor:pointer;letter-spacing:1px;text-transform:uppercase;
+  transition:all .3s;font-family:inherit;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#c56cf0,#ff6ec7);color:#fff;
+  box-shadow:0 4px 15px rgba(197,108,240,0.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(197,108,240,0.5)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.toggle-label{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:13px;color:rgba(255,255,255,0.7);
+}
+.toggle-label input[type=checkbox]{
+  width:18px;height:18px;accent-color:#c56cf0;cursor:pointer;
+}
+.stats{
+  width:100%;display:flex;justify-content:space-around;font-size:14px;
+  color:rgba(255,255,255,0.5);
+}
+.stats strong{color:#fff;font-weight:600}
+.modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  z-index:100;justify-content:center;align-items:center;padding:16px;
+}
+.modal.open{display:flex}
+.modal-content{
+  padding:40px 32px;text-align:center;display:flex;flex-direction:column;
+  align-items:center;gap:16px;min-width:280px;max-width:400px;animation:fadeIn .3s;
+}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+.modal-content h2{
+  font-size:28px;
+  background:linear-gradient(135deg,#ff6ec7,#c56cf0);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.modal-content p{font-size:15px;color:rgba(255,255,255,0.7)}
+.modal-content .score{font-size:36px;font-weight:700;color:#fff}
+.high-score-text{font-size:13px;color:rgba(255,255,255,0.4)}
+@media(max-width:480px){
+  #app{padding:16px;gap:16px}
+  .board{width:min(80vw,280px)}
+  .center{width:52px;height:52px;font-size:20px}
+  h1{font-size:16px}
+  .modal-content{padding:28px 20px}
+}
+</style>
+</head>
+<body>
+<div id="app" class="glass">
+  <div class="top-bar">
+    <a href="../../index.html" class="back">← Back to Hub</a>
+    <h1>Simon Says</h1>
+    <button class="mute-btn" id="muteBtn" aria-label="Toggle mute">🔊</button>
+  </div>
+  <div class="board-wrapper">
+    <div class="board" id="board">
+      <div class="quadrant" data-idx="0"></div>
+      <div class="quadrant" data-idx="1"></div>
+      <div class="quadrant" data-idx="2"></div>
+      <div class="quadrant" data-idx="3"></div>
+      <div class="center" id="roundDisplay">0</div>
+    </div>
+  </div>
+  <div class="status" id="status">Press Start to begin</div>
+  <div class="controls">
+    <button class="btn btn-primary" id="startBtn">Start</button>
+    <label class="toggle-label">
+      <input type="checkbox" id="strictToggle">
+      <span>Strict</span>
+    </label>
+  </div>
+  <div class="stats">
+    <span>Round <strong id="seqLen">0</strong></span>
+    <span>Best <strong id="highScore">0</strong></span>
+  </div>
+</div>
+<div class="modal" id="gameOverModal">
+  <div class="modal-content glass">
+    <h2 id="modalTitle">Game Over</h2>
+    <div class="score" id="modalScore">0</div>
+    <p id="modalMessage">Sequences remembered</p>
+    <p class="high-score-text" id="modalBest"></p>
+    <button class="btn btn-primary" id="playAgainBtn">Play Again</button>
+  </div>
+</div>
+<script>
+(function(){
+  const COLORS=[
+    {freq:261.63,key:'g',num:'1'},
+    {freq:329.63,key:'r',num:'2'},
+    {freq:392.00,key:'y',num:'3'},
+    {freq:523.25,key:'b',num:'4'}
+  ];
+  const IDX_KEY={g:0,r:1,y:2,b:3,1:0,2:1,3:2,4:3};
+
+  let sequence=[],playerIdx=0,round=0;
+  let isPlaying=false,isShowing=false,isPlayerTurn=false,strictMode=false;
+  let highScore=0;
+  try{highScore=parseInt(localStorage.getItem('simonHighScore'))||0;}catch(e){}
+  let audioCtx=null,masterGain=null,bgNodes=[],melodyTimer=null;
+  let muted=false;
+
+  const $=s=>document.querySelector(s);
+  const board=$('#board');
+  const startBtn=$('#startBtn');
+  const strictToggle=$('#strictToggle');
+  const roundDisplay=$('#roundDisplay');
+  const seqLen=$('#seqLen');
+  const highScoreEl=$('#highScore');
+  const muteBtn=$('#muteBtn');
+  const statusEl=$('#status');
+  const modal=$('#gameOverModal');
+  const modalTitle=$('#modalTitle');
+  const modalScore=$('#modalScore');
+  const modalMessage=$('#modalMessage');
+  const modalBest=$('#modalBest');
+  const playAgainBtn=$('#playAgainBtn');
+
+  function initAudio(){
+    if(audioCtx)return;
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=audioCtx.createGain();
+    masterGain.gain.value=muted?0:0.2;
+    masterGain.connect(audioCtx.destination);
+    startBgMusic();
+  }
+
+  function playTone(freq,dur=0.4,vol=0.3,type='sine'){
+    if(!audioCtx)return;
+    const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+    osc.type=type;osc.frequency.value=freq;
+    gain.gain.setValueAtTime(vol,audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+    osc.connect(gain);gain.connect(masterGain);
+    osc.start();osc.stop(audioCtx.currentTime+dur+0.05);
+  }
+
+  function startBgMusic(){
+    stopBgMusic();
+    const pad=[130.81,164.81,196.00,261.63];
+    pad.forEach(f=>{
+      const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+      const lfo=audioCtx.createOscillator(),lg=audioCtx.createGain();
+      osc.type='sine';osc.frequency.value=f;g.gain.value=0.025;
+      lfo.frequency.value=0.2+Math.random()*0.3;lg.gain.value=0.015;
+      lfo.connect(lg);lg.connect(g.gain);
+      osc.connect(g);g.connect(masterGain);osc.start();lfo.start();
+      bgNodes.push(osc,lfo);
+    });
+    const bass=audioCtx.createOscillator(),bg=audioCtx.createGain();
+    bass.type='sine';bass.frequency.value=65.41;bg.gain.value=0.04;
+    bass.connect(bg);bg.connect(masterGain);bass.start();
+    bgNodes.push(bass);
+    const pent=[261.63,293.66,329.63,392.00,440.00,523.25];
+    function melody(){
+      if(!audioCtx)return;
+      const osc=audioCtx.createOscillator(),g=audioCtx.createGain();
+      osc.type='triangle';osc.frequency.value=pent[Math.random()*pent.length|0];
+      g.gain.setValueAtTime(0.015,audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+1.8);
+      osc.connect(g);g.connect(masterGain);osc.start();
+      osc.stop(audioCtx.currentTime+2);
+      melodyTimer=setTimeout(melody,2000+Math.random()*3000);
+    }
+    melody();
+  }
+
+  function stopBgMusic(){
+    bgNodes.forEach(n=>{try{n.stop()}catch(e){}});
+    bgNodes=[];clearTimeout(melodyTimer);
+  }
+
+  function lightUp(idx){
+    const q=board.querySelector(`.quadrant[data-idx="${idx}"]`);
+    if(q)q.classList.add('active');
+  }
+
+  function lightDown(idx){
+    const q=board.querySelector(`.quadrant[data-idx="${idx}"]`);
+    if(q)q.classList.remove('active');
+  }
+
+  function setStatus(text,active){
+    statusEl.textContent=text;
+    statusEl.classList.toggle('active',active);
+  }
+
+  function showSequence(){
+    isShowing=true;isPlayerTurn=false;playerIdx=0;
+    setStatus('Watch the sequence...',true);
+    const base=Math.max(200,600-round*15),on=Math.min(400,base);
+    let total=0;
+    sequence.forEach((ci,i)=>{
+      const d=i*(base+200);
+      setTimeout(()=>{lightUp(ci);playTone(COLORS[ci].freq,on/1000,0.35)},d);
+      setTimeout(()=>lightDown(ci),d+on);
+      total=d+base+200;
+    });
+    setTimeout(()=>{
+      isShowing=false;isPlayerTurn=true;
+      setStatus('Your turn!',true);
+    },total+300);
+  }
+
+  function playSuccess(){
+    const f=[261.63,329.63,392.00,523.25];
+    f.forEach((f,i)=>setTimeout(()=>playTone(f,0.15,0.3),i*80));
+  }
+
+  function playError(){
+    playTone(100,0.5,0.25,'sawtooth');
+  }
+
+  function gameOver(){
+    isPlaying=false;isPlayerTurn=false;isShowing=false;
+    startBtn.disabled=false;startBtn.textContent='Start';
+    const completed=Math.max(0,round-1);
+    modalTitle.textContent='Game Over';
+    modalScore.textContent=completed;
+    modalMessage.textContent=completed===1?'1 sequence remembered':`${completed} sequences remembered`;
+    modalBest.textContent=highScore>0?`Best: ${highScore}`:'';
+    modal.classList.add('open');
+  }
+
+  function nextRound(){
+    round++;playerIdx=0;
+    sequence.push(Math.random()*4|0);
+    updateDisplay();
+    showSequence();
+  }
+
+  function startGame(){
+    if(isPlaying)return;
+    initAudio();
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    sequence=[];round=0;playerIdx=0;
+    isPlaying=true;isShowing=false;isPlayerTurn=false;
+    modal.classList.remove('open');
+    startBtn.disabled=true;startBtn.textContent='Playing';
+    updateDisplay();
+    nextRound();
+  }
+
+  function handleInput(idx){
+    initAudio();
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(isShowing||!isPlayerTurn||!isPlaying)return;
+    lightUp(idx);playTone(COLORS[idx].freq,0.2,0.25);
+    setTimeout(()=>lightDown(idx),200);
+    if(idx!==sequence[playerIdx]){
+      isPlayerTurn=false;playError();
+      if(strictMode){
+        setStatus('Wrong! Starting over...',false);
+        setTimeout(()=>{sequence=[];round=0;playerIdx=0;nextRound();},800);
+      }else{
+        setStatus('Wrong! Watch again...',false);
+        setTimeout(showSequence,800);
+      }
+      return;
+    }
+    playerIdx++;
+    if(playerIdx===sequence.length){
+      isPlayerTurn=false;
+      try{if(round>highScore){highScore=round;localStorage.setItem('simonHighScore',highScore);}}catch(e){}
+      updateDisplay();playSuccess();
+      setStatus('Correct!',true);
+      setTimeout(nextRound,500);
+    }
+  }
+
+  function updateDisplay(){
+    roundDisplay.textContent=round;
+    seqLen.textContent=round;
+    highScoreEl.textContent=highScore;
+  }
+
+  document.querySelectorAll('.quadrant').forEach(el=>{
+    el.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      handleInput(parseInt(el.dataset.idx));
+    });
+  });
+
+  startBtn.addEventListener('click',startGame);
+  playAgainBtn.addEventListener('click',startGame);
+  strictToggle.addEventListener('change',()=>{strictMode=strictToggle.checked});
+  modal.querySelector('.modal-content').addEventListener('click',e=>e.stopPropagation());
+
+  document.addEventListener('keydown',e=>{
+    if(e.repeat)return;
+    if(e.key==='m'||e.key==='M'){e.preventDefault();muteBtn.click();return;}
+    const k=e.key.toLowerCase();
+    if(k in IDX_KEY){e.preventDefault();handleInput(IDX_KEY[k]);}
+    if((k==='enter'||k===' ')&&!isPlaying&&!modal.classList.contains('open')){e.preventDefault();startGame();}
+  });
+
+  muteBtn.addEventListener('click',()=>{
+    if(!audioCtx&&!muted)initAudio();
+    muted=!muted;
+    muteBtn.textContent=muted?'🔇':'🔊';
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(masterGain)masterGain.gain.value=muted?0:0.2;
+  });
+
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+  highScoreEl.textContent=highScore;
+  setStatus('Press Start to begin',false);
+})();
+</script>
+</body>
+</html>

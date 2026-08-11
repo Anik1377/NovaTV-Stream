@@ -1,5 +1,3 @@
-import type { ComponentType } from 'react';
-
 export interface Game {
   id: string;
   title: string;
@@ -9,6 +7,7 @@ export interface Game {
   players: string;
   featured?: boolean;
   controls: string;
+  source: string;
 }
 
 export const GAME_CATEGORIES = [
@@ -17,11 +16,10 @@ export const GAME_CATEGORIES = [
   { id: 'puzzle', label: 'Puzzle', icon: 'Puzzle' as const },
   { id: 'arcade', label: 'Arcade', icon: 'Joystick' as const },
   { id: 'strategy', label: 'Strategy', icon: 'Brain' as const },
-  { id: 'multiplayer', label: 'Multiplayer', icon: 'Users' as const },
+  { id: 'classic', label: 'Classic', icon: 'Trophy' as const },
 ];
 
-// Game component map - populated by GameRenderer
-export const GAME_COMPONENTS: Record<string, ComponentType> = {};
+const REPO = 'https://github.com/KoRifCan/Classic-Games';
 
 export const GAMES: Game[] = [
   // Action
@@ -34,6 +32,7 @@ export const GAMES: Game[] = [
     players: '1 Player',
     controls: 'Arrow Keys / WASD',
     featured: true,
+    source: REPO,
   },
   {
     id: 'flappy',
@@ -43,9 +42,11 @@ export const GAMES: Game[] = [
     gradient: 'from-sky-600 to-cyan-500',
     players: '1 Player',
     controls: 'Space / Click / Tap',
+    featured: true,
+    source: REPO,
   },
   {
-    id: 'spaceinvaders',
+    id: 'space',
     title: 'Space Invaders',
     description: 'Defend Earth from waves of descending alien invaders. Shoot them before they reach you.',
     category: 'action',
@@ -53,6 +54,17 @@ export const GAMES: Game[] = [
     players: '1 Player',
     controls: 'Arrow Keys + Space',
     featured: true,
+    source: REPO,
+  },
+  {
+    id: 'dino',
+    title: 'Dino Runner',
+    description: 'Jump over cacti and dodge obstacles as the iconic Chrome dinosaur in this endless runner.',
+    category: 'action',
+    gradient: 'from-stone-600 to-zinc-500',
+    players: '1 Player',
+    controls: 'Space / Up Arrow / Tap',
+    source: REPO,
   },
 
   // Puzzle
@@ -65,15 +77,17 @@ export const GAMES: Game[] = [
     players: '1 Player',
     controls: 'Arrow Keys / WASD / Swipe',
     featured: true,
+    source: REPO,
   },
   {
-    id: 'minesweeper',
+    id: 'mine',
     title: 'Minesweeper',
     description: 'Reveal all safe cells without triggering any mines. Use logic to deduce mine locations.',
     category: 'puzzle',
     gradient: 'from-slate-700 to-zinc-500',
     players: '1 Player',
     controls: 'Click to Reveal, Right-Click to Flag',
+    source: REPO,
   },
   {
     id: 'memory',
@@ -83,6 +97,38 @@ export const GAMES: Game[] = [
     gradient: 'from-pink-600 to-rose-400',
     players: '1 Player',
     controls: 'Click to Flip Cards',
+    source: REPO,
+  },
+  {
+    id: 'sudoku',
+    title: 'Sudoku',
+    description: 'Fill the 9x9 grid so that every row, column, and 3x3 box contains digits 1-9.',
+    category: 'puzzle',
+    gradient: 'from-indigo-600 to-blue-400',
+    players: '1 Player',
+    controls: 'Click Cell + Number Keys',
+    featured: true,
+    source: REPO,
+  },
+  {
+    id: 'puzzle15',
+    title: '15 Puzzle',
+    description: 'Slide the numbered tiles into order from 1 to 15. A classic sliding tile puzzle.',
+    category: 'puzzle',
+    gradient: 'from-teal-600 to-cyan-400',
+    players: '1 Player',
+    controls: 'Click / Arrow Keys to Slide',
+    source: REPO,
+  },
+  {
+    id: 'simon',
+    title: 'Simon Says',
+    description: 'Watch and repeat the growing sequence of colors. How long can you keep up?',
+    category: 'puzzle',
+    gradient: 'from-rose-600 to-red-400',
+    players: '1 Player',
+    controls: 'Click Colored Buttons',
+    source: REPO,
   },
 
   // Arcade
@@ -95,16 +141,18 @@ export const GAMES: Game[] = [
     players: '1 Player',
     controls: 'Arrow Keys + Space',
     featured: true,
+    source: REPO,
   },
   {
     id: 'breakout',
     title: 'Breakout',
-    description: 'Bounce the ball off your paddle to destroy all the bricks. Don\'t let the ball fall!',
+    description: "Bounce the ball off your paddle to destroy all the bricks. Don't let the ball fall!",
     category: 'arcade',
     gradient: 'from-red-600 to-orange-400',
     players: '1 Player',
     controls: 'Mouse / Touch / Arrow Keys',
     featured: true,
+    source: REPO,
   },
   {
     id: 'pong',
@@ -114,16 +162,40 @@ export const GAMES: Game[] = [
     gradient: 'from-cyan-700 to-blue-500',
     players: '1 Player',
     controls: 'Mouse / Touch / Arrow Keys',
+    source: REPO,
   },
 
   // Strategy
   {
-    id: 'tictactoe',
+    id: 'ttt',
     title: 'Tic Tac Toe',
-    description: 'Classic Tic Tac Toe against an unbeatable AI opponent. Can you get a draw?',
+    description: 'Classic Tic Tac Toe against an AI opponent. Can you outsmart the computer?',
     category: 'strategy',
     gradient: 'from-emerald-700 to-green-500',
     players: '1 Player',
-    controls: 'Click Cells / Keys 1-9',
+    controls: 'Click Cells',
+    source: REPO,
+  },
+  {
+    id: 'connect4',
+    title: 'Connect 4',
+    description: 'Drop discs into the grid and be the first to connect four in a row to win.',
+    category: 'strategy',
+    gradient: 'from-yellow-600 to-amber-400',
+    players: '1 Player',
+    controls: 'Click Columns to Drop Disc',
+    source: REPO,
+  },
+
+  // Classic
+  {
+    id: 'typing',
+    title: 'Typing Speed',
+    description: 'Test and improve your typing speed and accuracy. Race against the clock!',
+    category: 'classic',
+    gradient: 'from-fuchsia-600 to-pink-400',
+    players: '1 Player',
+    controls: 'Type the displayed words',
+    source: REPO,
   },
 ];
