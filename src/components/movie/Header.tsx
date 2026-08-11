@@ -1,11 +1,36 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Film, Tv, Home, Radio, Sparkles, Gamepad2, X, Menu } from 'lucide-react';
+import { Search, Film, Tv, Home, Radio, Gamepad2, X, Menu } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
+
+function AnimeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Anime eye - outer shape */}
+      <path d="M2 12C5 7 8 4.5 12 4.5S19 7 22 12C19 17 16 19.5 12 19.5S5 17 2 12Z" />
+      {/* Iris */}
+      <circle cx="12" cy="12" r="4.5" />
+      {/* Pupil with anime-style highlight */}
+      <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+      {/* Large highlight (top-right) - key anime eye feature */}
+      <circle cx="14" cy="10" r="1.6" fill="currentColor" stroke="none" />
+      {/* Small highlight (bottom-left) */}
+      <circle cx="10.5" cy="13.5" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 
 export function Header() {
   const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV, showAnime, showGames } = useAppStore();
@@ -61,7 +86,7 @@ export function Header() {
     { icon: Home, label: 'Home', filter: 'all' as const, action: goHome },
     { icon: Film, label: 'Movies', filter: 'movie' as const, action: showMovies },
     { icon: Tv, label: 'TV Shows', filter: 'tv' as const, action: showTvShows },
-    { icon: Sparkles, label: 'Anime', filter: 'anime' as const, action: showAnime },
+    { icon: AnimeIcon, label: 'Anime', filter: 'anime' as const, action: showAnime },
     { icon: Gamepad2, label: 'Games', filter: 'games' as const, action: showGames },
     { icon: Radio, label: 'Live TV', filter: 'livetv' as const, action: showLiveTV },
   ];
