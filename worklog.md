@@ -248,3 +248,42 @@ Stage Summary:
 - Real OTT platform logos from TMDB for 7/10 platforms, graceful fallback for 3
 - Platform selector with glow effects, dim/bright toggle on selection
 - All pushed to GitHub
+
+---
+Task ID: 8
+Agent: main
+Task: Add Netflix-style hover preview cards with trailer playback
+
+Work Log:
+- Created /api/tmdb/preview/route.ts: single TMDB call with append_to_response=credits,videos
+  - Returns: title, overview, backdrop, genres, runtime/seasons, tagline, cast (top 5), trailer_key
+  - Trailer priority: Trailer > Teaser > any YouTube video
+- Created HoverPreviewCard.tsx: 700ms hover delay triggers data fetch
+  - 5-minute client-side Map cache (key: id-type, no re-fetch on re-hover)
+  - Desktop only (hidden md:block), mobile/touch users see normal card
+  - AnimatePresence entrance animation (opacity + y + scale)
+  - Positioned absolute, centered under the card, z-50
+  - Backdrop image with gradient overlay, Watch Trailer button on image
+  - Info section: title, match %, year, runtime/seasons badge, HD badge, genres, overview (3 lines), cast names
+  - Two trailer buttons: one on backdrop image, one in info section action row
+  - More Info button (chevron) navigates to detail page
+  - Proper mouseEnter/mouseLeave handling with timer cleanup on unmount
+- Created TrailerModal.tsx: YouTube iframe with autoplay=1
+  - Escape key listener, body overflow lock, backdrop blur overlay
+  - Spring animation, click-outside-to-close
+  - Max width 4xl, responsive
+- Updated MovieCard.tsx: wrapped card JSX in HoverPreviewCard
+  - Card click still works normally (navigates to detail)
+- Browser verified:
+  - Spider-Man: No Way Home hover: 79% Match, 2021, 148m, HD, Action/Adventure/Sci-Fi genres, cast
+  - Breaking Bad hover: TV Series badge, 89% Match, 2008, 5 Seasons, Drama/Crime, Walter White cast
+  - Trailer modal opens YouTube iframe with real trailer key (tzlY8XD1CGg)
+  - Escape key closes trailer properly
+  - Preview API cache working (8ms on cache hit vs 900ms cold)
+  - No runtime errors
+
+Stage Summary:
+- Netflix-style hover previews with 700ms delay, backdrop image, full metadata, and cast
+- Watch Trailer opens YouTube modal with autoplay, closes on Escape or click-outside
+- Efficient: single TMDB API call with append_to_response, 5-min client cache
+- Desktop-only, gracefully hidden on mobile
