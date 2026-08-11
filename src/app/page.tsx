@@ -16,7 +16,7 @@ import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
 import type { Movie, Genre } from '@/lib/types';
-import type { OttPlatform } from '@/lib/ott-platforms';
+import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 
 function HomePage() {
   const { selectGenre, mediaFilter } = useAppStore();
@@ -30,13 +30,14 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
 
   // OTT Platform state
+  const [platforms, setPlatforms] = useState<OttPlatform[]>(OTT_PLATFORMS);
   const [selectedProvider, setSelectedProvider] = useState<OttPlatform | null>(null);
   const [providerMovies, setProviderMovies] = useState<Movie[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [trendingRes, moviesRes, tvRes, topRatedRes, upcomingRes, topRatedTvRes, genresRes] = await Promise.all([
+      const [trendingRes, moviesRes, tvRes, topRatedRes, upcomingRes, topRatedTvRes, genresRes, providersRes] = await Promise.all([
         fetch('/api/tmdb/trending?time_window=week').then((r) => r.json()),
         fetch('/api/tmdb/popular-movies').then((r) => r.json()),
         fetch('/api/tmdb/popular-tv').then((r) => r.json()),
@@ -44,6 +45,7 @@ function HomePage() {
         fetch('/api/tmdb/upcoming').then((r) => r.json()),
         fetch('/api/tmdb/top-rated-tv').then((r) => r.json()),
         fetch('/api/tmdb/genres').then((r) => r.json()),
+        fetch('/api/tmdb/providers-list').then((r) => r.json()).catch(() => ({ results: [] })),
       ]);
 
       setTrending((trendingRes.results || []).slice(0, 20));
@@ -53,6 +55,9 @@ function HomePage() {
       setUpcoming((upcomingRes.results || []).slice(0, 20));
       setTopRatedTv((topRatedTvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
       setGenres(genresRes.genres || []);
+      if (providersRes.results?.length) {
+        setPlatforms(mergeProviderLogos(OTT_PLATFORMS, providersRes.results));
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -130,8 +135,8 @@ function HomePage() {
       {/* Trending Right Now - Ranked */}
       <TrendingRanked movies={mediaFilter === 'all' ? trending : filteredTrending} />
 
-      {/* Studios & Platforms */}
-      <PlatformSelector selectedProvider={selectedProvider?.id ?? null} onSelectProvider={handleProviderSelect} />
+      {/* Browse by Platform */}
+      <PlatformSelector platforms={platforms} selectedProvider={selectedProvider?.id ?? null} onSelectProvider={handleProviderSelect} />
 
       {/* Platform results */}
       {selectedProvider && providerLoading && (
