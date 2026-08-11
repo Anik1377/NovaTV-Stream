@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv' | 'anime';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv' | 'anime' | 'games';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -30,7 +30,18 @@ interface AppState {
   showTvShows: () => void;
   showLiveTV: () => void;
   showAnime: () => void;
+  showGames: () => void;
 }
+
+const resetState = {
+  selectedMovie: null,
+  selectedTv: null,
+  searchQuery: '',
+  searchResults: [],
+  selectedEpisode: null,
+  selectedGenreId: null,
+  selectedGenreName: '',
+};
 
 export const useAppStore = create<AppState>((set) => ({
   view: 'home',
@@ -45,7 +56,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedGenreName: '',
 
   setView: (view) => set({ view }),
-  setMediaFilter: (mediaFilter) => set({ view: 'home', mediaFilter, selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
+  setMediaFilter: (mediaFilter) => set({ view: 'home', mediaFilter, ...resetState }),
   selectMovie: (movie) => set({ view: 'movie', selectedMovie: movie, selectedEpisode: null }),
   selectTv: (tv) => set({ view: 'tv', selectedTv: tv, selectedSeason: 1, selectedEpisode: null }),
   setSearchQuery: (query) => set({ searchQuery: query }),
@@ -53,9 +64,10 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedSeason: (season) => set({ selectedSeason: season, selectedEpisode: null }),
   setSelectedEpisode: (episode) => set({ selectedEpisode: episode }),
   selectGenre: (id, name) => set({ view: 'genre', selectedGenreId: id, selectedGenreName: name }),
-  goHome: () => set({ view: 'home', mediaFilter: 'all', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
-  showMovies: () => set({ view: 'home', mediaFilter: 'movie', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
-  showTvShows: () => set({ view: 'home', mediaFilter: 'tv', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
-  showLiveTV: () => set({ view: 'livetv', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
-  showAnime: () => set({ view: 'anime', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
+  goHome: () => set({ view: 'home', mediaFilter: 'all', ...resetState }),
+  showMovies: () => set({ view: 'home', mediaFilter: 'movie', ...resetState }),
+  showTvShows: () => set({ view: 'home', mediaFilter: 'tv', ...resetState }),
+  showLiveTV: () => set({ view: 'livetv', ...resetState }),
+  showAnime: () => set({ view: 'anime', ...resetState }),
+  showGames: () => set({ view: 'games', ...resetState }),
 }));

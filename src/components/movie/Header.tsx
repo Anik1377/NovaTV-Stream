@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Film, Tv, Home, Radio, Sparkles, X, Menu } from 'lucide-react';
+import { Search, Film, Tv, Home, Radio, Sparkles, Gamepad2, X, Menu } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
-  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV, showAnime } = useAppStore();
+  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV, showAnime, showGames } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -47,34 +47,41 @@ export function Header() {
   }, [searchOpen]);
 
   const isActive = (filter: 'all' | 'movie' | 'tv') => {
-    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'anime') return false;
+    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'anime' || view === 'games') return false;
     return mediaFilter === filter;
   };
 
-  const isLiveTVActive = view === 'livetv';
-  const isAnimeActive = view === 'anime';
+  const specialViews: Record<string, boolean> = {
+    livetv: view === 'livetv',
+    anime: view === 'anime',
+    games: view === 'games',
+  };
 
   const navItems = [
     { icon: Home, label: 'Home', filter: 'all' as const, action: goHome },
     { icon: Film, label: 'Movies', filter: 'movie' as const, action: showMovies },
     { icon: Tv, label: 'TV Shows', filter: 'tv' as const, action: showTvShows },
     { icon: Sparkles, label: 'Anime', filter: 'anime' as const, action: showAnime },
+    { icon: Gamepad2, label: 'Games', filter: 'games' as const, action: showGames },
     { icon: Radio, label: 'Live TV', filter: 'livetv' as const, action: showLiveTV },
   ];
 
   const getNavActive = (item: typeof navItems[number]) => {
-    if (item.filter === 'livetv') return isLiveTVActive;
-    if (item.filter === 'anime') return isAnimeActive;
+    if (item.filter === 'livetv' || item.filter === 'anime' || item.filter === 'games') {
+      return specialViews[item.filter] ?? false;
+    }
     return isActive(item.filter as 'all' | 'movie' | 'tv');
   };
 
   const getNavStyle = (item: typeof navItems[number], active: boolean, mobile = false) => {
     if (mobile) {
       if (active && item.filter === 'anime') return 'justify-start gap-3 py-3 text-purple-300 bg-purple-500/15 hover:bg-purple-500/15';
+      if (active && item.filter === 'games') return 'justify-start gap-3 py-3 text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/15';
       if (active) return 'justify-start gap-3 py-3 text-white bg-white/15 hover:bg-white/15';
       return 'justify-start gap-3 py-3 text-white/80 hover:text-white hover:bg-white/10';
     }
     if (active && item.filter === 'anime') return 'gap-2 text-purple-300 bg-purple-500/15 hover:bg-purple-500/15';
+    if (active && item.filter === 'games') return 'gap-2 text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/15';
     if (active) return 'gap-2 text-white bg-white/15 hover:bg-white/15';
     return 'gap-2 text-white/70 hover:text-white hover:bg-white/10';
   };
@@ -82,6 +89,7 @@ export function Header() {
   const getIconColor = (item: typeof navItems[number], active: boolean) => {
     if (!active) return '';
     if (item.filter === 'anime') return 'text-purple-400';
+    if (item.filter === 'games') return 'text-emerald-400';
     return 'text-red-500';
   };
 

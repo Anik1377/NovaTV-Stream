@@ -122,3 +122,47 @@ Work Log:
 Stage Summary:
 - Single-line filter logic bug fixed by switching to TMDB discover endpoint with proper anime parameters
 - Trending carousel now shows exclusively Japanese anime, no more random TV shows
+
+---
+Task ID: 5
+Agent: main
+Task: Add Games tab with browser-based games library
+
+Work Log:
+- Added 'games' to ViewType in Zustand store + showGames() action (also refactored resetState DRY pattern)
+- Created /src/lib/games-data.ts with 30 curated browser-based games:
+  - 7 categories: Action (5), Puzzle (5), Racing (4), Sports (4), Arcade (4), Strategy (4), Multiplayer (4)
+  - 5 featured games: Smash Karts, Cut the Rope, Moto X3M, Temple Run 2, Slither.io
+  - Each game: id, title, description, category, embedUrl (CrazyGames official embed), CSS gradient, player count
+  - No emojis — all category pills use Lucide icons
+- Created /src/components/game/GamesPage.tsx:
+  - Emerald/green accent color scheme (distinct from red=movies, purple=anime)
+  - Hero banner with Gamepad2 icon, title "Games Library", subtitle
+  - Search bar with clear button + game/category count stats
+   - 8 category filter pills with Lucide icons and game counts
+   - Featured Games section (horizontal grid of 5 featured)
+  - All Games grid (responsive 2-6 columns)
+  - GameCard component: gradient thumbnail with dot pattern overlay, play button on hover, featured badge, players badge, category pill
+  - GamePlayer component: sticky header with back/reload/fullscreen buttons, 16:9 iframe with loading/error states, graceful error handling with retry
+  - Inline player mode (same page, not modal)
+  - Footer with StreamVault Games branding
+- Updated Header.tsx: Added Gamepad2 icon "Games" tab with emerald green active state
+  - Updated specialViews map to handle 'games' view
+  - Updated isActive guard to exclude 'games' view
+- Updated page.tsx: Added GamesPage import and rendering for 'games' view
+- Verified with Agent Browser:
+  - Games tab visible in nav (desktop + mobile)
+  - Hero banner renders correctly
+  - Category filters: All Games (30), Action (5), Puzzle (5), Racing (4), Sports (4), Arcade (4), Strategy (4), Multiplayer (4)
+  - Action filter correctly shows only 5 action games
+  - Search "kart" finds only Smash Karts
+  - Search "tetris" shows 0 results with "no games found" empty state
+  - Game player opens with 2048: header bar, reload/fullscreen buttons, iframe loads
+  - Back button returns to library
+  - Mobile responsive layout verified
+  - Lint passes clean
+
+Stage Summary:
+- Games tab fully functional with 30 curated browser games
+- Emerald/green theme distinct from red (movies) and purple (anime)
+- Category filtering, search, featured section, and full iframe player all working
