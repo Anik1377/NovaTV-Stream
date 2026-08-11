@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Star, Info } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
 import type { Movie } from '@/lib/types';
+import { HoverPreviewCard } from './HoverPreviewCard';
 
 interface MovieCardProps {
   movie: Movie;
@@ -30,7 +31,7 @@ export function MovieCard({ movie, index = 0, accentColor = 'red' }: MovieCardPr
     }
   };
 
-  return (
+  const card = (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -85,5 +86,11 @@ export function MovieCard({ movie, index = 0, accentColor = 'red' }: MovieCardPr
         <p className="text-[10px] text-white/50 mt-0.5">{year}</p>
       </div>
     </motion.div>
+  );
+
+  return (
+    <HoverPreviewCard movie={movie}>
+      {card}
+    </HoverPreviewCard>
   );
 }
