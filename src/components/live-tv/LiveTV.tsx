@@ -10,11 +10,11 @@ import {
   ChevronLeft,
   Tv,
   Filter,
-  X,
   Volume2,
   VolumeX,
   Maximize,
   Signal,
+  Heart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,19 @@ import {
 
 type PlayerLayout = 'split' | 'full';
 
+const FAVORITES_KEY = 'streamvault-live-tv-favorites';
+
+function getStoredFavorites(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
 export function LiveTV() {
   const [channels, setChannels] = useState<LiveChannel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +59,12 @@ export function LiveTV() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
   const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  // Load favorites from localStorage on mount
+  useEffect(() => {
+    setFavorites(getStoredFavorites());
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -173,7 +192,33 @@ export function LiveTV() {
     }
   }, []);
 
-  const filteredChannels = filterChannels(channels, selectedCategory, searchQuery);
+  const isChannelFavorite = useCallback((channel: LiveChannel) => {
+    return favorites.has(`${channel.name}||${channel.url}`);
+  }, [favorites]);
+
+  const toggleFavorite = useCallback((channel: LiveChannel, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const key = `${channel.name}||${channel.url}`;
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      // Persist to localStorage
+      try {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Build the filtered channel list
+  const baseFiltered = filterChannels(channels, selectedCategory === 'Favorites' ? 'All' : selectedCategory, searchQuery);
+  const filteredChannels = selectedCategory === 'Favorites'
+    ? baseFiltered.filter((ch) => favorites.has(`${ch.name}||${ch.url}`))
+    : baseFiltered;
 
   // Merge static categories with dynamic ones, prioritizing static
   const displayCategories = (() => {
@@ -258,6 +303,20 @@ export function LiveTV() {
         {/* Category Pills */}
         <div className="px-4 md:px-8 pb-3 flex items-center gap-2 overflow-x-auto content-scroll">
           <Filter className="w-4 h-4 text-white/40 shrink-0" />
+          {/* Favorites Pill */}
+          <button
+            onClick={() => setSelectedCategory('Favorites')}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+              selectedCategory === 'Favorites'
+                ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-1">
+              <Heart className={`w-3 h-3 ${selectedCategory === 'Favorites' ? 'fill-red-400 text-red-400' : ''}`} />
+              Favorites <span className="opacity-50">({favorites.size})</span>
+            </span>
+          </button>
           {displayCategories.map((cat) => {
             const count = cat === 'All'
               ? channels.length
@@ -387,10 +446,20 @@ export function LiveTV() {
                       )}
                     </div>
                   </div>
+                  {/* Favorite button */}
+                  <button
+                    onClick={() => toggleFavorite(selectedChannel)}
+                    className={`p-2 rounded-full transition-all hover:scale-110 shrink-0 ${
+                      isChannelFavorite(selectedChannel)
+                        ? 'text-red-500 hover:text-red-400'
+                        : 'text-white/40 hover:text-white/70'
+                    }`}
+                    aria-label={isChannelFavorite(selectedChannel) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart className={`w-5 h-5 ${isChannelFavorite(selectedChannel) ? 'fill-red-500' : ''}`} />
+                  </button>
                 </div>
               </div>
-
-              {/* Player Error */}
               {playerError && (
                 <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center gap-4">
                   <AlertCircle className="w-12 h-12 text-red-500" />
@@ -514,7 +583,7 @@ export function LiveTV() {
                         </div>
                       </div>
 
-                      {/* Live indicator */}
+                      {/* Favorite + Live indicator */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         {selectedChannel?.name === channel.name && selectedChannel?.url === channel.url && isPlaying && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-500/50 text-red-400 bg-red-500/10">
@@ -524,6 +593,17 @@ export function LiveTV() {
                             </span>
                           </Badge>
                         )}
+                        <button
+                          onClick={(e) => toggleFavorite(channel, e)}
+                          className={`p-1 rounded-full transition-all hover:scale-110 ${
+                            isChannelFavorite(channel)
+                              ? 'text-red-500 hover:text-red-400'
+                              : 'text-white/20 hover:text-white/50'
+                          }`}
+                          aria-label={isChannelFavorite(channel) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <Heart className={`w-4 h-4 ${isChannelFavorite(channel) ? 'fill-red-500' : ''}`} />
+                        </button>
                       </div>
                     </motion.button>
                   ))
