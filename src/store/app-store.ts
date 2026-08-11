@@ -15,6 +15,7 @@ interface AppState {
   selectedEpisode: Episode | null;
   selectedGenreId: number | null;
   selectedGenreName: string;
+  navCounter: number;
 
   setView: (view: ViewType) => void;
   setMediaFilter: (filter: MediaFilter) => void;
@@ -31,6 +32,7 @@ interface AppState {
   showLiveTV: () => void;
   showAnime: () => void;
   showGames: () => void;
+  bumpNav: () => void;
 }
 
 const resetState = {
@@ -54,6 +56,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedEpisode: null,
   selectedGenreId: null,
   selectedGenreName: '',
+  navCounter: 0,
 
   setView: (view) => set({ view }),
   setMediaFilter: (mediaFilter) => set({ view: 'home', mediaFilter, ...resetState }),
@@ -69,5 +72,6 @@ export const useAppStore = create<AppState>((set) => ({
   showTvShows: () => set({ view: 'home', mediaFilter: 'tv', ...resetState }),
   showLiveTV: () => set({ view: 'livetv', ...resetState }),
   showAnime: () => set({ view: 'anime', ...resetState }),
-  showGames: () => set({ view: 'games', ...resetState }),
+  showGames: () => set((s) => ({ view: 'games', ...resetState, navCounter: s.navCounter + 1 })),
+  bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
 }));

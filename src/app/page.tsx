@@ -134,7 +134,7 @@ function HomePage() {
 }
 
 export default function App() {
-  const { view } = useAppStore();
+  const { view, navCounter } = useAppStore();
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,7 +147,7 @@ export default function App() {
         {view === 'genre' && <GenreView />}
         {view === 'livetv' && <LiveTV />}
         {view === 'anime' && <AnimePage />}
-        {view === 'games' && <GamesPage />}
+        {view === 'games' && <GamesPage key={navCounter} />}
       </main>
     </div>
   );

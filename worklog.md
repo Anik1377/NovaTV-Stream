@@ -166,3 +166,28 @@ Stage Summary:
 - Games tab fully functional with 30 curated browser games
 - Emerald/green theme distinct from red (movies) and purple (anime)
 - Category filtering, search, featured section, and full iframe player all working
+
+---
+Task ID: 6
+Agent: main
+Task: Rebuild games as self-contained React components (fix iframe server refused connection)
+
+Work Log:
+- Root cause: CrazyGames blocks iframe embedding from third-party domains (X-Frame-Options/CSP)
+- Created useCanvasGame hook at /src/components/game/useCanvasGame.ts for shared canvas boilerplate (DPR-aware resize, cleanup)
+- Launched 3 parallel subagents to build 10 games simultaneously:
+  - Agent 1 (DOM games): Game2048, Minesweeper, MemoryMatch, TicTacToe
+  - Agent 2 (canvas arcade): Snake, FlappyBird, SpaceInvaders
+  - Agent 3 (canvas arcade): Tetris, Breakout, Pong
+- Created GameRenderer.tsx with next/dynamic imports + SSR disabled for all 10 games
+- Rewrote games-data.ts: removed embedUrl, added componentId/controls fields, 4 categories (action/puzzle/arcade/strategy), 10 games with 4 featured
+- Rewrote GamesPage.tsx: removed iframe player, uses GameRenderer component with React key remount
+- Fixed ESLint react-hooks/static-components error by moving dynamic imports to module-level map
+- Fixed nav counter bug: added navCounter to Zustand store so clicking Games tab while in-game remounts the library
+- All 10 games verified loading in browser: Snake, 2048, Tetris, Minesweeper, Memory Match, Flappy Bird, Breakout, Pong, Space Invaders, Tic Tac Toe
+
+Stage Summary:
+- Replaced unreliable iframe embeds with 10 self-contained React/canvas games
+- Zero external server dependencies - all games run entirely in the browser
+- Code splitting via next/dynamic for fast initial page load
+- navCounter pattern ensures Games tab click always returns to library
