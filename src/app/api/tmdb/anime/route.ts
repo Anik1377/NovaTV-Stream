@@ -16,12 +16,14 @@ export async function GET(req: NextRequest) {
 
     switch (type) {
       case 'trending':
-        // Trending anime this week (TV)
-        data = await tmdbFetch<PaginatedResponse<Movie>>('/trending/tv/week', { page });
-        // Filter to animation genre
-        data.results = data.results.filter((item) =>
-          item.genre_ids?.includes(16) || item.media_type === 'tv'
-        );
+        // Trending anime: use discover with animation genre + Japanese language
+        data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
+          page,
+          with_genres: '16',
+          with_original_language: 'ja',
+          sort_by: 'popularity.desc',
+          vote_count_gte: '50',
+        });
         break;
 
       case 'popular':

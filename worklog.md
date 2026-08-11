@@ -101,3 +101,24 @@ Stage Summary:
 - Purple/pink neon theme distinct from red main theme
 - Real anime content from TMDB filtered by Japanese language + Animation genre
 - 14 anime-specific genre filters including demographic categories
+
+---
+Task ID: 4
+Agent: main
+Task: Fix anime trending carousel showing random TV shows instead of anime
+
+Work Log:
+- Identified bug in /src/app/api/tmdb/anime/route.ts trending case
+- Root cause: Line 22-23 filter `item.genre_ids?.includes(16) || item.media_type === 'tv'` — since `/trending/tv/week` returns only TV shows, the `|| media_type === 'tv'` condition made the filter pass for ALL shows, showing random TV content like House of the Dragon, Grey's Anatomy, etc.
+- Fix: Replaced `/trending/tv/week` + broken filter with `/discover/tv` endpoint using `with_genres=16`, `with_original_language=ja`, `sort_by=popularity.desc`, `vote_count_gte=50` — guarantees only Japanese animation
+- Verified with Agent Browser: All 5 rows (Hero, Now Airing, Popular, Top Rated, Trending, Movies) now show only actual Japanese anime
+  - Hero: Shows Japanese anime with Japanese character names
+  - Now Airing: Mushoku Tensei, Doraemon, Bleach, JUJUTSU KAISEN, Frieren
+  - Popular: Secret Mission, Overflow, Mushoku Tensei, RE-MAIN, Doraemon, Bleach, JUJUTSU KAISEN, Frieren, Re:ZERO, Detective Conan, Pokémon, Dragon Ball Z, SPY x FAMILY
+  - Top Rated: 薬屋のひとりごと, 葬送のフリーレン, クレヨンしんちゃん, Evangelion, Persona 3
+  - Trending: All Japanese anime (fixed!)
+  - Anime Movies: Demon Slayer, Spirited Away, Chainsaw Man, Howl's Moving Castle
+
+Stage Summary:
+- Single-line filter logic bug fixed by switching to TMDB discover endpoint with proper anime parameters
+- Trending carousel now shows exclusively Japanese anime, no more random TV shows
