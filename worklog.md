@@ -212,3 +212,39 @@ Stage Summary:
 - All games are self-contained single HTML files hosted locally in public/games/
 - No more external dependency issues (was CrazyGames embeds, then self-built, now open-source local)
 - Categories: Action (4), Puzzle (6), Arcade (3), Strategy (2), Classic (1)
+
+---
+Task ID: 7
+Agent: main
+Task: Netflix-style TOP 10 trending section + real OTT platform logos
+
+Work Log:
+- Created /api/tmdb/providers-list/route.ts to fetch provider logo paths from TMDB /watch/providers endpoint
+  - Fixes TMDB response format (provider_id, not id; provider_name, not name)
+  - 24-hour in-memory cache, fetches both movie and TV providers
+  - 7/10 platforms found with logos: Netflix, Prime, Apple TV+, Disney+, Hulu, Peacock, Crunchyroll
+  - 3 platforms (Max, Paramount+, MGM+) have no TMDB US logo — fallback to text initials
+- Redesigned TrendingRanked.tsx as Netflix Top 10:
+  - "TOP 10 in Streaming Today" header with red/white typography
+  - Landscape backdrop-based cards (16:9 ratio) instead of poster cards
+  - Large red outline numbers (clamp 4rem-8rem) with -webkit-text-stroke overlapping left edge of each card
+  - Play button hover effect with red glow shadow
+  - Type badge (Movie/TV Series) with dark backdrop blur
+  - Framer Motion staggered entrance animations
+  - Responsive width (50vw on mobile, max 320px on desktop)
+  - Fallback to poster image when no backdrop available
+- Redesigned PlatformSelector.tsx with actual OTT logos:
+  - Platform cards now show TMDB logo images (w92 size) when available
+  - Unselected logos: dimmed (brightness 0.7) + 30% grayscale for subtlety
+  - Selected logo: full brightness, colored glow border/shadow matching platform color
+  - Text initials fallback for platforms without TMDB logos (Max, Paramount+, MGM+)
+  - Larger card size (88-100px wide, 52-60px tall) for better logo visibility
+- Updated ott-platforms.ts: added logoPath field, mergeProviderLogos utility function
+- Updated page.tsx: fetches provider-list API alongside other data, merges logos into platform state
+- Browser verified: all 7 logos loaded (naturalWidth=92, complete=true), Netflix content filtering works, trending movie click opens detail page, no runtime errors
+
+Stage Summary:
+- Netflix Top 10 trending with landscape cards, red outline numbers, and backdrop images
+- Real OTT platform logos from TMDB for 7/10 platforms, graceful fallback for 3
+- Platform selector with glow effects, dim/bright toggle on selection
+- All pushed to GitHub
