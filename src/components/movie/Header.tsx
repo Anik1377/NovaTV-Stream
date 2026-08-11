@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Film, Tv, Home, X, Menu } from 'lucide-react';
+import { Search, Film, Tv, Home, Radio, X, Menu } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
-  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults } = useAppStore();
+  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -48,14 +48,17 @@ export function Header() {
   }, [searchOpen]);
 
   const isActive = (filter: 'all' | 'movie' | 'tv') => {
-    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre') return false;
+    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv') return false;
     return mediaFilter === filter;
   };
+
+  const isLiveTVActive = view === 'livetv';
 
   const navItems = [
     { icon: Home, label: 'Home', filter: 'all' as const, action: goHome },
     { icon: Film, label: 'Movies', filter: 'movie' as const, action: showMovies },
     { icon: Tv, label: 'TV Shows', filter: 'tv' as const, action: showTvShows },
+    { icon: Radio, label: 'Live TV', filter: 'livetv' as const, action: showLiveTV },
   ];
 
   const handleNavClick = (action: () => void) => {
@@ -83,7 +86,7 @@ export function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
-            const active = isActive(item.filter);
+            const active = item.filter === 'livetv' ? isLiveTVActive : isActive(item.filter as 'all' | 'movie' | 'tv');
             return (
               <Button
                 key={item.label}
@@ -170,7 +173,7 @@ export function Header() {
           >
             <nav className="flex flex-col p-2">
               {navItems.map((item) => {
-                const active = isActive(item.filter);
+                const active = item.filter === 'livetv' ? isLiveTVActive : isActive(item.filter as 'all' | 'movie' | 'tv');
                 return (
                   <Button
                     key={item.label}
