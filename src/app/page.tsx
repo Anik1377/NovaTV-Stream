@@ -5,6 +5,8 @@ import { Loader2, Clapperboard, TrendingUp, Film, Star, Clock, Tv } from 'lucide
 import { useAppStore } from '@/store/app-store';
 import { Header } from '@/components/movie/Header';
 import { Hero } from '@/components/movie/Hero';
+import { TrendingRanked } from '@/components/movie/TrendingRanked';
+import { PlatformSelector } from '@/components/movie/PlatformSelector';
 import { ContentRow } from '@/components/movie/ContentRow';
 import { MovieDetail } from '@/components/movie/MovieDetail';
 import { TvDetail } from '@/components/movie/TvDetail';
@@ -14,6 +16,7 @@ import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
 import type { Movie, Genre } from '@/lib/types';
+import type { OttPlatform } from '@/lib/ott-platforms';
 
 function HomePage() {
   const { selectGenre, mediaFilter } = useAppStore();
@@ -25,6 +28,11 @@ function HomePage() {
   const [topRatedTv, setTopRatedTv] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // OTT Platform state
+  const [selectedProvider, setSelectedProvider] = useState<OttPlatform | null>(null);
+  const [providerMovies, setProviderMovies] = useState<Movie[]>([]);
+  const [providerLoading, setProviderLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -62,6 +70,30 @@ function HomePage() {
     ? trending.filter(m => m.media_type === 'tv')
     : trending;
 
+  const handleProviderSelect = useCallback(async (platform: OttPlatform | null) => {
+    setSelectedProvider(platform);
+    if (!platform) {
+      setProviderMovies([]);
+      return;
+    }
+    setProviderLoading(true);
+    try {
+      const [moviesRes, tvRes] = await Promise.all([
+        fetch(`/api/tmdb/providers?provider_id=${platform.id}&type=movie`).then(r => r.json()),
+        fetch(`/api/tmdb/providers?provider_id=${platform.id}&type=tv`).then(r => r.json()),
+      ]);
+      const combined = [
+        ...(moviesRes.results || []).map((m: Movie) => ({ ...m, media_type: 'movie' as const })),
+        ...(tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })),
+      ].sort((a: Movie, b: Movie) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+      setProviderMovies(combined);
+    } catch {
+      setProviderMovies([]);
+    } finally {
+      setProviderLoading(false);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -95,9 +127,32 @@ function HomePage() {
         </div>
       )}
 
+      {/* Trending Right Now - Ranked */}
+      <TrendingRanked movies={mediaFilter === 'all' ? trending : filteredTrending} />
+
+      {/* Studios & Platforms */}
+      <PlatformSelector selectedProvider={selectedProvider?.id ?? null} onSelectProvider={handleProviderSelect} />
+
+      {/* Platform results */}
+      {selectedProvider && providerLoading && (
+        <div className="px-4 md:px-8 py-8">
+          <div className="flex items-center gap-3 text-white/50">
+            <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+            <span className="text-sm">Loading {selectedProvider.name} content...</span>
+          </div>
+        </div>
+      )}
+      {selectedProvider && !providerLoading && providerMovies.length > 0 && (
+        <ContentRow title={`${selectedProvider.name} — Popular`} movies={providerMovies} />
+      )}
+      {selectedProvider && !providerLoading && providerMovies.length === 0 && (
+        <div className="px-4 md:px-8 py-8 text-center">
+          <p className="text-white/40 text-sm">No results found for {selectedProvider.name}.</p>
+        </div>
+      )}
+
       {mediaFilter !== 'tv' && (
         <div>
-          <ContentRow title="Trending This Week" movies={mediaFilter === 'all' ? trending : filteredTrending} icon={<TrendingUp className="w-5 h-5" />} />
           <ContentRow title="Popular Movies" movies={popularMovies} icon={<Film className="w-5 h-5" />} />
           <ContentRow title="Top Rated Movies" movies={topRated} icon={<Star className="w-5 h-5" />} />
           {upcoming.length > 0 && <ContentRow title="Coming Soon" movies={upcoming} icon={<Clock className="w-5 h-5" />} />}
