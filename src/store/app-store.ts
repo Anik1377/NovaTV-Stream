@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv' | 'anime';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -29,6 +29,7 @@ interface AppState {
   showMovies: () => void;
   showTvShows: () => void;
   showLiveTV: () => void;
+  showAnime: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -56,4 +57,5 @@ export const useAppStore = create<AppState>((set) => ({
   showMovies: () => set({ view: 'home', mediaFilter: 'movie', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
   showTvShows: () => set({ view: 'home', mediaFilter: 'tv', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
   showLiveTV: () => set({ view: 'livetv', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
+  showAnime: () => set({ view: 'anime', selectedMovie: null, selectedTv: null, searchQuery: '', searchResults: [], selectedEpisode: null, selectedGenreId: null, selectedGenreName: '' }),
 }));

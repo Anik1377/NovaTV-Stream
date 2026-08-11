@@ -11,6 +11,7 @@ import { TvDetail } from '@/components/movie/TvDetail';
 import { SearchResults } from '@/components/movie/SearchResults';
 import { GenreView } from '@/components/movie/GenreView';
 import { LiveTV } from '@/components/live-tv/LiveTV';
+import { AnimePage } from '@/components/anime/AnimePage';
 import type { Movie, Genre } from '@/lib/types';
 
 function HomePage() {
@@ -144,6 +145,7 @@ export default function App() {
         {view === 'search' && <SearchResults />}
         {view === 'genre' && <GenreView />}
         {view === 'livetv' && <LiveTV />}
+        {view === 'anime' && <AnimePage />}
       </main>
     </div>
   );

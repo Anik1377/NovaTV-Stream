@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Film, Tv, Home, Radio, X, Menu } from 'lucide-react';
+import { Search, Film, Tv, Home, Radio, Sparkles, X, Menu } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
-  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV } = useAppStore();
+  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV, showAnime } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -40,7 +40,6 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [inputValue, searchQuery, handleSearch]);
 
-  // Focus input when search opens
   useEffect(() => {
     if (searchOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -48,18 +47,43 @@ export function Header() {
   }, [searchOpen]);
 
   const isActive = (filter: 'all' | 'movie' | 'tv') => {
-    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv') return false;
+    if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'anime') return false;
     return mediaFilter === filter;
   };
 
   const isLiveTVActive = view === 'livetv';
+  const isAnimeActive = view === 'anime';
 
   const navItems = [
     { icon: Home, label: 'Home', filter: 'all' as const, action: goHome },
     { icon: Film, label: 'Movies', filter: 'movie' as const, action: showMovies },
     { icon: Tv, label: 'TV Shows', filter: 'tv' as const, action: showTvShows },
+    { icon: Sparkles, label: 'Anime', filter: 'anime' as const, action: showAnime },
     { icon: Radio, label: 'Live TV', filter: 'livetv' as const, action: showLiveTV },
   ];
+
+  const getNavActive = (item: typeof navItems[number]) => {
+    if (item.filter === 'livetv') return isLiveTVActive;
+    if (item.filter === 'anime') return isAnimeActive;
+    return isActive(item.filter as 'all' | 'movie' | 'tv');
+  };
+
+  const getNavStyle = (item: typeof navItems[number], active: boolean, mobile = false) => {
+    if (mobile) {
+      if (active && item.filter === 'anime') return 'justify-start gap-3 py-3 text-purple-300 bg-purple-500/15 hover:bg-purple-500/15';
+      if (active) return 'justify-start gap-3 py-3 text-white bg-white/15 hover:bg-white/15';
+      return 'justify-start gap-3 py-3 text-white/80 hover:text-white hover:bg-white/10';
+    }
+    if (active && item.filter === 'anime') return 'gap-2 text-purple-300 bg-purple-500/15 hover:bg-purple-500/15';
+    if (active) return 'gap-2 text-white bg-white/15 hover:bg-white/15';
+    return 'gap-2 text-white/70 hover:text-white hover:bg-white/10';
+  };
+
+  const getIconColor = (item: typeof navItems[number], active: boolean) => {
+    if (!active) return '';
+    if (item.filter === 'anime') return 'text-purple-400';
+    return 'text-red-500';
+  };
 
   const handleNavClick = (action: () => void) => {
     setSearchOpen(false);
@@ -86,20 +110,16 @@ export function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
-            const active = item.filter === 'livetv' ? isLiveTVActive : isActive(item.filter as 'all' | 'movie' | 'tv');
+            const active = getNavActive(item);
             return (
               <Button
                 key={item.label}
                 variant="ghost"
                 size="sm"
+                className={`transition-colors ${getNavStyle(item, active)}`}
                 onClick={() => handleNavClick(item.action)}
-                className={`gap-2 transition-colors ${
-                  active
-                    ? 'text-white bg-white/15 hover:bg-white/15'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
               >
-                <item.icon className={`w-4 h-4 ${active ? 'text-red-500' : ''}`} />
+                <item.icon className={`w-4 h-4 ${getIconColor(item, active)}`} />
                 {item.label}
               </Button>
             );
@@ -121,7 +141,7 @@ export function Header() {
                   ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Search movies, TV shows..."
+                  placeholder="Search movies, TV shows, anime..."
                   className="pl-10 pr-10 bg-black/60 border-white/20 text-white placeholder:text-white/40 focus:border-red-500/50"
                 />
                 <button
@@ -173,19 +193,15 @@ export function Header() {
           >
             <nav className="flex flex-col p-2">
               {navItems.map((item) => {
-                const active = item.filter === 'livetv' ? isLiveTVActive : isActive(item.filter as 'all' | 'movie' | 'tv');
+                const active = getNavActive(item);
                 return (
                   <Button
                     key={item.label}
                     variant="ghost"
-                    className={`justify-start gap-3 py-3 transition-colors ${
-                      active
-                        ? 'text-white bg-white/15 hover:bg-white/15'
-                        : 'text-white/80 hover:text-white hover:bg-white/10'
-                    }`}
+                    className={`transition-colors ${getNavStyle(item, active, true)}`}
                     onClick={() => handleNavClick(item.action)}
                   >
-                    <item.icon className={`w-5 h-5 ${active ? 'text-red-500' : ''}`} />
+                    <item.icon className={`w-5 h-5 ${getIconColor(item, active)}`} />
                     {item.label}
                   </Button>
                 );

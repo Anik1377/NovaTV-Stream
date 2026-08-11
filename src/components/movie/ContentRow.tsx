@@ -8,9 +8,11 @@ import { MovieCard } from './MovieCard';
 interface ContentRowProps {
   title: string;
   movies: Movie[];
+  accentColor?: 'red' | 'purple';
 }
 
-export function ContentRow({ title, movies }: ContentRowProps) {
+export function ContentRow({ title, movies, accentColor = 'red' }: ContentRowProps) {
+  const isPurple = accentColor === 'purple';
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
@@ -35,7 +37,7 @@ export function ContentRow({ title, movies }: ContentRowProps) {
 
   return (
     <section className="relative mb-8 md:mb-10">
-      <h2 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4 px-4 md:px-8">
+      <h2 className={`text-lg md:text-xl font-bold mb-3 md:mb-4 px-4 md:px-8 ${isPurple ? 'text-purple-100' : 'text-white'}`}>
         {title}
       </h2>
       <div className="group/row relative">
@@ -56,7 +58,7 @@ export function ContentRow({ title, movies }: ContentRowProps) {
           className="flex gap-2 md:gap-3 overflow-x-auto content-scroll px-4 md:px-8 pb-2"
         >
           {movies.map((movie, i) => (
-            <MovieCard key={`${movie.id}-${movie.media_type}`} movie={movie} index={i} />
+            <MovieCard key={`${movie.id}-${movie.media_type}`} movie={movie} index={i} accentColor={accentColor} />
           ))}
         </div>
 
