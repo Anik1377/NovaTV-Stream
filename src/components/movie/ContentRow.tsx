@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Movie } from '@/lib/types';
 import { MovieCard } from './MovieCard';
@@ -9,9 +9,10 @@ interface ContentRowProps {
   title: string;
   movies: Movie[];
   accentColor?: 'red' | 'purple';
+  icon?: ReactNode;
 }
 
-export function ContentRow({ title, movies, accentColor = 'red' }: ContentRowProps) {
+export function ContentRow({ title, movies, accentColor = 'red', icon }: ContentRowProps) {
   const isPurple = accentColor === 'purple';
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
@@ -37,7 +38,8 @@ export function ContentRow({ title, movies, accentColor = 'red' }: ContentRowPro
 
   return (
     <section className="relative mb-8 md:mb-10">
-      <h2 className={`text-lg md:text-xl font-bold mb-3 md:mb-4 px-4 md:px-8 ${isPurple ? 'text-purple-100' : 'text-white'}`}>
+      <h2 className={`text-lg md:text-xl font-bold mb-3 md:mb-4 px-4 md:px-8 flex items-center gap-2 ${isPurple ? 'text-purple-100' : 'text-white'}`}>
+        {icon && <span className={isPurple ? 'text-purple-400' : 'text-red-500'}>{icon}</span>}
         {title}
       </h2>
       <div className="group/row relative">

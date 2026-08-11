@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Clapperboard } from 'lucide-react';
+import { Loader2, Clapperboard, TrendingUp, Film, Star, Clock, Tv } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Header } from '@/components/movie/Header';
 import { Hero } from '@/components/movie/Hero';
@@ -96,17 +96,17 @@ function HomePage() {
 
       {mediaFilter !== 'tv' && (
         <div>
-          <ContentRow title="🔥 Trending This Week" movies={mediaFilter === 'all' ? trending : filteredTrending} />
-          <ContentRow title="🎬 Popular Movies" movies={popularMovies} />
-          <ContentRow title="⭐ Top Rated Movies" movies={topRated} />
-          {upcoming.length > 0 && <ContentRow title="🆕 Coming Soon" movies={upcoming} />}
+          <ContentRow title="Trending This Week" movies={mediaFilter === 'all' ? trending : filteredTrending} icon={<TrendingUp className="w-5 h-5" />} />
+          <ContentRow title="Popular Movies" movies={popularMovies} icon={<Film className="w-5 h-5" />} />
+          <ContentRow title="Top Rated Movies" movies={topRated} icon={<Star className="w-5 h-5" />} />
+          {upcoming.length > 0 && <ContentRow title="Coming Soon" movies={upcoming} icon={<Clock className="w-5 h-5" />} />}
         </div>
       )}
 
       {mediaFilter !== 'movie' && (
         <div>
-          <ContentRow title="📺 Popular TV Shows" movies={popularTv} />
-          <ContentRow title="⭐ Top Rated TV Shows" movies={topRatedTv} />
+          <ContentRow title="Popular TV Shows" movies={popularTv} icon={<Tv className="w-5 h-5" />} />
+          <ContentRow title="Top Rated TV Shows" movies={topRatedTv} icon={<Star className="w-5 h-5" />} />
         </div>
       )}
 

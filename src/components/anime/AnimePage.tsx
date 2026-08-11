@@ -1,27 +1,51 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, Sparkles, Flame, Star, Play, Tv, Film, Clock, Zap, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, type LucideIcon } from 'react';
+import {
+  Loader2,
+  Sparkles,
+  Flame,
+  Star,
+  Play,
+  Film,
+  Zap,
+  ChevronRight,
+  Swords,
+  Heart,
+  Wand2,
+  RotateCcw,
+  Smile,
+  Ghost,
+  Bot,
+  Flower2,
+  Trophy,
+  Cog,
+  Search,
+  Moon,
+  LayoutGrid,
+  TrendingUp,
+  Radio,
+} from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { ContentRow } from '@/components/movie/ContentRow';
 import { motion } from 'framer-motion';
 import type { Movie } from '@/lib/types';
 
-const ANIME_GENRES = [
-  { id: 'all', label: 'All Anime', emoji: '🎌' },
-  { id: 'action', label: 'Action', emoji: '⚔️' },
-  { id: 'shonen', label: 'Shonen', emoji: '🔥' },
-  { id: 'romance', label: 'Romance', emoji: '💕' },
-  { id: 'fantasy', label: 'Fantasy', emoji: '🧙' },
-  { id: 'isekai', label: 'Isekai', emoji: '🌀' },
-  { id: 'comedy', label: 'Comedy', emoji: '😂' },
-  { id: 'horror', label: 'Horror', emoji: '👻' },
-  { id: 'scifi', label: 'Sci-Fi', emoji: '🤖' },
-  { id: 'slice', label: 'Slice of Life', emoji: '🌸' },
-  { id: 'sports', label: 'Sports', emoji: '⚽' },
-  { id: 'mecha', label: 'Mecha', emoji: '🤖' },
-  { id: 'mystery', label: 'Mystery', emoji: '🔍' },
-  { id: 'seinen', label: 'Seinen', emoji: '🌑' },
+const ANIME_GENRES: { id: string; label: string; icon: LucideIcon }[] = [
+  { id: 'all', label: 'All Anime', icon: LayoutGrid },
+  { id: 'action', label: 'Action', icon: Swords },
+  { id: 'shonen', label: 'Shonen', icon: Flame },
+  { id: 'romance', label: 'Romance', icon: Heart },
+  { id: 'fantasy', label: 'Fantasy', icon: Wand2 },
+  { id: 'isekai', label: 'Isekai', icon: RotateCcw },
+  { id: 'comedy', label: 'Comedy', icon: Smile },
+  { id: 'horror', label: 'Horror', icon: Ghost },
+  { id: 'scifi', label: 'Sci-Fi', icon: Bot },
+  { id: 'slice', label: 'Slice of Life', icon: Flower2 },
+  { id: 'sports', label: 'Sports', icon: Trophy },
+  { id: 'mecha', label: 'Mecha', icon: Cog },
+  { id: 'mystery', label: 'Mystery', icon: Search },
+  { id: 'seinen', label: 'Seinen', icon: Moon },
 ];
 
 // TMDB genre IDs for anime filtering
@@ -32,7 +56,7 @@ const GENRE_MAP: Record<string, number> = {
   comedy: 35,
   horror: 27,
   scifi: 878,
-  sports: 0, // Not a TMDB genre, filter by keyword
+  sports: 0,
   mecha: 0,
   mystery: 9648,
 };
@@ -110,7 +134,7 @@ export function AnimePage() {
           case 'isekai': return overview.includes('another world') || overview.includes('transported') || overview.includes('summoned') || overview.includes('reincarnat') || name.includes('sao') || name.includes('sword art') || name.includes('overlord') || name.includes('re:zero') || name.includes('mushoku');
           case 'slice': return overview.includes('everyday') || overview.includes('school') || overview.includes('life') || name.includes('k-on') || name.includes('non non') || name.includes('yuru') || name.includes('hidamari');
           case 'mecha': return overview.includes('mech') || overview.includes('robot') || overview.includes('pilot') || name.includes('gundam') || name.includes('eva') || name.includes('evangelion') || name.includes('code geass');
-          case 'seinen': return true; // Broad match for adult anime
+          case 'seinen': return true;
           default: return true;
         }
       });
@@ -231,20 +255,23 @@ export function AnimePage() {
       <div className="relative z-10 -mt-6">
         <div className="px-4 md:px-8">
           <div className="flex items-center gap-2 overflow-x-auto content-scroll pb-4">
-            {ANIME_GENRES.map((genre) => (
-              <button
-                key={genre.id}
-                onClick={() => setSelectedGenre(genre.id)}
-                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                  selectedGenre === genre.id
-                    ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-300 border-purple-500/40 shadow-lg shadow-purple-500/10'
-                    : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/80 hover:border-white/20'
-                }`}
-              >
-                <span>{genre.emoji}</span>
-                <span>{genre.label}</span>
-              </button>
-            ))}
+            {ANIME_GENRES.map((genre) => {
+              const IconComp = genre.icon;
+              return (
+                <button
+                  key={genre.id}
+                  onClick={() => setSelectedGenre(genre.id)}
+                  className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
+                    selectedGenre === genre.id
+                      ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-300 border-purple-500/40 shadow-lg shadow-purple-500/10'
+                      : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white/80 hover:border-white/20'
+                  }`}
+                >
+                  <IconComp className="w-3.5 h-3.5" />
+                  <span>{genre.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -252,45 +279,50 @@ export function AnimePage() {
       {/* Currently Airing (filtered by genre) */}
       {filteredAiring.length > 0 && (
         <ContentRow
-          title="🚀 Now Airing"
+          title="Now Airing"
           movies={filteredAiring}
           accentColor="purple"
+          icon={<Radio className="w-5 h-5" />}
         />
       )}
 
       {/* Popular Anime */}
       {popular.length > 0 && (
         <ContentRow
-          title="🔥 Popular Anime"
+          title="Popular Anime"
           movies={popular}
           accentColor="purple"
+          icon={<Flame className="w-5 h-5" />}
         />
       )}
 
       {/* Top Rated */}
       {topRated.length > 0 && (
         <ContentRow
-          title="⭐ Top Rated Anime"
+          title="Top Rated Anime"
           movies={topRated}
           accentColor="purple"
+          icon={<Star className="w-5 h-5" />}
         />
       )}
 
       {/* Trending */}
       {trending.length > 0 && (
         <ContentRow
-          title="💫 Trending This Week"
+          title="Trending This Week"
           movies={trending}
           accentColor="purple"
+          icon={<TrendingUp className="w-5 h-5" />}
         />
       )}
 
       {/* Anime Movies */}
       {movies.length > 0 && (
         <ContentRow
-          title="🎬 Anime Movies"
+          title="Anime Movies"
           movies={movies}
           accentColor="purple"
+          icon={<Film className="w-5 h-5" />}
         />
       )}
 
