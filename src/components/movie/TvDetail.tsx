@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Star, ArrowLeft, Calendar, Loader2, ChevronDown, Tv } from 'lucide-react';
+import { Play, Star, ArrowLeft, Calendar, ChevronDown, Tv, Heart, Youtube } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -12,7 +12,7 @@ import { MovieCard } from './MovieCard';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 
 export function TvDetail() {
-  const { selectedTv, goHome, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode } = useAppStore();
+  const { selectedTv, goBack, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, toggleWatchlist, isInWatchlist } = useAppStore();
   const [details, setDetails] = useState<TvShowDetails | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +87,7 @@ export function TvDetail() {
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
           <button
-            onClick={goHome}
+            onClick={goBack}
             className="absolute top-20 left-4 md:left-8 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -164,6 +164,41 @@ export function TvDetail() {
                       <p className="text-white/70 text-sm">{details.created_by.map(c => c.name).join(', ')}</p>
                     </div>
                   )}
+
+                  {/* Trailer */}
+                  {(() => {
+                    const vids = details?.videos?.results;
+                    if (!vids?.length) return null;
+                    const trailer = vids.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || vids[0];
+                    if (!trailer) return null;
+                    return (
+                      <div className="mb-6">
+                        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                          <Youtube className="w-4 h-4 text-red-500" /> Trailer
+                        </h3>
+                        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/[0.06]">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={`${title} Trailer`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Watchlist */}
+                  <button
+                    onClick={() => toggleWatchlist(show.id)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200 mb-6"
+                  >
+                    <Heart className={`w-4 h-4 transition-colors ${isInWatchlist(show.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
+                    <span className={isInWatchlist(show.id) ? 'text-red-400' : 'text-white/60'}>
+                      {isInWatchlist(show.id) ? 'In Watchlist' : 'Add to Watchlist'}
+                    </span>
+                  </button>
 
                   {/* Cast */}
                   {cast.length > 0 && (

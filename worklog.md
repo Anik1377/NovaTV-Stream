@@ -313,3 +313,51 @@ Stage Summary:
 - YouTube trailer auto-plays muted directly in the card (no separate modal)
 - Position is viewport-aware: follows card on scroll, clamped to screen edges
 - Desktop-only, gracefully hidden on mobile
+
+---
+Task ID: 1
+Agent: MobileTabBar
+Task: Create mobile bottom tab navigation bar
+
+Work Log:
+- Created /home/z/my-project/src/components/movie/MobileTabBar.tsx
+- Updated /home/z/my-project/src/app/page.tsx to include MobileTabBar
+- Updated HomePage padding from pb-20 to pb-24 to account for bottom tab bar
+
+Stage Summary:
+- 5-tab bottom navigation: Home, Movies, TV, Anime, Games
+- Only visible on mobile (md:hidden)
+- Glass morphism effect with brand-colored active states
+
+---
+Task ID: 10
+Agent: main
+Task: Add nav history, watchlist, and SiteFooter component
+
+Work Log:
+- TASK A - Navigation history in Zustand store:
+  - Added `navHistory: ViewType[]` field and `pushView`/`goBack` actions to AppState interface
+  - Created internal `navigate(set, view)` helper that pushes current view to history before switching
+  - Updated `selectMovie` to call `navigate(set, 'movie')` before setting selectedMovie
+  - Updated `selectTv` to call `navigate(set, 'tv')` before setting selectedTv
+  - Updated `selectGenre` to call `navigate(set, 'genre')` before setting genre data
+  - `goBack` pops from history (falls back to 'home' if empty), applies resetState when navigating back
+  - `goHome` now clears navHistory to `[]`
+  - `showMovies`, `showTvShows`, `showLiveTV`, `showAnime`, `showGames` all clear navHistory (top-level nav)
+- TASK B - Watchlist feature:
+  - Added `watchlist: number[]` (TMDB IDs), `toggleWatchlist(id)`, `isInWatchlist(id)` to store
+  - Loads from localStorage key 'streamvault-watchlist' on init with error handling
+  - `toggleWatchlist` adds/removes ID and saves to localStorage
+  - `isInWatchlist` checks if id exists in the array
+- TASK C - Unified SiteFooter component:
+  - Created `/src/components/movie/SiteFooter.tsx` as 'use client'
+  - Extracted footer HTML from HomePage (logo, disclaimer, TMDB attribution)
+  - Added safe area bottom padding: `pb-[max(2rem,env(safe-area-inset-bottom))]` for mobile tab bar + iOS
+  - Replaced inline footer in page.tsx with `<SiteFooter />`
+  - Removed unused `Clapperboard` import from page.tsx
+- Lint passes clean, no runtime errors
+
+Stage Summary:
+- Navigation history enables back-button support via `goBack()` and `pushView()`
+- Watchlist persists to localStorage, ready for UI integration
+- SiteFooter is a reusable component with iOS safe area support

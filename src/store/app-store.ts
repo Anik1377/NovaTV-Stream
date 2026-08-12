@@ -18,6 +18,12 @@ interface AppState {
   navCounter: number;
   selectedProvider: string;
 
+  // Navigation history
+  navHistory: ViewType[];
+
+  // Watchlist
+  watchlist: number[];
+
   setView: (view: ViewType) => void;
   setMediaFilter: (filter: MediaFilter) => void;
   selectMovie: (movie: Movie) => void;
@@ -35,6 +41,14 @@ interface AppState {
   showGames: () => void;
   bumpNav: () => void;
   setSelectedProvider: (providerId: string) => void;
+
+  // Navigation history actions
+  pushView: (view: ViewType) => void;
+  goBack: () => void;
+
+  // Watchlist actions
+  toggleWatchlist: (id: number) => void;
+  isInWatchlist: (id: number) => boolean;
 }
 
 const resetState = {
@@ -47,7 +61,42 @@ const resetState = {
   selectedGenreName: '',
 };
 
-export const useAppStore = create<AppState>((set) => ({
+// Load watchlist from localStorage
+function loadWatchlist(): number[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem('streamvault-watchlist');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return [];
+}
+
+// Save watchlist to localStorage
+function saveWatchlist(watchlist: number[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('streamvault-watchlist', JSON.stringify(watchlist));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+type SetFn = (fn: (state: AppState) => Partial<AppState>) => void;
+
+function navigate(set: SetFn, view: ViewType) {
+  set((s) => ({
+    ...s,
+    navHistory: [...s.navHistory, s.view],
+    view,
+  }));
+}
+
+export const useAppStore = create<AppState>((set, get) => ({
   view: 'home',
   mediaFilter: 'all',
   selectedMovie: null,
@@ -61,21 +110,75 @@ export const useAppStore = create<AppState>((set) => ({
   navCounter: 0,
   selectedProvider: 'vidsrc-sbs',
 
+  // Navigation history
+  navHistory: [],
+
+  // Watchlist (loaded from localStorage on client)
+  watchlist: typeof window !== 'undefined' ? loadWatchlist() : [],
+
   setView: (view) => set({ view }),
   setMediaFilter: (mediaFilter) => set({ view: 'home', mediaFilter, ...resetState }),
-  selectMovie: (movie) => set({ view: 'movie', selectedMovie: movie, selectedEpisode: null }),
-  selectTv: (tv) => set({ view: 'tv', selectedTv: tv, selectedSeason: 1, selectedEpisode: null }),
+
+  selectMovie: (movie) => {
+    navigate(set, 'movie');
+    set({ selectedMovie: movie, selectedEpisode: null });
+  },
+
+  selectTv: (tv) => {
+    navigate(set, 'tv');
+    set({ selectedTv: tv, selectedSeason: 1, selectedEpisode: null });
+  },
+
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSearchResults: (results) => set({ searchResults: results }),
   setSelectedSeason: (season) => set({ selectedSeason: season, selectedEpisode: null }),
   setSelectedEpisode: (episode) => set({ selectedEpisode: episode }),
-  selectGenre: (id, name) => set({ view: 'genre', selectedGenreId: id, selectedGenreName: name }),
-  goHome: () => set({ view: 'home', mediaFilter: 'all', ...resetState }),
-  showMovies: () => set({ view: 'home', mediaFilter: 'movie', ...resetState }),
-  showTvShows: () => set({ view: 'home', mediaFilter: 'tv', ...resetState }),
-  showLiveTV: () => set({ view: 'livetv', ...resetState }),
-  showAnime: () => set({ view: 'anime', ...resetState }),
-  showGames: () => set((s) => ({ view: 'games', ...resetState, navCounter: s.navCounter + 1 })),
+
+  selectGenre: (id, name) => {
+    navigate(set, 'genre');
+    set({ selectedGenreId: id, selectedGenreName: name });
+  },
+
+  goHome: () => set({ view: 'home', mediaFilter: 'all', ...resetState, navHistory: [] }),
+
+  showMovies: () => set({ view: 'home', mediaFilter: 'movie', ...resetState, navHistory: [] }),
+  showTvShows: () => set({ view: 'home', mediaFilter: 'tv', ...resetState, navHistory: [] }),
+  showLiveTV: () => set({ view: 'livetv', ...resetState, navHistory: [] }),
+  showAnime: () => set({ view: 'anime', ...resetState, navHistory: [] }),
+  showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
+
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
   setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),
+
+  // Navigation history actions
+  pushView: (view) => {
+    navigate(set, view);
+  },
+
+  goBack: () => {
+    set((s) => {
+      const history = [...s.navHistory];
+      const prev = history.pop();
+      return {
+        ...s,
+        navHistory: history,
+        view: prev || 'home',
+        ...(prev ? resetState : {}),
+      };
+    });
+  },
+
+  // Watchlist actions
+  toggleWatchlist: (id) => {
+    const current = get().watchlist;
+    const updated = current.includes(id)
+      ? current.filter((wid) => wid !== id)
+      : [...current, id];
+    set({ watchlist: updated });
+    saveWatchlist(updated);
+  },
+
+  isInWatchlist: (id) => {
+    return get().watchlist.includes(id);
+  },
 }));

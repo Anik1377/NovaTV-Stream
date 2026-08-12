@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Clapperboard, TrendingUp, Film, Star, Clock, Tv } from 'lucide-react';
+import { Film, Star, Clock, Tv } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 import { Header } from '@/components/movie/Header';
 import { Hero } from '@/components/movie/Hero';
@@ -15,6 +16,8 @@ import { GenreView } from '@/components/movie/GenreView';
 import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
+import { MobileTabBar } from '@/components/movie/MobileTabBar';
+import { SiteFooter } from '@/components/movie/SiteFooter';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 
@@ -101,17 +104,48 @@ function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 text-red-500 animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Loading StreamVault...</p>
+      <div className="min-h-screen">
+        {/* Hero skeleton */}
+        <div className="h-[70vh] md:h-screen bg-white/[0.03] animate-pulse" />
+        {/* Genre pills skeleton */}
+        <div className="px-4 md:px-8 -mt-4 mb-6 flex gap-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="shrink-0 h-8 w-20 rounded-full bg-white/[0.06] animate-pulse" />
+          ))}
         </div>
+        {/* Trending skeleton */}
+        <div className="px-4 md:px-8 mb-8">
+          <div className="h-6 w-48 rounded bg-white/[0.06] mb-4 animate-pulse" />
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="shrink-0 w-[130px] md:w-[200px]">
+                <div className="aspect-[2/3] rounded-lg bg-white/[0.06] animate-pulse" />
+                <div className="h-3 w-3/4 rounded bg-white/[0.06] mt-2 animate-pulse" />
+                <div className="h-2.5 w-1/2 rounded bg-white/[0.06] mt-1.5 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Content row skeletons */}
+        {[1, 2, 3, 4].map((s) => (
+          <div key={s} className="px-4 md:px-8 mb-8">
+            <div className="h-5 w-36 rounded bg-white/[0.06] mb-4 animate-pulse" />
+            <div className="flex gap-3 overflow-hidden">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="shrink-0 w-[120px] md:w-[160px]">
+                  <div className="aspect-[2/3] rounded-lg bg-white/[0.06] animate-pulse" />
+                  <div className="h-3 w-3/4 rounded bg-white/[0.06] mt-2 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="pb-20">
+    <div className="pb-24">
       {mediaFilter === 'all' && <Hero movies={trending.slice(0, 8)} />}
       {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
       {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
@@ -171,24 +205,7 @@ function HomePage() {
         </div>
       )}
 
-      <footer className="mt-16 border-t border-white/10 px-4 md:px-8 py-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-red-600 rounded-md flex items-center justify-center">
-              <Clapperboard className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-sm font-bold">
-              Stream<span className="text-red-500">Vault</span>
-            </span>
-          </div>
-          <p className="text-white/40 text-xs text-center">
-            StreamVault does not store any files on its server. All contents are provided by non-affiliated third parties.
-          </p>
-          <div className="flex items-center gap-4 text-white/40 text-xs">
-            <span>Powered by TMDB</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
@@ -199,16 +216,24 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>
-        {view === 'home' && <HomePage />}
-        {view === 'movie' && <MovieDetail />}
-        {view === 'tv' && <TvDetail />}
-        {view === 'search' && <SearchResults />}
-        {view === 'genre' && <GenreView />}
-        {view === 'livetv' && <LiveTV />}
-        {view === 'anime' && <AnimePage />}
-        {view === 'games' && <GamesPage key={navCounter} />}
+      <main className="relative">
+        <motion.div
+          key={view}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+        >
+          {view === 'home' && <HomePage />}
+          {view === 'movie' && <MovieDetail />}
+          {view === 'tv' && <TvDetail />}
+          {view === 'search' && <SearchResults />}
+          {view === 'genre' && <GenreView />}
+          {view === 'livetv' && <LiveTV />}
+          {view === 'anime' && <AnimePage />}
+          {view === 'games' && <GamesPage key={navCounter} />}
+        </motion.div>
       </main>
+      <MobileTabBar />
     </div>
   );
 }

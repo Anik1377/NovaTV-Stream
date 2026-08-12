@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { Play, Star, ArrowLeft, Calendar, Clock, Zap } from 'lucide-react';
+import { Play, Star, ArrowLeft, Calendar, Clock, Zap, Heart, Youtube } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -13,7 +13,7 @@ import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { MovieDetails } from '@/lib/types';
 
 export function MovieDetail() {
-  const { selectedMovie, goHome, selectedProvider } = useAppStore();
+  const { selectedMovie, goBack, selectedProvider, toggleWatchlist, isInWatchlist } = useAppStore();
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPlayer, setShowPlayer] = useState(false);
@@ -103,7 +103,7 @@ export function MovieDetail() {
 
           {/* Floating back button pill */}
           <button
-            onClick={goHome}
+            onClick={goBack}
             className="absolute top-20 left-6 md:left-12 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-colors duration-300"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -250,6 +250,40 @@ export function MovieDetail() {
                       </div>
                     </div>
                   )}
+                  {/* Trailer */}
+                  {(() => {
+                    const vids = details?.videos?.results;
+                    if (!vids?.length) return null;
+                    const trailer = vids.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || vids[0];
+                    if (!trailer) return null;
+                    return (
+                      <div className="mb-8">
+                        <h3 className="text-white font-semibold text-base mb-4 tracking-tight flex items-center gap-2">
+                          <Youtube className="w-4 h-4 text-red-500" /> Trailer
+                        </h3>
+                        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/[0.06]">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={`${title} Trailer`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Watchlist button */}
+                  <button
+                    onClick={() => toggleWatchlist(movie.id)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200 mb-8"
+                  >
+                    <Heart className={`w-4 h-4 transition-colors ${isInWatchlist(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
+                    <span className={isInWatchlist(movie.id) ? 'text-red-400' : 'text-white/60'}>
+                      {isInWatchlist(movie.id) ? 'In Watchlist' : 'Add to Watchlist'}
+                    </span>
+                  </button>
                 </>
               )}
             </div>
