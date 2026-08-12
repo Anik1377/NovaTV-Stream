@@ -13,8 +13,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
+import { useAuthStore } from '@/store/auth-store';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -61,10 +64,13 @@ interface NavItem {
 /* ── Main Sidebar ── */
 interface SidebarProps {
   onInstallClick?: () => void;
+  onAuthClick?: () => void;
 }
 
-export function Sidebar({ onInstallClick }: SidebarProps) {
+export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames, showMusic, setSearchResults, setView, setSearchQuery } = useAppStore();
+  const authUser = useAuthStore(s => s.user);
+  const authLogout = useAuthStore(s => s.logout);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -214,6 +220,36 @@ export function Sidebar({ onInstallClick }: SidebarProps) {
 
       {/* Bottom section */}
       <div className="px-2.5 pb-3 shrink-0 space-y-0.5 border-t border-white/[0.06] pt-2">
+        {/* Auth button */}
+        {authUser ? (
+          <button
+            onClick={authLogout}
+            title={collapsed ? `Sign out (${authUser.email})` : undefined}
+            className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-red-400 hover:bg-red-500/10 ${
+              collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+            }`}
+          >
+            <span className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
+              {(authUser.name || authUser.email)[0].toUpperCase()}
+            </span>
+            <SidebarLabel show={expanded}>
+              <span className="flex-1 text-left truncate">{authUser.name || authUser.email}</span>
+            </SidebarLabel>
+            {!collapsed && <LogOut className="w-3.5 h-3.5 shrink-0 text-white/20" />}
+          </button>
+        ) : (
+          <button
+            onClick={onAuthClick}
+            title={collapsed ? 'Sign In' : undefined}
+            className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-white hover:bg-white/[0.06] ${
+              collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+            }`}
+          >
+            <LogIn className="w-[18px] h-[18px] shrink-0" />
+            <SidebarLabel show={expanded}>Sign In</SidebarLabel>
+          </button>
+        )}
+
         {onInstallClick && (
           <button
             onClick={onInstallClick}
@@ -316,7 +352,27 @@ export function Sidebar({ onInstallClick }: SidebarProps) {
             </nav>
 
             {/* Bottom */}
-            <div className="px-2.5 pb-4 shrink-0 border-t border-white/[0.06] pt-2">
+            <div className="px-2.5 pb-4 shrink-0 border-t border-white/[0.06] pt-2 space-y-1">
+              {authUser ? (
+                <button
+                  onClick={() => { setMobileOpen(false); authLogout(); }}
+                  className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <span className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center shrink-0 text-xs font-bold text-white">
+                    {(authUser.name || authUser.email)[0].toUpperCase()}
+                  </span>
+                  <span className="text-[13px] font-medium flex-1 text-left truncate">{authUser.name || authUser.email}</span>
+                  <LogOut className="w-4 h-4 text-white/20" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setMobileOpen(false); onAuthClick?.(); }}
+                  className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+                >
+                  <LogIn className="w-[18px] h-[18px] shrink-0" />
+                  <span className="text-[13px] font-medium">Sign In</span>
+                </button>
+              )}
               {onInstallClick && (
                 <button
                   onClick={() => { setMobileOpen(false); onInstallClick(); }}

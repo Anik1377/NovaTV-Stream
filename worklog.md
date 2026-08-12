@@ -532,3 +532,29 @@ Stage Summary:
 - Hydration error in MusicPage TrackCard fixed
 - Zero lint errors, zero console errors
 - Verified on desktop (1280x800) and mobile (iPhone 14) viewports
+---
+Task ID: 2
+Agent: Main
+Task: Add simple email/password login with SQLite database
+
+Work Log:
+- Installed bcryptjs for password hashing
+- Updated Prisma schema: User model (id, email, passwordHash, name) + Session model (id, token, userId, expiresAt) with cascade delete
+- Pushed schema to SQLite DB
+- Created 4 API routes:
+  - /api/auth/register — hashes password with bcrypt(12), creates user + session, sets httpOnly cookie
+  - /api/auth/login — verifies password, creates session, sets cookie
+  - /api/auth/me — reads cookie, finds valid session, returns user (auto-cleans expired sessions)
+  - /api/auth/logout — deletes session, clears cookie
+- Created auth-store.ts (Zustand) with user state, fetchUser, login, register, logout actions
+- Created AuthModal.tsx — animated modal with Login/Register toggle, email/password fields, show/hide password, error display, loading state
+- Updated Sidebar.tsx: added LogIn/LogOut icons, auth user avatar with initial letter (collapsed + expanded), sign in button, logout button, mobile drawer auth section
+- Updated page.tsx: imports AuthModal, fetches user session on mount, passes onAuthClick to Sidebar
+
+Stage Summary:
+- Full email/password auth system working (register, login, logout, session persistence)
+- 30-day session cookies (httpOnly, sameSite=lax)
+- Passwords hashed with bcrypt (12 rounds)
+- Session tokens: 32-byte random hex strings
+- User avatar shown in sidebar (initial letter circle + name/email)
+- Zero lint errors, verified register/login/logout on desktop and mobile

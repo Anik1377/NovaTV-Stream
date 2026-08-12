@@ -19,6 +19,8 @@ import { GamesPage } from '@/components/game/GamesPage';
 import { MusicPage } from '@/components/music/MusicPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 
@@ -214,10 +216,15 @@ function HomePage() {
 export default function App() {
   const { view, navCounter } = useAppStore();
   const [installModalOpen, setInstallModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const fetchUser = useAuthStore(s => s.fetchUser);
+
+  // Fetch auth session on mount
+  useEffect(() => { fetchUser(); }, [fetchUser]);
 
   return (
     <div className="min-h-screen bg-background flex">
-      <Sidebar onInstallClick={() => setInstallModalOpen(true)} />
+      <Sidebar onInstallClick={() => setInstallModalOpen(true)} onAuthClick={() => setAuthModalOpen(true)} />
       <main className="flex-1 min-w-0 relative">
         <motion.div
           key={view}
@@ -238,6 +245,7 @@ export default function App() {
       </main>
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
+      <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }

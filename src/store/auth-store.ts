@@ -1,0 +1,72 @@
+import { create } from 'zustand';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
+interface AuthState {
+  user: AuthUser | null;
+  loading: boolean;
+  fetchUser: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (email: string, password: string, name?: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  loading: true,
+
+  fetchUser: async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      set({ user: data.user, loading: false });
+    } catch {
+      set({ user: null, loading: false });
+    }
+  },
+
+  login: async (email, password) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Login failed' };
+      set({ user: data.user });
+      return {};
+    } catch {
+      return { error: 'Network error' };
+    }
+  },
+
+  register: async (email, password, name) => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Registration failed' };
+      set({ user: data.user });
+      return {};
+    } catch {
+      return { error: 'Network error' };
+    }
+  },
+
+  logout: async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // continue even if request fails
+    }
+    set({ user: null });
+  },
+}));
