@@ -505,3 +505,30 @@ Stage Summary:
 - 10 gradient mood cards for quick genre browsing
 - 2-column compact grid with animated playing indicators
 - All features verified working on mobile viewport
+---
+Task ID: 1
+Agent: Main
+Task: Fix TrackCard button nesting hydration error + Move top nav to collapsible left sidebar
+
+Work Log:
+- Fixed MusicPage TrackCard hydration error: changed nested `<button>` to `<span role="button">` with keyboard handlers (line 237)
+- Created new `/src/components/movie/Sidebar.tsx` — collapsible left-side navigation
+  - Desktop: sticky sidebar with expanded (224px) / collapsed (64px) states
+  - Mobile: hamburger button + slide-out drawer from left
+  - Search bar integrated in sidebar (expanded) and drawer (mobile)
+  - All 7 nav items: Home, Movies, TV Shows, Anime, Games, Music, Live TV
+  - Install App button with red badge
+  - Collapse/Expand toggle button at bottom
+  - Animated label show/hide using Framer Motion AnimatePresence
+  - Custom `SidebarLabel` component declared outside render to satisfy static-components lint rule
+- Updated `page.tsx`: replaced `<Header>` + `<MobileTabBar>` with `<Sidebar>` in flex layout
+- Updated MusicPage.tsx: removed bottom padding (pb-24), updated sticky search top position (was header-offset, now top-0 with pt-14 on mobile for hamburger button clearance), updated MiniPlayer bottom position (was above tab bar, now at bottom)
+- Updated InstallAppModal InstallBanner: changed `bottom-20 md:bottom-6` to `bottom-6` (no more tab bar offset)
+- All lint errors resolved, browser verification passed (desktop expanded, collapsed, mobile drawer, search, music page, no console errors)
+
+Stage Summary:
+- Top navigation moved from fixed horizontal header to collapsible left sidebar
+- Bottom tab bar (MobileTabBar) removed, replaced by mobile drawer
+- Hydration error in MusicPage TrackCard fixed
+- Zero lint errors, zero console errors
+- Verified on desktop (1280x800) and mobile (iPhone 14) viewports

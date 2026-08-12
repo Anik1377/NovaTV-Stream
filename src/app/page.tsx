@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Film, Star, Clock, Tv } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
-import { Header } from '@/components/movie/Header';
+import { Sidebar } from '@/components/movie/Sidebar';
 import { Hero } from '@/components/movie/Hero';
 import { TrendingRanked } from '@/components/movie/TrendingRanked';
 import { PlatformSelector } from '@/components/movie/PlatformSelector';
@@ -17,7 +17,6 @@ import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
 import { MusicPage } from '@/components/music/MusicPage';
-import { MobileTabBar } from '@/components/movie/MobileTabBar';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import type { Movie, Genre } from '@/lib/types';
@@ -147,13 +146,13 @@ function HomePage() {
   }
 
   return (
-    <div className="pb-24">
+    <div>
       {mediaFilter === 'all' && <Hero movies={trending.slice(0, 8)} />}
       {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
       {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
 
       {genres.length > 0 && (
-        <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-20')}>
+        <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-4')}>
           <div className="flex gap-2 overflow-x-auto content-scroll pb-2">
             {genres.slice(0, 15).map((genre) => (
               <button
@@ -217,9 +216,9 @@ export default function App() {
   const [installModalOpen, setInstallModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header onInstallClick={() => setInstallModalOpen(true)} />
-      <main className="relative">
+    <div className="min-h-screen bg-background flex">
+      <Sidebar onInstallClick={() => setInstallModalOpen(true)} />
+      <main className="flex-1 min-w-0 relative">
         <motion.div
           key={view}
           initial={{ opacity: 0, y: 8 }}
@@ -237,7 +236,6 @@ export default function App() {
           {view === 'music' && <MusicPage />}
         </motion.div>
       </main>
-      <MobileTabBar />
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
     </div>

@@ -380,7 +380,7 @@ export function InstallBanner({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-[250]"
+          className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-[250]"
         >
           <div className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/40">
             <button

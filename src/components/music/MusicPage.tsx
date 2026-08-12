@@ -234,12 +234,15 @@ function TrackCard({
         </p>
         <div className="flex items-center justify-between mt-0.5">
           <p className="text-[11px] text-white/40 truncate pr-2">{track.channelTitle}</p>
-          <button
+          <span
+            role="button"
+            tabIndex={0}
             onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
-            className="shrink-0 p-0.5"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLiked(!liked); } }}
+            className="shrink-0 p-0.5 cursor-pointer"
           >
             <Heart className={`w-3 h-3 transition-colors ${liked ? 'text-rose-400 fill-rose-400' : 'text-white/20'}`} />
-          </button>
+          </span>
         </div>
       </div>
     </motion.div>
@@ -475,7 +478,7 @@ function MiniPlayer({
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="fixed left-0 right-0 z-40"
       style={{
-        bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+        bottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
       {/* Progress line */}
@@ -653,9 +656,9 @@ export function MusicPage() {
   const hasPlayer = currentTrack !== null;
 
   return (
-    <div className={`${hasPlayer && !showFullScreen ? 'pb-[7.5rem]' : 'pb-24'}`}>
+    <div>
       {/* ── Search Bar (sticky) ── */}
-      <div className="sticky top-[calc(3rem+env(safe-area-inset-top,0px))] z-30 bg-black/80 backdrop-blur-xl px-4 py-3">
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl px-4 py-3 pt-14 md:pt-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
           <Input
