@@ -11,7 +11,6 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronRight,
-  ExternalLink,
   Volume2,
   Heart,
   Shuffle,
@@ -33,41 +32,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface YoutubeVideoResult {
-  videoId: string;
+interface SaavnTrack {
+  id: string;
   title: string;
-  channelTitle: string;
+  artists: string;
+  album: string;
   thumbnail: string;
-  duration: string;
-  viewCount: number;
-  publishedAt: string;
+  duration: number;
+  audioUrl: string;
+  year: string;
 }
 
 interface ApiResponse {
-  results: YoutubeVideoResult[];
-  nextPageToken?: string;
+  results: SaavnTrack[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDuration(iso: string): string {
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!m) return '0:00';
-  const h = parseInt(m[1] || '0');
-  const min = parseInt(m[2] || '0');
-  const s = parseInt(m[3] || '0');
-  if (h > 0) return `${h}:${min.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  return `${min}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatDurationSeconds(iso: string): number {
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!m) return 0;
-  const h = parseInt(m[1] || '0');
-  const min = parseInt(m[2] || '0');
-  const s = parseInt(m[3] || '0');
-  return h * 3600 + min * 60 + s;
-}
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -75,17 +55,10 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function formatViews(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const MOOD_CATEGORIES = [
-  { label: 'Today\'s Hits', query: 'Top Hits 2025', icon: Flame, color: 'from-rose-600 to-orange-500' },
+  { label: "Today's Hits", query: 'Top Hits 2025', icon: Flame, color: 'from-rose-600 to-orange-500' },
   { label: 'Chill Vibes', query: 'Lo-fi Chill Beats', icon: Headphones, color: 'from-violet-600 to-purple-500' },
   { label: 'Workout', query: 'Workout Music Mix', icon: Dumbbell, color: 'from-emerald-600 to-teal-500' },
   { label: 'Romance', query: 'Romantic Love Songs', icon: Heart, color: 'from-pink-600 to-rose-500' },
@@ -135,7 +108,7 @@ function TrackRowSkeleton() {
   );
 }
 
-// ─── Category Card (replaces mood cards — no emoji) ─────────────────────────
+// ─── Category Card ──────────────────────────────────────────────────────────
 
 function CategoryCard({
   label,
@@ -165,7 +138,7 @@ function CategoryCard({
   );
 }
 
-// ─── Ranked Card (horizontal scroll, Apple Music artist style) ──────────────
+// ─── Ranked Card ────────────────────────────────────────────────────────────
 
 function RankedCard({
   track,
@@ -173,7 +146,7 @@ function RankedCard({
   onPlay,
   isActive,
 }: {
-  track: YoutubeVideoResult;
+  track: SaavnTrack;
   rank: number;
   onPlay: () => void;
   isActive: boolean;
@@ -204,21 +177,18 @@ function RankedCard({
           </div>
         )}
 
-        {/* Rank number */}
         <div className="absolute top-3 left-3">
           <span className="text-4xl font-bold text-white drop-shadow-lg" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
             {rank}
           </span>
         </div>
 
-        {/* Bottom gradient + info */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-3">
           <p className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{track.title}</p>
-          <p className="text-[11px] text-white/50 mt-0.5 truncate">{track.channelTitle}</p>
+          <p className="text-[11px] text-white/50 mt-0.5 truncate">{track.artists}</p>
         </div>
 
-        {/* Play overlay on hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
           <div className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
             {isActive ? (
@@ -229,7 +199,6 @@ function RankedCard({
           </div>
         </div>
 
-        {/* Playing indicator */}
         {isActive && (
           <div className="absolute top-3 right-3 flex items-end gap-0.5 h-3.5">
             {[0, 1, 2].map((i) => (
@@ -247,7 +216,7 @@ function RankedCard({
   );
 }
 
-// ─── Track Row (list-style, Apple Music song row) ───────────────────────────
+// ─── Track Row ──────────────────────────────────────────────────────────────
 
 function TrackRow({
   track,
@@ -255,7 +224,7 @@ function TrackRow({
   onPlay,
   isActive,
 }: {
-  track: YoutubeVideoResult;
+  track: SaavnTrack;
   index: number;
   onPlay: () => void;
   isActive: boolean;
@@ -273,7 +242,6 @@ function TrackRow({
         isActive ? 'bg-[#FA2D48]/10' : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
       }`}
     >
-      {/* Index or playing indicator */}
       <div className="w-5 text-center shrink-0">
         {isActive ? (
           <div className="flex items-end justify-center gap-[2px] h-3.5">
@@ -292,7 +260,6 @@ function TrackRow({
         <Play className={`w-4 h-4 text-white/70 hidden group-hover:block ${isActive ? '!hidden' : ''}`} />
       </div>
 
-      {/* Thumbnail */}
       <div className="w-10 h-10 rounded-md overflow-hidden bg-white/[0.04] shrink-0">
         {!imgError ? (
           <img src={track.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
@@ -301,19 +268,17 @@ function TrackRow({
         )}
       </div>
 
-      {/* Title & Artist */}
       <div className="flex-1 min-w-0">
         <p className={`text-[14px] font-medium leading-tight truncate ${isActive ? 'text-[#FA2D48]' : 'text-white/90'}`}>{track.title}</p>
-        <p className="text-[12px] text-white/40 mt-0.5 truncate">{track.channelTitle}</p>
+        <p className="text-[12px] text-white/40 mt-0.5 truncate">{track.artists}</p>
       </div>
 
-      {/* Duration */}
-      <span className="text-[12px] text-white/30 tabular-nums shrink-0 mr-1 hidden sm:block">{formatDuration(track.duration)}</span>
+      <span className="text-[12px] text-white/30 tabular-nums shrink-0 mr-1 hidden sm:block">{formatTime(track.duration)}</span>
 
-      {/* Views */}
-      <span className="text-[12px] text-white/20 tabular-nums shrink-0 hidden md:block">{formatViews(track.viewCount)}</span>
+      {track.year && (
+        <span className="text-[12px] text-white/20 tabular-nums shrink-0 hidden md:block">{track.year}</span>
+      )}
 
-      {/* Like button */}
       <span
         role="button"
         tabIndex={0}
@@ -327,35 +292,33 @@ function TrackRow({
   );
 }
 
-// ─── Full Screen Now Playing (Apple Music aesthetic) ───────────────────────
+// ─── Full Screen Now Playing ────────────────────────────────────────────────
 
 function FullScreenPlayer({
   track,
   onClose,
   onNext,
   onPrev,
+  isPlaying,
+  onTogglePlay,
+  currentTime,
+  duration,
+  onSeek,
 }: {
-  track: YoutubeVideoResult;
+  track: SaavnTrack;
   onClose: () => void;
   onNext: () => void;
   onPrev: () => void;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  currentTime: number;
+  duration: number;
+  onSeek: (pct: number) => void;
 }) {
   const [imgError, setImgError] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const totalSec = formatDurationSeconds(track.duration);
   const [liked, setLiked] = useState(false);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) return 100;
-        return p + (100 / Math.max(totalSec, 1)) * 0.5;
-      });
-    }, 500);
-    return () => clearInterval(interval);
-  }, [totalSec]);
-
-  const currentSec = (progress / 100) * totalSec;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <motion.div
@@ -365,7 +328,6 @@ function FullScreenPlayer({
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="fixed inset-0 z-[60] flex flex-col bg-black"
     >
-      {/* Blurred background */}
       <div className="absolute inset-0 z-0">
         {!imgError ? (
           <img src={track.thumbnail} alt="" className="w-full h-full object-cover scale-150 blur-3xl opacity-30" onError={() => setImgError(true)} />
@@ -376,21 +338,19 @@ function FullScreenPlayer({
       </div>
 
       <div className="relative z-10 flex flex-col h-full">
-        {/* Top bar */}
         <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top,12px)] pb-2">
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
             <ChevronDown className="w-6 h-6" />
           </button>
           <div className="text-center">
             <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider">Playing from</p>
-            <p className="text-xs text-white/50 mt-0.5">YouTube Music</p>
+            <p className="text-xs text-white/50 mt-0.5">JioSaavn</p>
           </div>
           <button onClick={() => setLiked(!liked)} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
             <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : ''}`} />
           </button>
         </div>
 
-        {/* Album art */}
         <div className="flex-1 flex items-center justify-center px-8 py-4">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -408,61 +368,43 @@ function FullScreenPlayer({
           </motion.div>
         </div>
 
-        {/* Track info + controls */}
         <div className="px-8 pb-[env(safe-area-inset-bottom,16px)]">
           <div className="flex items-start justify-between gap-3 mb-5">
             <div className="min-w-0 flex-1">
               <h2 className="text-xl font-bold text-white truncate">{track.title}</h2>
-              <p className="text-[15px] text-white/50 truncate mt-0.5">{track.channelTitle}</p>
+              <p className="text-[15px] text-white/50 truncate mt-0.5">{track.artists}</p>
             </div>
-            <a
-              href={`https://www.youtube.com/watch?v=${track.videoId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 p-2 text-white/30 hover:text-white/60 transition-colors mt-0.5"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
           </div>
 
-          {/* Progress bar */}
           <div className="mb-5">
             <div
               className="relative w-full h-1 bg-white/10 rounded-full cursor-pointer group"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pct = ((e.clientX - rect.left) / rect.width) * 100;
-                setProgress(Math.max(0, Math.min(100, pct)));
+                onSeek(Math.max(0, Math.min(100, pct)));
               }}
             >
               <div className="absolute left-0 top-0 h-full bg-white/80 rounded-full group-hover:bg-white transition-colors" style={{ width: `${Math.min(progress, 100)}%` }} />
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(currentSec)}</span>
-              <span className="text-[11px] text-white/30 tabular-nums">{formatDuration(track.duration)}</span>
+              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(currentTime)}</span>
+              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(duration)}</span>
             </div>
           </div>
 
-          {/* Controls */}
           <div className="flex items-center justify-between px-2 mb-5">
             <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Shuffle className="w-5 h-5" /></button>
             <button onClick={onPrev} className="p-2 text-white hover:text-white transition-colors"><SkipBack className="w-6 h-6 fill-white" /></button>
-            <button className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:scale-105 transition-transform">
-              <Pause className="w-7 h-7 text-black fill-black" />
+            <button onClick={onTogglePlay} className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:scale-105 transition-transform">
+              {isPlaying ? (
+                <Pause className="w-7 h-7 text-black fill-black" />
+              ) : (
+                <Play className="w-7 h-7 text-black fill-black ml-1" />
+              )}
             </button>
             <button onClick={onNext} className="p-2 text-white hover:text-white transition-colors"><SkipForward className="w-6 h-6 fill-white" /></button>
             <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Repeat className="w-5 h-5" /></button>
-          </div>
-
-          {/* YouTube embed (hidden but audible) */}
-          <div className="w-full overflow-hidden rounded-xl bg-black/50">
-            <iframe
-              key={track.videoId}
-              src={`https://www.youtube.com/embed/${track.videoId}?autoplay=1&rel=0&modestbranding=1`}
-              className="w-full aspect-video"
-              allow="autoplay; encrypted-media"
-              title={track.title}
-            />
           </div>
         </div>
       </div>
@@ -470,31 +412,28 @@ function FullScreenPlayer({
   );
 }
 
-// ─── Mini Player (Apple Music style: 64px, blur, white play circle) ─────────
+// ─── Mini Player ────────────────────────────────────────────────────────────
 
 function MiniPlayer({
   track,
   onExpand,
   onNext,
   onPrev,
+  isPlaying,
+  onTogglePlay,
+  currentTime,
+  duration,
 }: {
-  track: YoutubeVideoResult;
+  track: SaavnTrack;
   onExpand: () => void;
   onNext: () => void;
   onPrev: () => void;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  currentTime: number;
+  duration: number;
 }) {
-  const [progress, setProgress] = useState(0);
-  const totalSec = formatDurationSeconds(track.duration);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) return 100;
-        return p + (100 / Math.max(totalSec, 1)) * 0.5;
-      });
-    }, 500);
-    return () => clearInterval(interval);
-  }, [totalSec]);
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <motion.div
@@ -505,41 +444,36 @@ function MiniPlayer({
       className="fixed left-0 right-0 z-40 md:bottom-0"
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}
     >
-      {/* Thin progress line */}
       <div className="h-[2px] w-full bg-white/5">
         <div className="h-full bg-[#FA2D48] transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
       </div>
 
-      {/* Bar */}
       <div className="h-16 bg-[#1E1E1E]/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center gap-3 px-3">
-        {/* Album art */}
         <button onClick={onExpand} className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white/10 shadow-md">
           <img src={track.thumbnail} alt="" className="w-full h-full object-cover" />
         </button>
 
-        {/* Title + Artist */}
         <button onClick={onExpand} className="flex-1 min-w-0 text-left">
           <p className="text-[14px] font-medium text-white truncate leading-tight">{track.title}</p>
-          <p className="text-[12px] text-[#888] truncate mt-0.5">{track.channelTitle}</p>
+          <p className="text-[12px] text-[#888] truncate mt-0.5">{track.artists}</p>
         </button>
 
-        {/* Controls */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={onPrev} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
             <SkipBack className="w-4 h-4" />
           </button>
-
-          {/* White play/pause circle */}
-          <button className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md shadow-white/10">
-            <Pause className="w-3.5 h-3.5 text-black fill-black" />
+          <button onClick={onTogglePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md shadow-white/10">
+            {isPlaying ? (
+              <Pause className="w-3.5 h-3.5 text-black fill-black" />
+            ) : (
+              <Play className="w-3.5 h-3.5 text-black fill-black ml-0.5" />
+            )}
           </button>
-
           <button onClick={onNext} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
             <SkipForward className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Right actions */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white/60 transition-colors">
             <MoreHorizontal className="w-4 h-4" />
@@ -550,7 +484,7 @@ function MiniPlayer({
   );
 }
 
-// ─── Section Header (Apple style) ────────────────────────────────────────────
+// ─── Section Header ─────────────────────────────────────────────────────────
 
 function SectionHeader({ title, action }: { title: string; action?: string }) {
   return (
@@ -569,25 +503,87 @@ function SectionHeader({ title, action }: { title: string; action?: string }) {
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export function MusicPage() {
-  const [trending, setTrending] = useState<YoutubeVideoResult[]>([]);
-  const [searchResults, setSearchResults] = useState<YoutubeVideoResult[]>([]);
-  const [relatedResults, setRelatedResults] = useState<YoutubeVideoResult[]>([]);
+  const [trending, setTrending] = useState<SaavnTrack[]>([]);
+  const [searchResults, setSearchResults] = useState<SaavnTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMood, setActiveMood] = useState('');
-  const [currentTrack, setCurrentTrack] = useState<YoutubeVideoResult | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<SaavnTrack | null>(null);
   const [showFullScreen, setShowFullScreen] = useState(false);
-  const [queue, setQueue] = useState<YoutubeVideoResult[]>([]);
+  const [queue, setQueue] = useState<SaavnTrack[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio element
+  useEffect(() => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+
+    audio.addEventListener('timeupdate', () => {
+      setCurrentTime(audio.currentTime);
+    });
+    audio.addEventListener('loadedmetadata', () => {
+      setAudioDuration(audio.duration);
+    });
+    audio.addEventListener('ended', () => {
+      // Auto next
+      setQueueIndex((prev) => {
+        const next = (prev + 1) % queue.length;
+        if (queue[next]) {
+          setCurrentTrack(queue[next]);
+          playSong(queue[next]);
+        }
+        return next;
+      });
+    });
+    audio.addEventListener('play', () => setIsPlaying(true));
+    audio.addEventListener('pause', () => setIsPlaying(false));
+
+    audioRef.current = audio;
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, []);
+
+  // Update ended handler when queue changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      setQueueIndex((prev) => {
+        const next = (prev + 1) % queue.length;
+        if (queue[next]) {
+          setCurrentTrack(queue[next]);
+          playSong(queue[next]);
+        }
+        return next;
+      });
+    };
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [queue]);
+
+  const playSong = useCallback((track: SaavnTrack) => {
+    const audio = audioRef.current;
+    if (!audio || !track.audioUrl) return;
+    audio.src = track.audioUrl;
+    audio.play().catch(() => {});
+  }, []);
 
   // Fetch trending on mount
   useEffect(() => {
     async function fetchTrending() {
       try {
-        const res = await fetch('/api/youtube/trending');
+        const res = await fetch('/api/saavn/trending?limit=25');
         const data: ApiResponse = await res.json();
         setTrending(data.results || []);
       } catch (err) {
@@ -606,32 +602,22 @@ export function MusicPage() {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     if (!value.trim()) {
       setSearchResults([]);
-      setRelatedResults([]);
       return;
     }
     searchTimerRef.current = setTimeout(async () => {
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/youtube/search?query=${encodeURIComponent(value)}`);
+        const res = await fetch(`/api/saavn/search?query=${encodeURIComponent(value)}&limit=20`);
         const data: ApiResponse = await res.json();
         setSearchResults(data.results || []);
-        if (data.results?.[0]) {
-          const relatedRes = await fetch(`/api/youtube/related?videoId=${data.results[0].videoId}`);
-          const relatedData: ApiResponse = await relatedRes.json();
-          setRelatedResults(relatedData.results || []);
-        } else {
-          setRelatedResults([]);
-        }
       } catch {
         setSearchResults([]);
-        setRelatedResults([]);
       } finally {
         setSearchLoading(false);
       }
     }, 500);
   }, []);
 
-  // Mood card click
   const handleMoodClick = useCallback((mood: typeof MOOD_CATEGORIES[number]) => {
     const isCurrentlyActive = activeMood === mood.label;
     setActiveMood(isCurrentlyActive ? '' : mood.label);
@@ -641,35 +627,52 @@ export function MusicPage() {
     } else {
       setSearchQuery('');
       setSearchResults([]);
-      setRelatedResults([]);
       if (searchInputRef.current) searchInputRef.current.value = '';
     }
   }, [activeMood, handleSearchInput]);
 
-  // Play a track
-  const handlePlay = useCallback((track: YoutubeVideoResult, trackList?: YoutubeVideoResult[]) => {
+  const handlePlay = useCallback((track: SaavnTrack, trackList?: SaavnTrack[]) => {
     setCurrentTrack(track);
     setShowFullScreen(true);
+    playSong(track);
     if (trackList) {
-      const idx = trackList.findIndex((t) => t.videoId === track.videoId);
+      const idx = trackList.findIndex((t) => t.id === track.id);
       setQueue(trackList);
       setQueueIndex(idx >= 0 ? idx : 0);
     }
-  }, []);
+  }, [playSong]);
 
   const handleNext = useCallback(() => {
     if (queue.length === 0) return;
     const nextIdx = (queueIndex + 1) % queue.length;
     setQueueIndex(nextIdx);
     setCurrentTrack(queue[nextIdx]);
-  }, [queue, queueIndex]);
+    playSong(queue[nextIdx]);
+  }, [queue, queueIndex, playSong]);
 
   const handlePrev = useCallback(() => {
     if (queue.length === 0) return;
     const prevIdx = (queueIndex - 1 + queue.length) % queue.length;
     setQueueIndex(prevIdx);
     setCurrentTrack(queue[prevIdx]);
-  }, [queue, queueIndex]);
+    playSong(queue[prevIdx]);
+  }, [queue, queueIndex, playSong]);
+
+  const handleTogglePlay = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, []);
+
+  const handleSeek = useCallback((pct: number) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    audio.currentTime = (pct / 100) * audio.duration;
+  }, []);
 
   const handleClosePlayer = useCallback(() => {
     setShowFullScreen(false);
@@ -678,13 +681,11 @@ export function MusicPage() {
   const isSearching = searchQuery.trim().length > 0;
   const hasPlayer = currentTrack !== null;
 
-  // Top 6 for ranked cards, rest for list
   const rankedTracks = isSearching ? searchResults.slice(0, 6) : trending.slice(0, 6);
   const listTracks = isSearching ? searchResults.slice(6) : trending.slice(6);
 
   return (
     <div className="relative min-h-screen">
-      {/* Ambient gradient glow */}
       <div
         className="fixed inset-0 pointer-events-none z-0"
         style={{
@@ -692,7 +693,6 @@ export function MusicPage() {
         }}
       />
 
-      {/* ── Search Bar (sticky) ── */}
       <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
         <div className="px-4 pt-12 md:pt-3 pb-3">
           <div className="relative max-w-md">
@@ -720,9 +720,7 @@ export function MusicPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="relative z-10">
-        {/* ── Browse Categories (icon cards, no emoji) ── */}
         {!isSearching && (
           <div className="px-4 mb-8 mt-2">
             <SectionHeader title="Browse" />
@@ -744,7 +742,6 @@ export function MusicPage() {
           </div>
         )}
 
-        {/* ── Genre Pills (when searching) ── */}
         {isSearching && (
           <div className="px-4 mb-6 mt-2">
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 content-scroll">
@@ -764,7 +761,6 @@ export function MusicPage() {
           </div>
         )}
 
-        {/* ── Hero stat text ── */}
         {!isSearching && !loading && trending.length > 0 && (
           <div className="px-4 mb-8">
             <p className="text-[22px] md:text-[24px] font-normal text-[#CCCCCC] leading-relaxed">
@@ -773,7 +769,6 @@ export function MusicPage() {
           </div>
         )}
 
-        {/* ── Ranked Cards (horizontal scroll) ── */}
         {isSearching ? (
           searchLoading ? (
             <div className="px-4 mb-8">
@@ -787,11 +782,11 @@ export function MusicPage() {
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
                 {rankedTracks.map((track, i) => (
                   <RankedCard
-                    key={track.videoId}
+                    key={track.id}
                     track={track}
                     rank={i + 1}
                     onPlay={() => handlePlay(track, isSearching ? searchResults : trending)}
-                    isActive={currentTrack?.videoId === track.videoId}
+                    isActive={currentTrack?.id === track.id}
                   />
                 ))}
               </div>
@@ -810,18 +805,17 @@ export function MusicPage() {
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
               {rankedTracks.map((track, i) => (
                 <RankedCard
-                  key={track.videoId}
+                  key={track.id}
                   track={track}
                   rank={i + 1}
                   onPlay={() => handlePlay(track, trending)}
-                  isActive={currentTrack?.videoId === track.videoId}
+                  isActive={currentTrack?.id === track.id}
                 />
               ))}
             </div>
           </div>
         ) : null}
 
-        {/* ── Track List (Apple Music song rows) ── */}
         <div className="px-4">
           {isSearching ? (
             <>
@@ -831,45 +825,14 @@ export function MusicPage() {
                   <div className="rounded-xl overflow-hidden -mx-4">
                     {listTracks.map((track, i) => (
                       <TrackRow
-                        key={track.videoId}
+                        key={track.id}
                         track={track}
                         index={i + rankedTracks.length}
                         onPlay={() => handlePlay(track, searchResults)}
-                        isActive={currentTrack?.videoId === track.videoId}
+                        isActive={currentTrack?.id === track.id}
                       />
                     ))}
                   </div>
-                </>
-              )}
-
-              {/* Related */}
-              {relatedResults.length > 0 && (
-                <>
-                  <SectionHeader title="You Might Also Like" action="See All" />
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
-                    {relatedResults.slice(0, 6).map((track, i) => (
-                      <RankedCard
-                        key={track.videoId}
-                        track={track}
-                        rank={i + 1}
-                        onPlay={() => handlePlay(track, relatedResults)}
-                        isActive={currentTrack?.videoId === track.videoId}
-                      />
-                    ))}
-                  </div>
-                  {relatedResults.length > 6 && (
-                    <div className="rounded-xl overflow-hidden -mx-4 mt-4">
-                      {relatedResults.slice(6).map((track, i) => (
-                        <TrackRow
-                          key={track.videoId}
-                          track={track}
-                          index={i + 1}
-                          onPlay={() => handlePlay(track, relatedResults)}
-                          isActive={currentTrack?.videoId === track.videoId}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </>
               )}
 
@@ -892,11 +855,11 @@ export function MusicPage() {
                   <div className="rounded-xl overflow-hidden -mx-4">
                     {listTracks.map((track, i) => (
                       <TrackRow
-                        key={track.videoId}
+                        key={track.id}
                         track={track}
                         index={i + rankedTracks.length}
                         onPlay={() => handlePlay(track, trending)}
-                        isActive={currentTrack?.videoId === track.videoId}
+                        isActive={currentTrack?.id === track.id}
                       />
                     ))}
                   </div>
@@ -906,34 +869,40 @@ export function MusicPage() {
           )}
         </div>
 
-        {/* Footer */}
         <div className="mt-10 border-t border-white/[0.04] pt-4 pb-24 md:pb-2 px-4 text-center">
-          <p className="text-[11px] text-white/15">StreamVault Music — Powered by YouTube</p>
+          <p className="text-[11px] text-white/15">StreamVault Music — Powered by JioSaavn (320kbps)</p>
         </div>
       </div>
 
-      {/* ── Mini Player ── */}
       <AnimatePresence>
         {currentTrack && !showFullScreen && (
           <MiniPlayer
-            key={currentTrack.videoId}
+            key={currentTrack.id}
             track={currentTrack}
             onExpand={() => setShowFullScreen(true)}
             onNext={handleNext}
             onPrev={handlePrev}
+            isPlaying={isPlaying}
+            onTogglePlay={handleTogglePlay}
+            currentTime={currentTime}
+            duration={audioDuration}
           />
         )}
       </AnimatePresence>
 
-      {/* ── Full Screen Player ── */}
       <AnimatePresence>
         {currentTrack && showFullScreen && (
           <FullScreenPlayer
-            key={currentTrack.videoId}
+            key={currentTrack.id}
             track={currentTrack}
             onClose={handleClosePlayer}
             onNext={handleNext}
             onPrev={handlePrev}
+            isPlaying={isPlaying}
+            onTogglePlay={handleTogglePlay}
+            currentTime={currentTime}
+            duration={audioDuration}
+            onSeek={handleSeek}
           />
         )}
       </AnimatePresence>
