@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Film, Tv, Gamepad2, Music, Sparkles } from 'lucide-react';
+import { Home, Film, Tv, Gamepad2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 
@@ -13,7 +13,7 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showMusic } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames } = useAppStore();
 
   const isSpecialView = view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv';
 
@@ -29,8 +29,6 @@ export function MobileTabBar() {
         return view === 'anime';
       case 'games':
         return view === 'games';
-      case 'music':
-        return view === 'music';
       default:
         return false;
     }
@@ -40,7 +38,6 @@ export function MobileTabBar() {
     if (!active) return 'text-white/40';
     if (key === 'anime') return 'text-purple-400';
     if (key === 'games') return 'text-emerald-400';
-    if (key === 'music') return 'text-amber-400';
     return 'text-red-500';
   };
 
@@ -52,7 +49,6 @@ export function MobileTabBar() {
   const getIndicatorColor = (key: string) => {
     if (key === 'anime') return 'bg-purple-400';
     if (key === 'games') return 'bg-emerald-400';
-    if (key === 'music') return 'bg-amber-400';
     return 'bg-red-500';
   };
 
@@ -62,7 +58,6 @@ export function MobileTabBar() {
     { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows, activeColor: 'text-red-500' },
     { key: 'anime', label: 'Anime', icon: Sparkles, action: showAnime, activeColor: 'text-purple-400' },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, activeColor: 'text-emerald-400' },
-    { key: 'music', label: 'Music', icon: Music, action: showMusic, activeColor: 'text-amber-400' },
   ];
 
   const handleTabClick = (tab: TabItem) => {

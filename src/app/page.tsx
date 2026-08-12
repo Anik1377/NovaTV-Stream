@@ -17,7 +17,6 @@ import { GenreView } from '@/components/movie/GenreView';
 import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
-import { MusicPage } from '@/components/music/MusicPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -25,7 +24,7 @@ import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 
-/* ── Mobile back-to-home button for anime/music views ── */
+/* ── Mobile back-to-home button for anime view ── */
 function MobileBackHome() {
   const { goHome } = useAppStore();
   return (
@@ -244,7 +243,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar onInstallClick={() => setInstallModalOpen(true)} onAuthClick={() => setAuthModalOpen(true)} />
-      <main className={`flex-1 min-w-0 relative ${view === 'home' || view === 'anime' || view === 'music' ? 'md:pb-0 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
+      <main className={`flex-1 min-w-0 relative ${view === 'home' || view === 'anime' ? 'md:pb-0 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
         <motion.div
           key={view}
           initial={{ opacity: 0, y: 8 }}
@@ -259,14 +258,13 @@ export default function App() {
           {view === 'livetv' && <LiveTV />}
           {view === 'anime' && <AnimePage />}
           {view === 'games' && <GamesPage key={navCounter} />}
-          {view === 'music' && <MusicPage />}
         </motion.div>
       </main>
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-      {(view === 'home' || view === 'anime' || view === 'music') && <MobileTabBar />}
-      {(view === 'anime' || view === 'music') && <MobileBackHome />}
+      {(view === 'home' || view === 'anime') && <MobileTabBar />}
+      {view === 'anime' && <MobileBackHome />}
     </div>
   );
 }

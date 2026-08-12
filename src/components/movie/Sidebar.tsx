@@ -9,7 +9,6 @@ import {
   Radio,
   Gamepad2,
   Download,
-  Music,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -68,7 +67,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames, showMusic, setSearchResults, setView, setSearchQuery } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames, setSearchResults, setView, setSearchQuery } = useAppStore();
   const authUser = useAuthStore(s => s.user);
   const authLogout = useAuthStore(s => s.logout);
 
@@ -117,7 +116,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     if (active) {
       if (item.key === 'anime') return 'bg-purple-500/15 text-purple-300';
       if (item.key === 'games') return 'bg-emerald-500/15 text-emerald-300';
-      if (item.key === 'music') return 'bg-amber-500/15 text-amber-300';
       return 'bg-white/10 text-white';
     }
     return 'text-white/50 hover:text-white/80 hover:bg-white/[0.04]';
@@ -127,7 +125,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     if (!active) return 'text-white/35';
     if (item.key === 'anime') return 'text-purple-400';
     if (item.key === 'games') return 'text-emerald-400';
-    if (item.key === 'music') return 'text-amber-400';
     return 'text-red-500';
   };
 
@@ -138,7 +135,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     { key: 'tvshows', label: 'TV Shows', icon: Tv, action: showTvShows },
     { key: 'anime', label: 'Anime', icon: AnimeIcon, action: showAnime },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames },
-    { key: 'music', label: 'Music', icon: Music, action: showMusic },
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV },
   ];
 
@@ -395,8 +391,8 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile hamburger button — hidden on home/anime/music (they use bottom tab bar) */}
-      {!['anime', 'music', 'home'].includes(view) && (
+      {/* Mobile hamburger button — hidden on home/anime (they use bottom tab bar) */}
+      {!['anime', 'home'].includes(view) && (
         <button
           onClick={() => setMobileOpen(true)}
           className="md:hidden fixed top-3 left-3 z-[90] w-10 h-10 rounded-xl bg-black/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
