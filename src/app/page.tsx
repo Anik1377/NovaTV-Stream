@@ -18,6 +18,7 @@ import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
 import { MobileTabBar } from '@/components/movie/MobileTabBar';
 import { SiteFooter } from '@/components/movie/SiteFooter';
+import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 
@@ -212,10 +213,11 @@ function HomePage() {
 
 export default function App() {
   const { view, navCounter } = useAppStore();
+  const [installModalOpen, setInstallModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onInstallClick={() => setInstallModalOpen(true)} />
       <main className="relative">
         <motion.div
           key={view}
@@ -234,6 +236,8 @@ export default function App() {
         </motion.div>
       </main>
       <MobileTabBar />
+      <InstallBanner onOpen={() => setInstallModalOpen(true)} />
+      <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
     </div>
   );
 }

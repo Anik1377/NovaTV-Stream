@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Film, Tv, Home, Radio, Gamepad2, X, Menu } from 'lucide-react';
+import { Search, Film, Tv, Home, Radio, Gamepad2, X, Menu, Download } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,11 @@ function AnimeIcon({ className }: { className?: string }) {
   );
 }
 
-export function Header() {
+interface HeaderProps {
+  onInstallClick?: () => void;
+}
+
+export function Header({ onInstallClick }: HeaderProps) {
   const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV, showAnime, showGames } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -198,6 +202,20 @@ export function Header() {
           )}
         </div>
 
+        {/* Install App button */}
+        {onInstallClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex text-white/60 hover:text-white hover:bg-white/10 relative group"
+            onClick={onInstallClick}
+            title="Install StreamVault"
+          >
+            <Download className="w-5 h-5" />
+            <span className="absolute -top-1 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+          </Button>
+        )}
+
         {/* Mobile menu button */}
         <Button
           variant="ghost"
@@ -233,6 +251,17 @@ export function Header() {
                   </Button>
                 );
               })}
+              {onInstallClick && (
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border-t border-white/5 mt-1"
+                  onClick={() => { setMobileMenuOpen(false); onInstallClick(); }}
+                >
+                  <Download className="w-5 h-5" />
+                  Install App
+                  <span className="ml-auto text-[10px] font-semibold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">NEW</span>
+                </Button>
+              )}
             </nav>
           </motion.div>
         )}
