@@ -621,3 +621,22 @@ Stage Summary:
 - Mobile: All other pages show hamburger menu (no tab bar)
 - Desktop: Unchanged (always shows sidebar, no tab bar)
 - Browser verified: All 6 checks pass
+
+---
+Task ID: 3
+Agent: main
+Task: Add search button on mobile phone view
+
+Work Log:
+- Added `showSearch` action to Zustand store (`src/store/app-store.ts`)
+- Added Search tab with blue accent color to `MobileTabBar.tsx` (6 tabs total)
+- Updated `SearchResults.tsx` with mobile search input (hidden on desktop), debounced search, empty state, loading spinner
+- Updated `page.tsx` to show MobileTabBar on search view and add bottom padding
+- Removed `search` from `isSpecialView` check so Search tab highlights correctly
+
+Stage Summary:
+- Mobile bottom tab bar now has 6 tabs: Home, Movies, TV, Anime, Games, Search
+- Tapping Search opens a dedicated search view with auto-focused input field
+- Search input has debounced API calls (400ms), clear button, and proper empty/loading/results states
+- Blue accent color for Search tab to differentiate from red (content) tabs
+- Lint passes clean

@@ -39,6 +39,7 @@ interface AppState {
   showLiveTV: () => void;
   showAnime: () => void;
   showGames: () => void;
+  showSearch: () => void;
   bumpNav: () => void;
   setSelectedProvider: (providerId: string) => void;
 
@@ -145,6 +146,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   showTvShows: () => set({ view: 'home', mediaFilter: 'tv', ...resetState, navHistory: [] }),
   showLiveTV: () => set({ view: 'livetv', ...resetState, navHistory: [] }),
   showAnime: () => set({ view: 'anime', ...resetState, navHistory: [] }),
+  showSearch: () => set({ view: 'search', ...resetState, navHistory: [] }),
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
   setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),

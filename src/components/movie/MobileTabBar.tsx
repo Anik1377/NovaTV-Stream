@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Film, Tv, Gamepad2, Sparkles } from 'lucide-react';
+import { Home, Film, Tv, Gamepad2, Sparkles, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 
@@ -13,9 +13,9 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showSearch } = useAppStore();
 
-  const isSpecialView = view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv';
+  const isSpecialView = view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv';
 
   const isActive = (key: string) => {
     switch (key) {
@@ -27,6 +27,8 @@ export function MobileTabBar() {
         return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
       case 'anime':
         return view === 'anime';
+      case 'search':
+        return view === 'search';
       case 'games':
         return view === 'games';
       default:
@@ -38,6 +40,7 @@ export function MobileTabBar() {
     if (!active) return 'text-white/40';
     if (key === 'anime') return 'text-purple-400';
     if (key === 'games') return 'text-emerald-400';
+    if (key === 'search') return 'text-blue-400';
     return 'text-red-500';
   };
 
@@ -49,6 +52,7 @@ export function MobileTabBar() {
   const getIndicatorColor = (key: string) => {
     if (key === 'anime') return 'bg-purple-400';
     if (key === 'games') return 'bg-emerald-400';
+    if (key === 'search') return 'bg-blue-400';
     return 'bg-red-500';
   };
 
@@ -58,6 +62,7 @@ export function MobileTabBar() {
     { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows, activeColor: 'text-red-500' },
     { key: 'anime', label: 'Anime', icon: Sparkles, action: showAnime, activeColor: 'text-purple-400' },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, activeColor: 'text-emerald-400' },
+    { key: 'search', label: 'Search', icon: Search, action: showSearch, activeColor: 'text-blue-400' },
   ];
 
   const handleTabClick = (tab: TabItem) => {
