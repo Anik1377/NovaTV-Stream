@@ -545,6 +545,11 @@ export function MusicPage() {
     });
     audio.addEventListener('play', () => setIsPlaying(true));
     audio.addEventListener('pause', () => setIsPlaying(false));
+    audio.addEventListener('error', (e) => {
+      const target = e.target as HTMLAudioElement;
+      console.error('Audio error:', target.error?.message, '| src:', target.src?.substring(0, 80));
+      setIsPlaying(false);
+    });
 
     audioRef.current = audio;
     return () => {
@@ -574,9 +579,13 @@ export function MusicPage() {
 
   const playSong = useCallback((track: SaavnTrack) => {
     const audio = audioRef.current;
-    if (!audio || !track.audioUrl) return;
-    audio.src = track.audioUrl;
-    audio.play().catch(() => {});
+    if (!audio || !track.audioUrl) {
+      console.warn('Cannot play: missing audio URL for', track.title);
+      return;
+    }
+    // Route audio through our proxy to avoid CORS issues
+    audio.src = `/api/saavn/stream?url=${encodeURIComponent(track.audioUrl)}`;
+    audio.play().catch((e) => console.error('Playback failed:', e.message));
   }, []);
 
   // Fetch trending on mount
@@ -662,7 +671,7 @@ export function MusicPage() {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
-      audio.play().catch(() => {});
+      audio.play().catch((e) => console.error('Resume failed:', e.message));
     } else {
       audio.pause();
     }
@@ -870,7 +879,7 @@ export function MusicPage() {
         </div>
 
         <div className="mt-10 border-t border-white/[0.04] pt-4 pb-24 md:pb-2 px-4 text-center">
-          <p className="text-[11px] text-white/15">StreamVault Music — Powered by JioSaavn (320kbps)</p>
+          <p className="text-[11px] text-white/15">StreamVault Music — Powered by JioSaavn</p>
         </div>
       </div>
 

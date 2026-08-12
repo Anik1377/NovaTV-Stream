@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get('q') || 'Top Hits 2025';
 
   try {
-    const results = await getTrending(limit);
+    const results = await getTrending(q, limit);
     return NextResponse.json({ results });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

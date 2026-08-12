@@ -1,9 +1,8 @@
 // JioSaavn Music API Helper
-// Primary: saavn.dev (returns decrypted direct URLs)
-// Fallback: www.jiosaavn.com (metadata only — encrypted URLs can't be decrypted client-side)
+// Uses jiosaavn-api.vercel.app for search/metadata
+// Uses JioTunePreview (vlink) for playable 30s audio previews
 
-const SAavn_DEV = 'https://saavn.dev/api';
-const JIOSAAVN = 'https://www.jiosaavn.com/api.php';
+const JIOSAAVN_API = 'https://jiosaavn-api.vercel.app';
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 const cache = new Map<string, { data: unknown; expires: number }>();
@@ -32,120 +31,72 @@ export interface SaavnSong {
   year: string;
 }
 
-// ─── saavn.dev response mapping (primary — has direct audio URLs) ────────────
+// ─── Raw API response types ─────────────────────────────────────────────────
 
-interface SaavnDevSong {
-  id?: string;
-  name?: string;
- title?: string;
-  primaryArtists?: string;
-  subtitle?: string;
-  album?: { name?: string } | string;
-  image?: Array<{ quality: string; link: string }>;
-  duration?: number;
-  downloadUrl?: Array<{ quality: string; link: string }>;
+interface RawSearchResult {
+  id: string;
+  title: string;
+  image: string;
+  images?: { '50x50': string; '150x150': string; '500x500': string };
+  album: string;
+  description: string;
+  perma_url: string;
+  more_info?: {
+    vlink?: string;
+    singers?: string;
+    language?: string;
+    album_id?: string;
+  };
   year?: string;
 }
 
-function mapDevSong(raw: SaavnDevSong): SaavnSong {
-  const images = raw.image || [];
-  const img = images.find((i) => i.quality === '500x500') || images.find((i) => i.quality === '50x50') || images[0];
-  const downloads = raw.downloadUrl || [];
-  const audio = downloads.find((d) => d.quality === '320kbps') || downloads.find((d) => d.quality === '160kbps') || downloads[0];
-  const albumName = typeof raw.album === 'string' ? raw.album : raw.album?.name || '';
+interface RawSearchResponse {
+  status: boolean;
+  searchQuery?: string;
+  results?: RawSearchResult[];
+}
+
+// ─── Mapping ─────────────────────────────────────────────────────────────────
+
+function mapSong(raw: RawSearchResult): SaavnSong {
+  // Use highest quality thumbnail available
+  const thumb = raw.images?.['500x500'] || raw.images?.['150x150'] || raw.image || '';
+
+  // Clean HTML entities
+  const clean = (s: string) => (s || '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#039;/g, "'");
 
   return {
     id: raw.id || '',
-    title: raw.name || raw.title || 'Unknown',
-    artists: raw.primaryArtists || raw.subtitle || 'Unknown Artist',
-    album: albumName,
-    thumbnail: img?.link || '',
-    duration: raw.duration || 0,
-    audioUrl: audio?.link || '',
+    title: clean(raw.title),
+    artists: clean(raw.more_info?.singers || raw.description?.split(' · ').pop() || ''),
+    album: clean(raw.album),
+    thumbnail: thumb,
+    duration: 30, // JioTunePreview clips are ~30s
+    audioUrl: raw.more_info?.vlink || '',
     year: raw.year || '',
   };
 }
 
-// ─── Direct JioSaavn API mapping (fallback — metadata only, no audio) ──────
+// ─── API Calls ───────────────────────────────────────────────────────────────
 
-interface RawSaavnResult {
-  id: string;
-  title?: string;
-  subtitle?: string;
-  image?: string;
-  more_info?: {
-    primary_artists?: string;
-    artistMap?: { primary_artists?: Array<{ name: string }> };
-    album?: string;
-    duration?: string;
-    year?: string;
-  };
-}
-
-function getHQImage(url: string): string {
-  return url.replace(/-\d+x\d+\./, '-500x500.');
-}
-
-function mapRawSong(raw: RawSaavnResult): SaavnSong {
-  const info = raw.more_info || {};
-  const artists =
-    info.artistMap?.primary_artists?.map((a) => a.name).join(', ') ||
-    info.primary_artists ||
-    raw.subtitle ||
-    'Unknown Artist';
-
-  return {
-    id: raw.id || '',
-    title: (raw.title || 'Unknown').replace(/&quot;/g, '"'),
-    artists: artists.replace(/&quot;/g, '"'),
-    album: (info.album || '').replace(/&quot;/g, '"'),
-    thumbnail: raw.image ? getHQImage(raw.image) : '',
-    duration: parseInt(info.duration || '0', 10),
-    audioUrl: '', // Fallback has no audio
-    year: info.year || '',
-  };
-}
-
-// ─── API: saavn.dev (primary) ───────────────────────────────────────────────
-
-async function fetchFromSaavnDev(path: string): Promise<SaavnSong[]> {
- const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(`${SAavn_DEV}${path}`, {
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`saavn.dev ${res.status}`);
-    const json = await res.json();
-    const results = (json.data?.results || json.results || []).map(mapDevSong);
-    return results;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// ─── API: Direct JioSaavn (fallback — metadata only) ────────────────────────
-
-async function fetchFromJioSaavn(query: string, limit: number): Promise<SaavnSong[]> {
-  const url = new URL(JIOSAAVN);
-  url.searchParams.set('__call', 'search.getResults');
-  url.searchParams.set('q', query);
-  url.searchParams.set('n', String(limit));
-  url.searchParams.set('_', String(Date.now()));
-  url.searchParams.set('api_version', '4');
-  url.searchParams.set('_format', 'json');
-  url.searchParams.set('ctx', 'wap6dot0');
+async function fetchSearch(query: string, limit: number): Promise<SaavnSong[]> {
+  const url = `${JIOSAAVN_API}/api/search?query=${encodeURIComponent(query)}&limit=${limit}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const res = await fetch(url.toString(), {
+    const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      headers: { 'Accept': 'application/json' },
     });
-    if (!res.ok) throw new Error(`JioSaavn ${res.status}`);
-    const json = JSON.parse(await res.text());
-    return (json.results || []).map(mapRawSong);
+
+    if (!res.ok) throw new Error(`JioSaavn API returned ${res.status}`);
+
+    const json: RawSearchResponse = await res.json();
+    const results = (json.results || []).filter((r) => r.more_info?.vlink).map(mapSong);
+
+    return results;
   } finally {
     clearTimeout(timer);
   }
@@ -158,22 +109,13 @@ export async function searchSongs(query: string, limit = 20): Promise<SaavnSong[
   const cached = getCached<SaavnSong[]>(cacheKey);
   if (cached) return cached;
 
-  let results: SaavnSong[] = [];
-
-  // Try saavn.dev first (has direct audio URLs)
   try {
-    results = await fetchFromSaavnDev(`/search/songs?query=${encodeURIComponent(query)}&page=1&limit=${limit}`);
+    const results = await fetchSearch(query, limit);
+    setCache(cacheKey, results, 5 * 60 * 1000);
+    return results;
   } catch {
-    // Fallback to direct API (metadata only)
-    try {
-      results = await fetchFromJioSaavn(query, limit);
-    } catch {
-      return [];
-    }
+    return [];
   }
-
-  setCache(cacheKey, results, 5 * 60 * 1000);
-  return results;
 }
 
 export async function getTrending(query: string, limit = 25): Promise<SaavnSong[]> {
@@ -181,20 +123,11 @@ export async function getTrending(query: string, limit = 25): Promise<SaavnSong[
   const cached = getCached<SaavnSong[]>(cacheKey);
   if (cached) return cached;
 
-  let results: SaavnSong[] = [];
-
-  // Try saavn.dev first
   try {
-    results = await fetchFromSaavnDev(`/search/songs?query=${encodeURIComponent(query)}&page=1&limit=${limit}`);
+    const results = await fetchSearch(query, limit);
+    setCache(cacheKey, results, 30 * 60 * 1000);
+    return results;
   } catch {
-    // Fallback to direct API
-    try {
-      results = await fetchFromJioSaavn(query, limit);
-    } catch {
-      return [];
-    }
+    return [];
   }
-
-  setCache(cacheKey, results, 30 * 60 * 1000);
-  return results;
 }
