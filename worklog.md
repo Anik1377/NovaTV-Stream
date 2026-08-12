@@ -287,3 +287,29 @@ Stage Summary:
 - Watch Trailer opens YouTube modal with autoplay, closes on Escape or click-outside
 - Efficient: single TMDB API call with append_to_response, 5-min client cache
 - Desktop-only, gracefully hidden on mobile
+
+---
+Task ID: 9
+Agent: main
+Task: Fix hover preview to render above all layers with auto-playing muted trailer
+
+Work Log:
+- Root cause: ContentRow uses overflow-x-auto which clips absolutely-positioned popup
+- Rewrote HoverPreviewCard to use createPortal(popup, document.body)
+- Fixed positioning: getBoundingClientRect from cardRef, clamped horizontal/vertical
+- z-index raised to z-[200] so popup renders above everything
+- Replaced separate TrailerModal with inline muted YouTube trailer in the card
+  - iframe with autoplay=1&mute=1&controls=0&loop=1&playlist=KEY
+  - "Muted" badge overlay with Volume2 icon
+- Position logic: try below card first, fall back to above, partial overflow acceptable
+- Follows card on scroll (updates position via scroll listener on capture phase)
+- requestAnimationFrame after visible state change for correct layout
+- Browser verified at 1440x900: popup at y=781 below card (cardBottom=602), trailer playing
+- Browser verified at 1280x800: popup at y=365 (fits below), fallback to below when above doesn't fit
+- Cache hits at 7-9ms, no runtime errors
+
+Stage Summary:
+- Hover preview now renders via portal at z-[200], never clipped by parent containers
+- YouTube trailer auto-plays muted directly in the card (no separate modal)
+- Position is viewport-aware: follows card on scroll, clamped to screen edges
+- Desktop-only, gracefully hidden on mobile
