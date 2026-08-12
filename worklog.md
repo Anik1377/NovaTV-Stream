@@ -412,3 +412,49 @@ Stage Summary:
 - 6 feature highlights with colored icons explaining app installation benefits
 - Smart install banner auto-shows once per week, respects standalone mode
 - App icons (192+512), manifest, apple-touch-icon all configured
+
+---
+Task ID: 12
+Agent: main
+Task: Add music streaming system with YouTube Data API v3
+
+Work Log:
+- Added 'music' to ViewType in Zustand store + showMusic() action
+- Created /src/lib/youtube.ts: server-side YouTube API helper with in-memory cache
+  - ytFetch() generic fetcher with API key (server-side only)
+- Created 4 YouTube API routes under /api/youtube/:
+  - search: query-based music video search (5-min cache)
+  - trending: US most popular music videos (30-min cache)
+  - related: title+tag based related music (10-min cache)
+  - playlists: music playlist search (30-min cache)
+- Created /src/components/music/MusicPage.tsx:
+  - Amber/orange theme (distinct from red=movies, purple=anime, green=games)
+  - Hero section with gradient, search bar (500ms debounce)
+  - 16 genre/mood pills (Pop, Hip Hop, Rock, R&B, Electronic, Jazz, Classical, Lo-fi, K-Pop, Bollywood, Arabic, Latin, Country, Metal, Indie, Reggae)
+  - Trending music grid (20 videos from YouTube API)
+  - Search results with Related Music section
+  - Visible YouTube player embed (16:9 ratio, autoplay)
+  - Now Playing mini bar with prev/play/next controls and animated progress bar
+  - 'Open in YouTube' link for videos with embed restrictions
+  - Active card indicator (PLAYING badge + amber ring)
+  - Responsive grid (2-6 columns), skeleton loading states
+- Updated Header.tsx: added Music nav item with amber accent colors
+- Updated MobileTabBar.tsx: 6 tabs (Home, Movies, TV, Anime, Games, Music) with amber indicators
+- Updated page.tsx: added MusicPage import and routing
+- Fixed TypeScript errors: exported SnippetItem, converted viewCount string to number
+- Verified via agent-browser:
+  - Music tab in nav (desktop + mobile 6-tab bar)
+  - 20 trending songs with thumbnails and durations
+  - Search 'lofi hip hop' returns 20 real lo-fi results
+  - Related Music section shows for searches
+  - YouTube player embed appears when song clicked
+  - Mini now-playing bar visible at bottom
+  - Zero console errors
+- Lint passes clean
+- Pushed to GitHub
+
+Stage Summary:
+- Full music streaming with YouTube Data API v3 (server-side key, never exposed)
+- 4 cached API endpoints: search, trending, related, playlists
+- Visible YouTube embed player with Open in YouTube fallback
+- Amber/orange theme, 16 genre pills, responsive card grid, now-playing bar
