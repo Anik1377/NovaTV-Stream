@@ -160,10 +160,13 @@ function TrackCard({
   const [liked, setLiked] = useState(false);
 
   return (
-    <motion.button
+    <motion.div
       whileTap={{ scale: 0.97 }}
       onClick={() => onPlay(track)}
-      className={`group flex flex-col w-full text-left rounded-xl transition-colors ${
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPlay(track); } }}
+      className={`group flex flex-col w-full text-left rounded-xl transition-colors cursor-pointer ${
         isActive ? 'bg-amber-500/10' : 'active:bg-white/5'
       }`}
     >
@@ -239,7 +242,7 @@ function TrackCard({
           </button>
         </div>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
