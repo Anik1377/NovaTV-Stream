@@ -244,7 +244,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar onInstallClick={() => setInstallModalOpen(true)} onAuthClick={() => setAuthModalOpen(true)} />
-      <main className="flex-1 min-w-0 relative">
+      <main className={`flex-1 min-w-0 relative ${view === 'home' || view === 'anime' || view === 'music' ? 'md:pb-0 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
         <motion.div
           key={view}
           initial={{ opacity: 0, y: 8 }}
@@ -265,7 +265,7 @@ export default function App() {
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-      {(view === 'anime' || view === 'music') && <MobileTabBar />}
+      {(view === 'home' || view === 'anime' || view === 'music') && <MobileTabBar />}
       {(view === 'anime' || view === 'music') && <MobileBackHome />}
     </div>
   );
