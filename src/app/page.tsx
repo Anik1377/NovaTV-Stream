@@ -16,6 +16,7 @@ import { GenreView } from '@/components/movie/GenreView';
 import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
+import { MusicPage } from '@/components/music/MusicPage';
 import { MobileTabBar } from '@/components/movie/MobileTabBar';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
@@ -233,6 +234,7 @@ export default function App() {
           {view === 'livetv' && <LiveTV />}
           {view === 'anime' && <AnimePage />}
           {view === 'games' && <GamesPage key={navCounter} />}
+          {view === 'music' && <MusicPage />}
         </motion.div>
       </main>
       <MobileTabBar />

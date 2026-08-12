@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv' | 'anime' | 'games';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv' | 'anime' | 'games' | 'music';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -39,6 +39,7 @@ interface AppState {
   showLiveTV: () => void;
   showAnime: () => void;
   showGames: () => void;
+  showMusic: () => void;
   bumpNav: () => void;
   setSelectedProvider: (providerId: string) => void;
 
@@ -146,6 +147,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   showLiveTV: () => set({ view: 'livetv', ...resetState, navHistory: [] }),
   showAnime: () => set({ view: 'anime', ...resetState, navHistory: [] }),
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
+  showMusic: () => set({ view: 'music', ...resetState, navHistory: [] }),
 
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
   setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),
