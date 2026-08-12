@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Music,
   Search,
   Play,
   Pause,
@@ -11,16 +10,26 @@ import {
   X,
   TrendingUp,
   ChevronDown,
+  ChevronRight,
   ExternalLink,
   Volume2,
   Heart,
   Shuffle,
   Repeat,
+  Music,
+  Flame,
+  Headphones,
+  Dumbbell,
+  Mic,
+  Globe,
+  Radio,
+  Moon,
+  Film,
+  MoreHorizontal,
+  ListMusic,
+  Clock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,7 +60,6 @@ function formatDuration(iso: string): string {
   return `${min}:${s.toString().padStart(2, '0')}`;
 }
 
-
 function formatDurationSeconds(iso: string): number {
   const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!m) return 0;
@@ -67,19 +75,26 @@ function formatTime(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function formatViews(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MOOD_CARDS = [
-  { label: 'Today\'s Hits', query: 'Top Hits 2025', gradient: 'from-rose-500 to-orange-400', emoji: '🔥' },
-  { label: 'Chill Vibes', query: 'Lo-fi Chill Beats', gradient: 'from-violet-500 to-purple-400', emoji: '🎧' },
-  { label: 'Workout', query: 'Workout Music Mix', gradient: 'from-emerald-500 to-teal-400', emoji: '💪' },
-  { label: 'Romance', query: 'Romantic Love Songs', gradient: 'from-pink-500 to-rose-400', emoji: '💕' },
-  { label: 'Hip Hop', query: 'Hip Hop Music 2025', gradient: 'from-amber-500 to-yellow-400', emoji: '🎤' },
-  { label: 'K-Pop', query: 'K-Pop Music Playlist', gradient: 'from-sky-500 to-blue-400', emoji: '🇰🇷' },
-  { label: 'Rock', query: 'Rock Music Hits', gradient: 'from-red-600 to-red-400', emoji: '🎸' },
-  { label: 'Bollywood', query: 'Bollywood Hits 2025', gradient: 'from-orange-500 to-amber-400', emoji: '🎬' },
-  { label: 'Arabic', query: 'Arabic Music Hits', gradient: 'from-teal-500 to-emerald-400', emoji: '🌙' },
-  { label: 'Latin', query: 'Latin Music Reggaeton', gradient: 'from-fuchsia-500 to-pink-400', emoji: '💃' },
+const MOOD_CATEGORIES = [
+  { label: 'Today\'s Hits', query: 'Top Hits 2025', icon: Flame, color: 'from-rose-600 to-orange-500' },
+  { label: 'Chill Vibes', query: 'Lo-fi Chill Beats', icon: Headphones, color: 'from-violet-600 to-purple-500' },
+  { label: 'Workout', query: 'Workout Music Mix', icon: Dumbbell, color: 'from-emerald-600 to-teal-500' },
+  { label: 'Romance', query: 'Romantic Love Songs', icon: Heart, color: 'from-pink-600 to-rose-500' },
+  { label: 'Hip Hop', query: 'Hip Hop Music 2025', icon: Mic, color: 'from-amber-600 to-yellow-500' },
+  { label: 'K-Pop', query: 'K-Pop Music Playlist', icon: Globe, color: 'from-sky-600 to-blue-500' },
+  { label: 'Rock', query: 'Rock Music Hits', icon: Music, color: 'from-red-700 to-red-500' },
+  { label: 'Bollywood', query: 'Bollywood Hits 2025', icon: Film, color: 'from-orange-600 to-amber-500' },
+  { label: 'Arabic', query: 'Arabic Music Hits', icon: Moon, color: 'from-teal-600 to-emerald-500' },
+  { label: 'Latin', query: 'Latin Music Reggaeton', icon: Radio, color: 'from-fuchsia-600 to-pink-500' },
 ];
 
 const GENRE_PILLS = [
@@ -90,87 +105,91 @@ const GENRE_PILLS = [
 
 // ─── Skeleton Components ────────────────────────────────────────────────────
 
-function MoodCardSkeleton() {
+function CategorySkeleton() {
   return (
-    <div className="shrink-0 w-32">
-      <Skeleton className="w-32 h-20 rounded-2xl" />
-      <Skeleton className="h-3 w-20 mt-2 rounded" />
+    <div className="shrink-0 w-36">
+      <div className="w-36 h-20 rounded-xl bg-white/[0.04] animate-pulse" />
+      <div className="h-3 w-24 mt-2 rounded bg-white/[0.04] animate-pulse" />
     </div>
   );
 }
 
-function TrackGridSkeleton() {
+function RankCardSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex flex-col gap-2">
-          <Skeleton className="aspect-square w-full rounded-xl" />
-          <Skeleton className="h-3.5 w-4/5 rounded" />
-          <Skeleton className="h-3 w-1/2 rounded" />
-        </div>
-      ))}
+    <div className="shrink-0 w-40">
+      <div className="w-40 h-52 rounded-xl bg-white/[0.04] animate-pulse" />
     </div>
   );
 }
 
-// ─── Mood Card ───────────────────────────────────────────────────────────────
+function TrackRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5">
+      <div className="w-10 h-10 rounded-lg bg-white/[0.04] animate-pulse shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="h-3.5 w-3/4 rounded bg-white/[0.04] animate-pulse" />
+        <div className="h-3 w-1/2 rounded bg-white/[0.04] animate-pulse mt-1.5" />
+      </div>
+      <div className="h-3 w-10 rounded bg-white/[0.04] animate-pulse" />
+    </div>
+  );
+}
 
-function MoodCard({
+// ─── Category Card (replaces mood cards — no emoji) ─────────────────────────
+
+function CategoryCard({
   label,
-  gradient,
-  emoji,
+  icon: Icon,
+  color,
   onClick,
   isActive,
 }: {
   label: string;
-  gradient: string;
-  emoji: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
   onClick: () => void;
   isActive: boolean;
 }) {
   return (
     <motion.button
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className={`shrink-0 w-32 text-left group ${isActive ? 'ring-2 ring-white/40' : ''}`}
+      className={`shrink-0 w-36 text-left group ${isActive ? 'ring-1 ring-white/30' : ''}`}
     >
-      <div className={`w-32 h-20 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center relative overflow-hidden`}>
-        <span className="text-2xl relative z-10 drop-shadow-lg">{emoji}</span>
+      <div className={`w-36 h-20 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center relative overflow-hidden`}>
+        <Icon className="w-7 h-7 text-white/90 relative z-10 drop-shadow-lg" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
       </div>
-      <p className="mt-2 text-xs font-semibold text-white/80 truncate">{label}</p>
+      <p className="mt-2 text-[13px] font-medium text-white/80 truncate">{label}</p>
     </motion.button>
   );
 }
 
-// ─── Track Card (compact, mobile-first) ─────────────────────────────────────
+// ─── Ranked Card (horizontal scroll, Apple Music artist style) ──────────────
 
-function TrackCard({
+function RankedCard({
   track,
+  rank,
   onPlay,
   isActive,
-  index,
 }: {
   track: YoutubeVideoResult;
-  onPlay: (track: YoutubeVideoResult) => void;
+  rank: number;
+  onPlay: () => void;
   isActive: boolean;
-  index: number;
 }) {
   const [imgError, setImgError] = useState(false);
-  const [liked, setLiked] = useState(false);
 
   return (
-    <motion.div
+    <motion.button
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: rank * 0.03 }}
       whileTap={{ scale: 0.97 }}
-      onClick={() => onPlay(track)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPlay(track); } }}
-      className={`group flex flex-col w-full text-left rounded-xl transition-colors cursor-pointer ${
-        isActive ? 'bg-amber-500/10' : 'active:bg-white/5'
-      }`}
+      onClick={onPlay}
+      className="shrink-0 w-40 text-left group"
     >
-      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/5">
+      <div className="relative w-40 h-52 rounded-xl overflow-hidden bg-white/[0.04]">
         {!imgError ? (
           <img
             src={track.thumbnail}
@@ -180,76 +199,135 @@ function TrackCard({
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-amber-900/40 to-orange-900/40 flex items-center justify-center">
-            <Music className="w-8 h-8 text-white/20" />
+          <div className="w-full h-full bg-gradient-to-b from-white/[0.06] to-white/[0.02] flex items-center justify-center">
+            <Music className="w-10 h-10 text-white/15" />
           </div>
         )}
 
-        {/* Play overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className={`flex items-center justify-center transition-all duration-200 ${
-            isActive
-              ? 'w-10 h-10 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30'
-              : 'w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm opacity-0 group-active:opacity-100'
-          }`}>
+        {/* Rank number */}
+        <div className="absolute top-3 left-3">
+          <span className="text-4xl font-bold text-white drop-shadow-lg" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+            {rank}
+          </span>
+        </div>
+
+        {/* Bottom gradient + info */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-3">
+          <p className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{track.title}</p>
+          <p className="text-[11px] text-white/50 mt-0.5 truncate">{track.channelTitle}</p>
+        </div>
+
+        {/* Play overlay on hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+          <div className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
             {isActive ? (
-              <Volume2 className="w-4 h-4 text-white" />
+              <Volume2 className="w-5 h-5 text-black" />
             ) : (
-              <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+              <Play className="w-5 h-5 text-black fill-black ml-0.5" />
             )}
           </div>
         </div>
 
-        {/* Duration badge */}
-        <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium tabular-nums">
-          {formatDuration(track.duration)}
-        </div>
-
         {/* Playing indicator */}
         {isActive && (
-          <div className="absolute top-1.5 left-1.5 flex items-end gap-0.5 h-3">
+          <div className="absolute top-3 right-3 flex items-end gap-0.5 h-3.5">
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="w-0.5 bg-amber-400 rounded-full"
-                animate={{
-                  height: [4, 12, 6, 10, 4],
-                }}
-                transition={{
-                  duration: 0.8,
-                  repeat: Infinity,
-                  delay: i * 0.15,
-                  ease: 'easeInOut',
-                }}
+                className="w-[3px] bg-[#FA2D48] rounded-full"
+                animate={{ height: [4, 14, 6, 12, 4] }}
+                transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
               />
             ))}
           </div>
         )}
       </div>
-
-      {/* Info */}
-      <div className="mt-2 px-0.5">
-        <p className={`text-[13px] font-medium leading-tight truncate ${isActive ? 'text-amber-400' : 'text-white/90'}`}>
-          {track.title}
-        </p>
-        <div className="flex items-center justify-between mt-0.5">
-          <p className="text-[11px] text-white/40 truncate pr-2">{track.channelTitle}</p>
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLiked(!liked); } }}
-            className="shrink-0 p-0.5 cursor-pointer"
-          >
-            <Heart className={`w-3 h-3 transition-colors ${liked ? 'text-rose-400 fill-rose-400' : 'text-white/20'}`} />
-          </span>
-        </div>
-      </div>
-    </motion.div>
+    </motion.button>
   );
 }
 
-// ─── Full Screen Now Playing ────────────────────────────────────────────────
+// ─── Track Row (list-style, Apple Music song row) ───────────────────────────
+
+function TrackRow({
+  track,
+  index,
+  onPlay,
+  isActive,
+}: {
+  track: YoutubeVideoResult;
+  index: number;
+  onPlay: () => void;
+  isActive: boolean;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const [liked, setLiked] = useState(false);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onPlay}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPlay(); } }}
+      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-colors group ${
+        isActive ? 'bg-[#FA2D48]/10' : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
+      }`}
+    >
+      {/* Index or playing indicator */}
+      <div className="w-5 text-center shrink-0">
+        {isActive ? (
+          <div className="flex items-end justify-center gap-[2px] h-3.5">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-[2px] bg-[#FA2D48] rounded-full"
+                animate={{ height: [3, 10, 5, 8, 3] }}
+                transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12, ease: 'easeInOut' }}
+              />
+            ))}
+          </div>
+        ) : (
+          <span className={`text-xs tabular-nums ${isActive ? 'text-[#FA2D48]' : 'text-white/30 group-hover:hidden'}`}>{index + 1}</span>
+        )}
+        <Play className={`w-4 h-4 text-white/70 hidden group-hover:block ${isActive ? '!hidden' : ''}`} />
+      </div>
+
+      {/* Thumbnail */}
+      <div className="w-10 h-10 rounded-md overflow-hidden bg-white/[0.04] shrink-0">
+        {!imgError ? (
+          <img src={track.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center"><Music className="w-4 h-4 text-white/15" /></div>
+        )}
+      </div>
+
+      {/* Title & Artist */}
+      <div className="flex-1 min-w-0">
+        <p className={`text-[14px] font-medium leading-tight truncate ${isActive ? 'text-[#FA2D48]' : 'text-white/90'}`}>{track.title}</p>
+        <p className="text-[12px] text-white/40 mt-0.5 truncate">{track.channelTitle}</p>
+      </div>
+
+      {/* Duration */}
+      <span className="text-[12px] text-white/30 tabular-nums shrink-0 mr-1 hidden sm:block">{formatDuration(track.duration)}</span>
+
+      {/* Views */}
+      <span className="text-[12px] text-white/20 tabular-nums shrink-0 hidden md:block">{formatViews(track.viewCount)}</span>
+
+      {/* Like button */}
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLiked(!liked); } }}
+        className="p-1.5 cursor-pointer shrink-0"
+      >
+        <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : 'text-white/15 hover:text-white/40'}`} />
+      </span>
+    </div>
+  );
+}
+
+// ─── Full Screen Now Playing (Apple Music aesthetic) ───────────────────────
 
 function FullScreenPlayer({
   track,
@@ -285,48 +363,31 @@ function FullScreenPlayer({
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed inset-0 z-[60] flex flex-col"
+      className="fixed inset-0 z-[60] flex flex-col bg-black"
     >
       {/* Blurred background */}
       <div className="absolute inset-0 z-0">
         {!imgError ? (
-          <img
-            src={track.thumbnail}
-            alt=""
-            className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
-            onError={() => setImgError(true)}
-          />
+          <img src={track.thumbnail} alt="" className="w-full h-full object-cover scale-150 blur-3xl opacity-30" onError={() => setImgError(true)} />
         ) : (
-          <div className="w-full h-full bg-gradient-to-b from-amber-900 to-black" />
+          <div className="w-full h-full bg-gradient-to-b from-zinc-900 to-black" />
         )}
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-black/50" />
       </div>
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top,12px)] pb-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white/70 hover:text-white hover:bg-white/10"
-            onClick={onClose}
-          >
+        <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top,12px)] pb-2">
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
             <ChevronDown className="w-6 h-6" />
-          </Button>
+          </button>
           <div className="text-center">
-            <p className="text-[11px] font-medium text-white/40 uppercase tracking-wider">Playing from</p>
-            <p className="text-xs text-white/60">YouTube Music</p>
+            <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider">Playing from</p>
+            <p className="text-xs text-white/50 mt-0.5">YouTube Music</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white/70 hover:text-white hover:bg-white/10"
-            onClick={() => setLiked(!liked)}
-          >
-            <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-rose-400 fill-rose-400' : ''}`} />
-          </Button>
+          <button onClick={() => setLiked(!liked)} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+            <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : ''}`} />
+          </button>
         </div>
 
         {/* Album art */}
@@ -335,36 +396,30 @@ function FullScreenPlayer({
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-            className="w-full max-w-[300px] md:max-w-[360px] aspect-square rounded-2xl overflow-hidden shadow-2xl shadow-black/50"
+            className="w-full max-w-[300px] md:max-w-[360px] aspect-square rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
           >
             {!imgError ? (
-              <img
-                src={track.thumbnail}
-                alt={track.title}
-                className="w-full h-full object-cover"
-                onError={() => setImgError(true)}
-              />
+              <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" onError={() => setImgError(true)} />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-amber-900/60 to-orange-900/60 flex items-center justify-center">
-                <Music className="w-16 h-16 text-white/30" />
+              <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                <Music className="w-16 h-16 text-white/20" />
               </div>
             )}
           </motion.div>
         </div>
 
         {/* Track info + controls */}
-        <div className="px-6 pb-[env(safe-area-inset-bottom,16px)]">
-          {/* Title & artist */}
-          <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="px-8 pb-[env(safe-area-inset-bottom,16px)]">
+          <div className="flex items-start justify-between gap-3 mb-5">
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-white truncate">{track.title}</h2>
-              <p className="text-sm text-white/50 truncate mt-0.5">{track.channelTitle}</p>
+              <h2 className="text-xl font-bold text-white truncate">{track.title}</h2>
+              <p className="text-[15px] text-white/50 truncate mt-0.5">{track.channelTitle}</p>
             </div>
             <a
               href={`https://www.youtube.com/watch?v=${track.videoId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 p-2 text-white/40 hover:text-white transition-colors mt-0.5"
+              className="shrink-0 p-2 text-white/30 hover:text-white/60 transition-colors mt-0.5"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
@@ -372,60 +427,31 @@ function FullScreenPlayer({
 
           {/* Progress bar */}
           <div className="mb-5">
-            <div className="relative w-full h-1 bg-white/10 rounded-full cursor-pointer active:h-2 transition-all"
+            <div
+              className="relative w-full h-1 bg-white/10 rounded-full cursor-pointer group"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pct = ((e.clientX - rect.left) / rect.width) * 100;
                 setProgress(Math.max(0, Math.min(100, pct)));
               }}
             >
-              <motion.div
-                className="absolute left-0 top-0 h-full bg-amber-400 rounded-full"
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
-              <motion.div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md opacity-0 active:opacity-100 transition-opacity"
-                style={{ left: `calc(${Math.min(progress, 100)}% - 6px)` }}
-              />
+              <div className="absolute left-0 top-0 h-full bg-white/80 rounded-full group-hover:bg-white transition-colors" style={{ width: `${Math.min(progress, 100)}%` }} />
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[11px] text-white/40 tabular-nums">{formatTime(currentSec)}</span>
-              <span className="text-[11px] text-white/40 tabular-nums">{formatDuration(track.duration)}</span>
+              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(currentSec)}</span>
+              <span className="text-[11px] text-white/30 tabular-nums">{formatDuration(track.duration)}</span>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between px-4 mb-4">
-            <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10">
-              <Shuffle className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:text-white hover:bg-white/10 h-12 w-12"
-              onClick={onPrev}
-            >
-              <SkipBack className="w-6 h-6 fill-white" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-white text-black hover:bg-white/90 rounded-full h-16 w-16 shadow-lg shadow-white/20"
-              onClick={onClose}
-            >
-              <Pause className="w-7 h-7 fill-black" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:text-white hover:bg-white/10 h-12 w-12"
-              onClick={onNext}
-            >
-              <SkipForward className="w-6 h-6 fill-white" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-white/50 hover:text-white hover:bg-white/10">
-              <Repeat className="w-5 h-5" />
-            </Button>
+          <div className="flex items-center justify-between px-2 mb-5">
+            <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Shuffle className="w-5 h-5" /></button>
+            <button onClick={onPrev} className="p-2 text-white hover:text-white transition-colors"><SkipBack className="w-6 h-6 fill-white" /></button>
+            <button className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:scale-105 transition-transform">
+              <Pause className="w-7 h-7 text-black fill-black" />
+            </button>
+            <button onClick={onNext} className="p-2 text-white hover:text-white transition-colors"><SkipForward className="w-6 h-6 fill-white" /></button>
+            <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Repeat className="w-5 h-5" /></button>
           </div>
 
           {/* YouTube embed (hidden but audible) */}
@@ -444,7 +470,7 @@ function FullScreenPlayer({
   );
 }
 
-// ─── Mini Player (above tab bar) ────────────────────────────────────────────
+// ─── Mini Player (Apple Music style: 64px, blur, white play circle) ─────────
 
 function MiniPlayer({
   track,
@@ -477,66 +503,65 @@ function MiniPlayer({
       exit={{ y: 80, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="fixed left-0 right-0 z-40"
-      style={{
-        bottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
+      style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      {/* Progress line */}
+      {/* Thin progress line */}
       <div className="h-[2px] w-full bg-white/5">
-        <motion.div
-          className="h-full bg-amber-400"
-          style={{ width: `${Math.min(progress, 100)}%` }}
-        />
+        <div className="h-full bg-[#FA2D48] transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
       </div>
 
       {/* Bar */}
-      <button
-        onClick={onExpand}
-        className="w-full bg-zinc-900/95 backdrop-blur-xl border-t border-white/10 flex items-center gap-3 px-3 py-2.5"
-      >
-        {/* Thumbnail */}
-        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white/10 shadow-lg">
-          <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
-        </div>
+      <div className="h-16 bg-[#1E1E1E]/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center gap-3 px-3">
+        {/* Album art */}
+        <button onClick={onExpand} className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white/10 shadow-md">
+          <img src={track.thumbnail} alt="" className="w-full h-full object-cover" />
+        </button>
 
-        {/* Title */}
-        <div className="flex-1 min-w-0 text-left">
-          <p className="text-[13px] font-medium text-white truncate leading-tight">{track.title}</p>
-          <p className="text-[11px] text-white/40 truncate mt-0.5">{track.channelTitle}</p>
-        </div>
+        {/* Title + Artist */}
+        <button onClick={onExpand} className="flex-1 min-w-0 text-left">
+          <p className="text-[14px] font-medium text-white truncate leading-tight">{track.title}</p>
+          <p className="text-[12px] text-[#888] truncate mt-0.5">{track.channelTitle}</p>
+        </button>
 
         {/* Controls */}
         <div className="flex items-center gap-0.5 shrink-0">
-          <div
-            role="button"
-            onClick={(e) => { e.stopPropagation(); onPrev(); }}
-            className="p-2 text-white/60 active:text-white"
-          >
+          <button onClick={onPrev} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
             <SkipBack className="w-4 h-4" />
-          </div>
-          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+          </button>
+
+          {/* White play/pause circle */}
+          <button className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md shadow-white/10">
             <Pause className="w-3.5 h-3.5 text-black fill-black" />
-          </div>
-          <div
-            role="button"
-            onClick={(e) => { e.stopPropagation(); onNext(); }}
-            className="p-2 text-white/60 active:text-white"
-          >
+          </button>
+
+          <button onClick={onNext} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
             <SkipForward className="w-4 h-4" />
-          </div>
+          </button>
         </div>
-      </button>
+
+        {/* Right actions */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white/60 transition-colors">
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 }
 
-// ─── Section Header ─────────────────────────────────────────────────────────
+// ─── Section Header (Apple style) ────────────────────────────────────────────
 
-function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode }) {
+function SectionHeader({ title, action }: { title: string; action?: string }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      {icon && <div className="text-amber-400">{icon}</div>}
-      <h2 className="text-base font-bold text-white">{title}</h2>
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-[18px] font-bold text-white">{title}</h2>
+      {action && (
+        <button className="flex items-center gap-0.5 text-[13px] text-[#A1A1A1] hover:text-white/70 transition-colors">
+          {action}
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }
@@ -607,7 +632,7 @@ export function MusicPage() {
   }, []);
 
   // Mood card click
-  const handleMoodClick = useCallback((mood: typeof MOOD_CARDS[number]) => {
+  const handleMoodClick = useCallback((mood: typeof MOOD_CATEGORIES[number]) => {
     const isCurrentlyActive = activeMood === mood.label;
     setActiveMood(isCurrentlyActive ? '' : mood.label);
     if (!isCurrentlyActive) {
@@ -632,7 +657,6 @@ export function MusicPage() {
     }
   }, []);
 
-  // Next/Prev
   const handleNext = useCallback(() => {
     if (queue.length === 0) return;
     const nextIdx = (queueIndex + 1) % queue.length;
@@ -647,7 +671,6 @@ export function MusicPage() {
     setCurrentTrack(queue[prevIdx]);
   }, [queue, queueIndex]);
 
-  // Close
   const handleClosePlayer = useCallback(() => {
     setShowFullScreen(false);
   }, []);
@@ -655,165 +678,238 @@ export function MusicPage() {
   const isSearching = searchQuery.trim().length > 0;
   const hasPlayer = currentTrack !== null;
 
+  // Top 6 for ranked cards, rest for list
+  const rankedTracks = isSearching ? searchResults.slice(0, 6) : trending.slice(0, 6);
+  const listTracks = isSearching ? searchResults.slice(6) : trending.slice(6);
+
   return (
-    <div>
+    <div className="relative min-h-screen">
+      {/* Ambient gradient glow */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: 'radial-gradient(ellipse at 70% -10%, rgba(138,42,42,0.35) 0%, rgba(45,21,21,0.15) 30%, transparent 65%)',
+        }}
+      />
+
       {/* ── Search Bar (sticky) ── */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl px-4 py-3 pt-14 md:pt-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-          <Input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search songs, artists..."
-            defaultValue={searchQuery}
-            onChange={(e) => handleSearchInput(e.target.value)}
-            className="pl-10 pr-10 bg-white/10 border-white/10 text-white placeholder:text-white/30 focus:border-amber-500/50 h-10 rounded-xl text-sm"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => {
-                handleSearchInput('');
-                if (searchInputRef.current) searchInputRef.current.value = '';
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
+        <div className="px-4 pt-14 md:pt-3 pb-3">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search songs, artists..."
+              defaultValue={searchQuery}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              className="w-full pl-10 pr-10 h-9 rounded-lg bg-[#1C1C1C] border-0 text-white placeholder:text-white/30 text-[15px] font-normal focus:outline-none focus:ring-1 focus:ring-white/20 transition-shadow"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  handleSearchInput('');
+                  if (searchInputRef.current) searchInputRef.current.value = '';
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        {/* ── Browse Categories (icon cards, no emoji) ── */}
+        {!isSearching && (
+          <div className="px-4 mb-8 mt-2">
+            <SectionHeader title="Browse" />
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => <CategorySkeleton key={i} />)
+                : MOOD_CATEGORIES.map((mood) => (
+                    <CategoryCard
+                      key={mood.label}
+                      label={mood.label}
+                      icon={mood.icon}
+                      color={mood.color}
+                      onClick={() => handleMoodClick(mood)}
+                      isActive={activeMood === mood.label}
+                    />
+                  ))
+              }
+            </div>
+          </div>
+        )}
+
+        {/* ── Genre Pills (when searching) ── */}
+        {isSearching && (
+          <div className="px-4 mb-6 mt-2">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 content-scroll">
+              {GENRE_PILLS.map((genre) => (
+                <button
+                  key={genre}
+                  onClick={() => {
+                    handleSearchInput(genre);
+                    if (searchInputRef.current) searchInputRef.current.value = genre;
+                  }}
+                  className="shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium bg-white/[0.06] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white/80 active:bg-white/15 active:text-white transition-colors"
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Hero stat text ── */}
+        {!isSearching && !loading && trending.length > 0 && (
+          <div className="px-4 mb-8">
+            <p className="text-[22px] md:text-[24px] font-normal text-[#CCCCCC] leading-relaxed">
+              Discover what&apos;s trending in <span className="text-white font-bold">music right now</span>.
+            </p>
+          </div>
+        )}
+
+        {/* ── Ranked Cards (horizontal scroll) ── */}
+        {isSearching ? (
+          searchLoading ? (
+            <div className="px-4 mb-8">
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+                {Array.from({ length: 4 }).map((_, i) => <RankCardSkeleton key={i} />)}
+              </div>
+            </div>
+          ) : rankedTracks.length > 0 ? (
+            <div className="px-4 mb-8">
+              <SectionHeader title={isSearching ? searchQuery : 'Trending Now'} action="See All" />
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+                {rankedTracks.map((track, i) => (
+                  <RankedCard
+                    key={track.videoId}
+                    track={track}
+                    rank={i + 1}
+                    onPlay={() => handlePlay(track, isSearching ? searchResults : trending)}
+                    isActive={currentTrack?.videoId === track.videoId}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null
+        ) : loading ? (
+          <div className="px-4 mb-8">
+            <SectionHeader title="Trending Now" />
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+              {Array.from({ length: 4 }).map((_, i) => <RankCardSkeleton key={i} />)}
+            </div>
+          </div>
+        ) : rankedTracks.length > 0 ? (
+          <div className="px-4 mb-8">
+            <SectionHeader title="Trending Now" action="See All" />
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+              {rankedTracks.map((track, i) => (
+                <RankedCard
+                  key={track.videoId}
+                  track={track}
+                  rank={i + 1}
+                  onPlay={() => handlePlay(track, trending)}
+                  isActive={currentTrack?.videoId === track.videoId}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── Track List (Apple Music song rows) ── */}
+        <div className="px-4">
+          {isSearching ? (
+            <>
+              {listTracks.length > 0 && (
+                <>
+                  <SectionHeader title="More Results" />
+                  <div className="rounded-xl overflow-hidden -mx-4">
+                    {listTracks.map((track, i) => (
+                      <TrackRow
+                        key={track.videoId}
+                        track={track}
+                        index={i + rankedTracks.length}
+                        onPlay={() => handlePlay(track, searchResults)}
+                        isActive={currentTrack?.videoId === track.videoId}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Related */}
+              {relatedResults.length > 0 && (
+                <>
+                  <SectionHeader title="You Might Also Like" action="See All" />
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+                    {relatedResults.slice(0, 6).map((track, i) => (
+                      <RankedCard
+                        key={track.videoId}
+                        track={track}
+                        rank={i + 1}
+                        onPlay={() => handlePlay(track, relatedResults)}
+                        isActive={currentTrack?.videoId === track.videoId}
+                      />
+                    ))}
+                  </div>
+                  {relatedResults.length > 6 && (
+                    <div className="rounded-xl overflow-hidden -mx-4 mt-4">
+                      {relatedResults.slice(6).map((track, i) => (
+                        <TrackRow
+                          key={track.videoId}
+                          track={track}
+                          index={i + 1}
+                          onPlay={() => handlePlay(track, relatedResults)}
+                          isActive={currentTrack?.videoId === track.videoId}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!searchLoading && searchResults.length === 0 && (
+                <div className="text-center py-20">
+                  <Music className="w-10 h-10 text-white/10 mx-auto mb-3" />
+                  <p className="text-white/25 text-sm">No results found</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {loading ? (
+                <div className="rounded-xl overflow-hidden -mx-4">
+                  {Array.from({ length: 6 }).map((_, i) => <TrackRowSkeleton key={i} />)}
+                </div>
+              ) : listTracks.length > 0 ? (
+                <>
+                  <SectionHeader title="Popular Songs" action="See All" />
+                  <div className="rounded-xl overflow-hidden -mx-4">
+                    {listTracks.map((track, i) => (
+                      <TrackRow
+                        key={track.videoId}
+                        track={track}
+                        index={i + rankedTracks.length}
+                        onPlay={() => handlePlay(track, trending)}
+                        isActive={currentTrack?.videoId === track.videoId}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </>
           )}
         </div>
-      </div>
 
-      {/* ── Mood / Genre Cards ── */}
-      {!isSearching && (
-        <div className="px-4 mb-6">
-          <SectionHeader title="Browse Moods" icon={<span className="text-lg">🎵</span>} />
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
-            {MOOD_CARDS.map((mood) => (
-              <MoodCard
-                key={mood.label}
-                label={mood.label}
-                gradient={mood.gradient}
-                emoji={mood.emoji}
-                onClick={() => handleMoodClick(mood)}
-                isActive={activeMood === mood.label}
-              />
-            ))}
-          </div>
+        {/* Footer */}
+        <div className="mt-10 border-t border-white/[0.04] pt-4 pb-2 px-4 text-center">
+          <p className="text-[11px] text-white/15">StreamVault Music — Powered by YouTube</p>
         </div>
-      )}
-
-      {/* ── Genre Pills (when searching) ── */}
-      {isSearching && (
-        <div className="px-4 mb-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 content-scroll">
-            {GENRE_PILLS.map((genre) => (
-              <button
-                key={genre}
-                onClick={() => {
-                  handleSearchInput(genre);
-                  if (searchInputRef.current) searchInputRef.current.value = genre;
-                }}
-                className="shrink-0 px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-white/50 border border-white/5 active:bg-white/10 active:text-white transition-colors"
-              >
-                {genre}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Content ── */}
-      <div className="px-4">
-        {isSearching ? (
-          <>
-            {searchLoading ? (
-              <TrackGridSkeleton />
-            ) : searchResults.length > 0 ? (
-              <>
-                <SectionHeader
-                  icon={<Search className="w-4 h-4" />}
-                  title={searchQuery}
-                />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 mb-6">
-                  {searchResults.map((track, i) => (
-                    <TrackCard
-                      key={track.videoId}
-                      track={track}
-                      onPlay={(t) => handlePlay(t, searchResults)}
-                      isActive={currentTrack?.videoId === track.videoId}
-                      index={i}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-20">
-                <Music className="w-10 h-10 text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No results found</p>
-              </div>
-            )}
-
-            {/* Related */}
-            {relatedResults.length > 0 && (
-              <>
-                <SectionHeader
-                  icon={<TrendingUp className="w-4 h-4" />}
-                  title="You Might Also Like"
-                />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 mb-6">
-                  {relatedResults.map((track, i) => (
-                    <TrackCard
-                      key={track.videoId}
-                      track={track}
-                      onPlay={(t) => handlePlay(t, relatedResults)}
-                      isActive={currentTrack?.videoId === track.videoId}
-                      index={i}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            {loading ? (
-              <>
-                {/* Mood skeleton */}
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 mb-6">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <MoodCardSkeleton key={i} />
-                  ))}
-                </div>
-                <TrackGridSkeleton />
-              </>
-            ) : (
-              <>
-                <SectionHeader
-                  icon={<TrendingUp className="w-4 h-4" />}
-                  title="Trending Now"
-                />
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-                  {trending.map((track, i) => (
-                    <TrackCard
-                      key={track.videoId}
-                      track={track}
-                      onPlay={(t) => handlePlay(t, trending)}
-                      isActive={currentTrack?.videoId === track.videoId}
-                      index={i}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-8 border-t border-white/5 pt-4 pb-2 px-4 text-center">
-        <p className="text-[10px] text-white/15">
-          StreamVault Music — Powered by YouTube
-        </p>
       </div>
 
       {/* ── Mini Player ── */}

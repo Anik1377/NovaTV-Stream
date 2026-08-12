@@ -577,3 +577,28 @@ Stage Summary:
 - Provider selector has a clean 2-section layout (featured + alternatives)
 - TV shows now properly use the provider system (was hardcoded before)
 - Lint passes, browser verification confirms all elements render correctly
+---
+Task ID: 2
+Agent: Main
+Task: Redesign Music tab to match Apple Music UI reference (no emojis, use library icons)
+
+Work Log:
+- Analyzed reference image (Apple Music Listen Now page) with VLM skill
+- Identified key design elements: dark bg, ambient gradient glow, ranked cards with gradient overlays, list-style song rows, Apple-style mini player (64px, blur, white play circle), SF Symbols-style icons
+- Completely rewrote src/components/music/MusicPage.tsx (847 lines → ~620 lines)
+- Replaced all 10 emoji mood cards with Lucide icon-based CategoryCards (Flame, Headphones, Dumbbell, Heart, Mic, Globe, Music, Film, Moon, Radio)
+- Added RankedCard component: horizontal scroll cards (w-40 h-52) with large rank numbers (#1, #2...), bottom gradient overlay, hover play button, red playing indicator bars
+- Added TrackRow component: Apple Music list-style rows with index/playing indicator, thumbnail, title/artist, duration, views, heart button
+- Added ambient background gradient (radial, burgundy/red glow at top-right)
+- Redesigned search bar to Apple style (bg-[#1C1C1C], rounded-lg, h-9, subtle ring focus)
+- Redesigned MiniPlayer: 64px bar, bg-[#1E1E1E]/95, backdrop-blur-2xl, white play circle button, SkipBack/Pause/SkipForward, MoreHorizontal, thin red progress line
+- Redesigned FullScreenPlayer: black bg, white progress bar, white play circle, refined typography
+- Added hero text section: 'Discover what's trending in music right now'
+- Removed all imports of Button, Input, Skeleton from shadcn/ui (replaced with native elements)
+- Accent color changed from amber to #FA2D48 (Apple Music red)
+- Lint passes clean, browser verification confirms all 10 checks pass
+
+Stage Summary:
+- Music tab now matches Apple Music aesthetic from reference photo
+- Zero emojis anywhere — all icons are Lucide React SVGs
+- Browser verified: ambient glow, ranked cards, list rows, mini player, full-screen player all render correctly
