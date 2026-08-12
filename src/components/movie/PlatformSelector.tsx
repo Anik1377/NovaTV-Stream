@@ -3,7 +3,6 @@
 import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type OttPlatform } from '@/lib/ott-platforms';
-import { getImageUrl } from '@/lib/tmdb';
 
 interface PlatformSelectorProps {
   platforms: OttPlatform[];
@@ -80,7 +79,7 @@ export function PlatformSelector({ platforms, selectedProvider, onSelectProvider
       >
         {platforms.map((platform) => {
           const isSelected = selectedProvider === platform.id;
-          const hasLogo = !!platform.logoPath;
+          const hasSvg = !!platform.svgLogo;
 
           return (
             <button
@@ -92,7 +91,7 @@ export function PlatformSelector({ platforms, selectedProvider, onSelectProvider
               <div
                 className={
                   'rounded-xl flex items-center justify-center transition-all duration-200 border overflow-hidden ' +
-                  (hasLogo ? 'w-[88px] sm:w-[100px] h-[52px] sm:h-[60px]' : 'w-[72px] sm:w-[80px] h-[44px] sm:h-[48px]')
+                  (hasSvg ? 'w-[100px] sm:w-[110px] h-[56px] sm:h-[64px]' : 'w-[72px] sm:w-[80px] h-[44px] sm:h-[48px]')
                 }
                 style={{
                   backgroundColor: isSelected ? platform.color + '20' : 'rgba(255,255,255,0.06)',
@@ -100,16 +99,21 @@ export function PlatformSelector({ platforms, selectedProvider, onSelectProvider
                   boxShadow: isSelected ? `0 0 24px ${platform.color}25, inset 0 0 12px ${platform.color}10` : 'none',
                 }}
               >
-                {hasLogo ? (
-                  <img
-                    src={getImageUrl(platform.logoPath!, 'w92')}
-                    alt={platform.name}
-                    className={
-                      'object-contain transition-all duration-200 ' +
-                      (hasLogo ? 'w-[72px] sm:w-[82px] h-[40px] sm:h-[48px]' : '')
-                    }
-                    style={{ filter: isSelected ? 'brightness(1.1)' : 'brightness(0.7) grayscale(30%)' }}
-                    loading="lazy"
+                {hasSvg ? (
+                  <div
+                    className="w-[80px] sm:w-[90px] h-[40px] sm:h-[48px] transition-all duration-200"
+                    style={{
+                      WebkitMaskImage: `url(${platform.svgLogo})`,
+                      maskImage: `url(${platform.svgLogo})`,
+                      WebkitMaskSize: 'contain',
+                      maskSize: 'contain',
+                      WebkitMaskRepeat: 'no-repeat',
+                      maskRepeat: 'no-repeat',
+                      WebkitMaskPosition: 'center',
+                      maskPosition: 'center',
+                      backgroundColor: isSelected ? platform.color : 'rgba(255,255,255,0.55)',
+                      opacity: isSelected ? 1 : 0.7,
+                    }}
                   />
                 ) : (
                   <span

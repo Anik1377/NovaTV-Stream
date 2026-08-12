@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" >
+  <path d="M24.5 48.5V11.5h5.3l9.7 25.3 9.7-25.3h5.3v37h-4.5V20.2L44.8 45h-3.6L28.9 20.2V48.5h-4.4z" fill="black" transform="scale(0.65) translate(5,2)"/>
+  <text x="55" y="38" fill="black" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="22" letter-spacing="3">ISNEY</text>
+  <rect x="140" y="25" width="14" height="3.5" rx="1.5" fill="black"/>
+  <rect x="145.25" y="19.75" width="3.5" height="14" rx="1.5" fill="black"/>
+</svg>

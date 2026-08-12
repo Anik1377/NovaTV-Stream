@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" >
+  <!-- Film strip decoration -->
+  <rect x="2" y="4" width="8" height="32" rx="1" fill="black" opacity="0.9"/>
+  <rect x="4" y="7" width="4" height="2.5" rx="0.5" fill="black"/>
+  <rect x="4" y="12" width="4" height="2.5" rx="0.5" fill="black"/>
+  <rect x="4" y="17" width="4" height="2.5" rx="0.5" fill="black"/>
+  <rect x="4" y="22" width="4" height="2.5" rx="0.5" fill="black"/>
+  <rect x="4" y="27" width="4" height="2.5" rx="0.5" fill="black"/>
+  <rect x="4" y="32" width="4" height="2.5" rx="0.5" fill="black"/>
+  <!-- MGM text -->
+  <text x="16" y="29" fill="black" font-family="Georgia, Times New Roman, serif" font-weight="bold" font-size="18" letter-spacing="3">MGM</text>
+  <!-- Plus symbol -->
+  <rect x="74" y="17" width="10" height="2.5" rx="1" fill="black"/>
+  <rect x="77.75" y="13.25" width="2.5" height="10" rx="1" fill="black"/>
+</svg>
