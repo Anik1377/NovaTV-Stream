@@ -5,6 +5,7 @@ import { X, Maximize2, Minimize2, Loader2, Play, ChevronDown, Zap, Crown } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { providers, getProvider, getEmbedUrl } from '@/lib/providers';
 import { useAppStore } from '@/store/app-store';
+import { useAuthStore } from '@/store/auth-store';
 
 interface VideoPlayerProps {
   src: string;
@@ -23,7 +24,26 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
   const [showProviders, setShowProviders] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { selectedProvider, setSelectedProvider } = useAppStore();
+  const { selectedProvider, setSelectedProvider, selectedMovie, selectedTv } = useAppStore();
+  const user = useAuthStore(s => s.user);
+
+  // Track watch history for logged-in users
+  useEffect(() => {
+    if (!user || !title) return;
+    const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+    fetch('/api/profile/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tmdbId,
+        title,
+        posterPath: item?.poster_path || null,
+        mediaType,
+        season: season ?? null,
+        episode: episode ?? null,
+      }),
+    }).catch(() => {});
+  }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
 
   useEffect(() => {
     document.body.classList.add('player-open');

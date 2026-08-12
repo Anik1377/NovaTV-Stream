@@ -18,6 +18,7 @@ import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
+import { ProfilePage } from '@/components/profile/ProfilePage';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
@@ -258,12 +259,14 @@ export default function App() {
           {view === 'livetv' && <LiveTV />}
           {view === 'anime' && <AnimePage />}
           {view === 'games' && <GamesPage key={navCounter} />}
+          {view === 'profile' && <ProfilePage />}
         </motion.div>
       </main>
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       {(view === 'home' || view === 'anime' || view === 'search') && <MobileTabBar />}
+      {view === 'profile' && <MobileTabBar />}
       {view === 'anime' && <MobileBackHome />}
     </div>
   );

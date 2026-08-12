@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      user: { id: session.user.id, email: session.user.email, name: session.user.name },
+      user: { id: session.user.id, email: session.user.email, name: session.user.name, avatar: session.user.avatar, bio: session.user.bio },
     });
   } catch {
     return NextResponse.json({ user: null });

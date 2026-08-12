@@ -69,7 +69,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames, setSearchResults, setView, setSearchQuery } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames, showProfile, setSearchResults, setView, setSearchQuery } = useAppStore();
   const authUser = useAuthStore(s => s.user);
   const authLogout = useAuthStore(s => s.logout);
 
@@ -106,7 +106,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   }, [inputValue, handleSearch]);
 
   /* ── Active state logic ── */
-  const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv'].includes(view);
+  const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv', 'profile'].includes(view);
   const getActive = (item: NavItem): boolean => {
     if (item.key === 'home') return view === 'home' && mediaFilter === 'all' && !isSpecialView;
     if (item.key === 'movies') return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
@@ -220,21 +220,33 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
       <div className="px-2.5 pb-3 shrink-0 space-y-0.5 border-t border-white/[0.06] pt-2">
         {/* Auth button */}
         {authUser ? (
-          <button
-            onClick={authLogout}
-            title={collapsed ? `Sign out (${authUser.email})` : undefined}
-            className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-red-400 hover:bg-red-500/10 ${
-              collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
-            }`}
-          >
-            <span className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
-              {(authUser.name || authUser.email)[0].toUpperCase()}
-            </span>
-            <SidebarLabel show={expanded}>
-              <span className="flex-1 text-left truncate">{authUser.name || authUser.email}</span>
-            </SidebarLabel>
-            {!collapsed && <LogOut className="w-3.5 h-3.5 shrink-0 text-white/20" />}
-          </button>
+          <>
+            <button
+              onClick={() => { showProfile(); setMobileOpen(false); }}
+              title={collapsed ? `Profile (${authUser.email})` : undefined}
+              className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/60 hover:text-white hover:bg-white/[0.06] ${
+                view === 'profile' ? '!text-white !bg-white/10' : ''
+              } ${
+                collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+              }`}
+            >
+              <span className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
+                {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
+              </span>
+              <SidebarLabel show={expanded}>
+                <span className="flex-1 text-left truncate">{authUser.name || 'Profile'}</span>
+              </SidebarLabel>
+            </button>
+            {!collapsed && (
+              <button
+                onClick={authLogout}
+                className="w-full flex items-center gap-2.5 px-2.5 h-8 rounded-lg transition-colors text-white/25 hover:text-red-400 hover:bg-red-500/10"
+              >
+                <LogOut className="w-3.5 h-3.5 shrink-0" />
+                <SidebarLabel show={expanded}>Sign Out</SidebarLabel>
+              </button>
+            )}
+          </>
         ) : (
           <button
             onClick={onAuthClick}
@@ -353,14 +365,13 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
             <div className="px-2.5 pb-4 shrink-0 border-t border-white/[0.06] pt-2 space-y-1">
               {authUser ? (
                 <button
-                  onClick={() => { setMobileOpen(false); authLogout(); }}
-                  className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  onClick={() => { setMobileOpen(false); showProfile(); }}
+                  className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
                 >
                   <span className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center shrink-0 text-xs font-bold text-white">
-                    {(authUser.name || authUser.email)[0].toUpperCase()}
+                    {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
                   </span>
-                  <span className="text-[13px] font-medium flex-1 text-left truncate">{authUser.name || authUser.email}</span>
-                  <LogOut className="w-4 h-4 text-white/20" />
+                  <span className="text-[13px] font-medium flex-1 text-left truncate">{authUser.name || 'Profile'}</span>
                 </button>
               ) : (
                 <button

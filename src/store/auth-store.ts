@@ -4,6 +4,8 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  avatar: string | null;
+  bio: string | null;
 }
 
 interface AuthState {
@@ -13,6 +15,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   register: (email: string, password: string, name?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
+  updateProfile: (data: { name?: string; bio?: string; avatar?: string }) => Promise<{ error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -55,6 +58,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await res.json();
       if (!res.ok) return { error: data.error || 'Registration failed' };
       set({ user: data.user });
+      return {};
+    } catch {
+      return { error: 'Network error' };
+    }
+  },
+
+  updateProfile: async (data) => {
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!res.ok) return { error: result.error || 'Update failed' };
+      set({ user: result });
       return {};
     } catch {
       return { error: 'Network error' };
