@@ -16,6 +16,7 @@ interface AppState {
   selectedGenreId: number | null;
   selectedGenreName: string;
   navCounter: number;
+  selectedProvider: string;
 
   setView: (view: ViewType) => void;
   setMediaFilter: (filter: MediaFilter) => void;
@@ -33,6 +34,7 @@ interface AppState {
   showAnime: () => void;
   showGames: () => void;
   bumpNav: () => void;
+  setSelectedProvider: (providerId: string) => void;
 }
 
 const resetState = {
@@ -57,6 +59,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedGenreId: null,
   selectedGenreName: '',
   navCounter: 0,
+  selectedProvider: 'vidsrc-sbs',
 
   setView: (view) => set({ view }),
   setMediaFilter: (mediaFilter) => set({ view: 'home', mediaFilter, ...resetState }),
@@ -74,4 +77,5 @@ export const useAppStore = create<AppState>((set) => ({
   showAnime: () => set({ view: 'anime', ...resetState }),
   showGames: () => set((s) => ({ view: 'games', ...resetState, navCounter: s.navCounter + 1 })),
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
+  setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),
 }));
