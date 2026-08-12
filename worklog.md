@@ -361,3 +361,54 @@ Stage Summary:
 - Navigation history enables back-button support via `goBack()` and `pushView()`
 - Watchlist persists to localStorage, ready for UI integration
 - SiteFooter is a reusable component with iOS safe area support
+
+---
+Task ID: 11
+Agent: main
+Task: Add PWA Download/Install App feature for Android, iOS and desktop users
+
+Work Log:
+- Generated AI-powered app icon (512x512) and resized to 192x192 using sharp
+- Created /public/manifest.json with standalone display, red theme, both icon sizes
+- Updated /src/app/layout.tsx:
+  - Added Viewport export with theme-color #dc2626, viewport-fit cover, user-scalable false
+  - Added appleWebApp metadata (capable, black-translucent statusBar, title)
+  - Added manifest link and apple-touch-icon link in <head>
+- Created /src/components/movie/InstallAppModal.tsx with two exports:
+  - `InstallAppModal`: Full-featured modal with:
+    - Platform detection via useMemo (iOS/Android/Desktop)
+    - 6 feature highlight cards (Lightning Fast, Full-Screen, Works Offline, Notifications, Home Screen, Safe & Private)
+    - Platform-specific install instructions (iOS: Share > Add to Home Screen; Android: native prompt; Desktop: Chrome address bar)
+    - Native beforeinstallprompt event handling for Android/Chrome
+    - Spring animation modal with backdrop blur
+    - Install button with loading state
+    - Trust badges: Secure, Free Forever, No Ads
+  - `InstallBanner`: Smart bottom banner that:
+    - Appears after 3-second delay on first visit
+    - Checks if already in standalone mode (dismisses if installed)
+    - Persists dismissal to localStorage for 1 week
+    - Spring animation slide-up with dismiss button
+- Updated /src/components/movie/Header.tsx:
+  - Added `onInstallClick` prop
+  - Desktop: Download icon button with pulsing red dot indicator
+  - Mobile dropdown: "Install App" item with red "NEW" badge
+- Updated /src/app/page.tsx:
+  - Added installModalOpen state
+  - Passes onInstallClick to Header
+  - Renders InstallBanner and InstallAppModal
+- Verified via agent-browser:
+  - Install button visible in desktop header with pulsing dot
+  - Click opens modal with all 6 features and desktop instructions
+  - Mobile menu shows "Install App NEW" button
+  - Mobile menu correctly closes and opens modal
+  - PWA meta tags: theme-color #dc2626, manifest /manifest.json, apple-touch-icon /icon-512.png
+  - Manifest serves correctly with all fields
+  - Zero console errors
+- Lint passes clean
+- Pushed to GitHub
+
+Stage Summary:
+- Full PWA install experience for Android (native prompt), iOS (step-by-step), and desktop
+- 6 feature highlights with colored icons explaining app installation benefits
+- Smart install banner auto-shows once per week, respects standalone mode
+- App icons (192+512), manifest, apple-touch-icon all configured
