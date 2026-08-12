@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { Play, Star, ArrowLeft, Calendar, Clock, Zap, Heart, Youtube } from 'lucide-react';
+import { Play, Star, ArrowLeft, Calendar, Clock, Zap, Heart, Youtube, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -202,6 +202,9 @@ export function MovieDetail() {
                       className="flex items-center gap-2 px-4 h-12 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/60 hover:text-white/90 text-sm font-medium transition-all duration-200"
                     >
                       <Zap className="w-4 h-4" style={{ color: activeProvider.color }} />
+                      {activeProvider.primary && (
+                        <Crown className="w-3.5 h-3.5 text-amber-400" />
+                      )}
                       <span className="hidden sm:inline">{activeProvider.name}</span>
                       <span className="sm:hidden">Source</span>
                     </button>

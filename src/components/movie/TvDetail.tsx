@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Star, ArrowLeft, Calendar, ChevronDown, Tv, Heart, Youtube } from 'lucide-react';
+import { Play, Star, ArrowLeft, Calendar, ChevronDown, Tv, Heart, Youtube, Zap, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
+import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 
 export function TvDetail() {
-  const { selectedTv, goBack, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, toggleWatchlist, isInWatchlist } = useAppStore();
+  const { selectedTv, goBack, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, toggleWatchlist, isInWatchlist, selectedProvider } = useAppStore();
   const [details, setDetails] = useState<TvShowDetails | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,17 +61,21 @@ export function TvDetail() {
     setShowPlayer(true);
   };
 
-  const playerUrl = selectedEpisode
-    ? `https://vidsrc.sbs/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode.episode_number}`
-    : `https://vidsrc.sbs/embed/tv/${show.id}/1/1`;
+  const activeProvider = getProvider(selectedProvider);
+  const epNum = selectedEpisode?.episode_number || 1;
+  const playerUrl = getEmbedUrl(selectedProvider, 'tv', show.id, selectedSeason, epNum);
 
   return (
     <>
       {showPlayer && (
         <VideoPlayer
           src={playerUrl}
-          title={`${title} S${String(selectedSeason).padStart(2,'0')}E${String(selectedEpisode?.episode_number || 1).padStart(2,'0')}`}
+          title={`${title} S${String(selectedSeason).padStart(2,'0')}E${String(epNum).padStart(2,'0')}`}
           onClose={() => setShowPlayer(false)}
+          mediaType="tv"
+          tmdbId={show.id}
+          season={selectedSeason}
+          episode={epNum}
         />
       )}
 

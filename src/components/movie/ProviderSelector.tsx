@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Zap } from 'lucide-react';
+import { X, Check, Play, ChevronRight, Shield, Subtitles, SkipForward } from 'lucide-react';
 import { providers, type Provider } from '@/lib/providers';
 import { useAppStore } from '@/store/app-store';
 
@@ -9,6 +9,57 @@ interface ProviderSelectorProps {
   open: boolean;
   onClose: () => void;
   onPlay: (providerId: string) => void;
+}
+
+const primary = providers.find((p) => p.primary)!;
+const fallbacks = providers.filter((p) => !p.primary);
+
+const features = [
+  { icon: Shield, label: 'HD Quality' },
+  { icon: Subtitles, label: 'Subtitles' },
+  { icon: SkipForward, label: 'Auto-Next' },
+];
+
+function ProviderRow({ provider, isActive, onClick, idx }: {
+  provider: Provider;
+  isActive: boolean;
+  onClick: () => void;
+  idx: number;
+}) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: idx * 0.04, duration: 0.2 }}
+      onClick={onClick}
+      className={
+        'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all duration-200 group ' +
+        (isActive
+          ? 'bg-white/[0.08] border-white/15'
+          : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/10 active:scale-[0.98]')
+      }
+    >
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-transform duration-200 group-hover:scale-105"
+        style={{ backgroundColor: provider.color + '18', color: provider.color }}
+      >
+        {provider.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-white font-medium text-sm block">{provider.name}</span>
+        <p className="text-white/30 text-[11px] mt-0.5 truncate">{provider.description}</p>
+      </div>
+      {isActive ? (
+        <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center shrink-0">
+          <Check className="w-3.5 h-3.5 text-white" />
+        </div>
+      ) : (
+        <div className="w-6 h-6 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Play className="w-3 h-3 text-white/50 ml-0.5" />
+        </div>
+      )}
+    </motion.button>
+  );
 }
 
 export function ProviderSelector({ open, onClose, onPlay }: ProviderSelectorProps) {
@@ -39,7 +90,7 @@ export function ProviderSelector({ open, onClose, onPlay }: ProviderSelectorProp
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-            className="fixed bottom-0 left-0 right-0 z-[91] max-h-[80vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[91] max-h-[85vh] flex flex-col"
           >
             {/* Handle bar */}
             <div className="flex justify-center pt-3 pb-1">
@@ -48,15 +99,7 @@ export function ProviderSelector({ open, onClose, onPlay }: ProviderSelectorProp
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#e50914]/15 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-[#e50914]" />
-                </div>
-                <div>
-                  <h2 className="text-white font-bold text-lg leading-tight">Select Provider</h2>
-                  <p className="text-white/40 text-xs">Choose a source to stream from</p>
-                </div>
-              </div>
+              <h2 className="text-white font-bold text-lg leading-tight">Select Source</h2>
               <button
                 onClick={onClose}
                 className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
@@ -65,78 +108,111 @@ export function ProviderSelector({ open, onClose, onPlay }: ProviderSelectorProp
               </button>
             </div>
 
-            {/* Provider Grid */}
-            <div className="flex-1 overflow-y-auto content-scroll px-6 pb-8 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {providers.map((provider, idx) => {
-                  const isActive = provider.id === selectedProvider;
-                  return (
-                    <motion.button
-                      key={provider.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.04, duration: 0.25 }}
-                      onClick={() => handleSelect(provider)}
-                      className={
-                        'relative flex items-center gap-3.5 p-3.5 rounded-xl border text-left transition-all duration-200 group ' +
-                        (isActive
-                          ? 'bg-white/[0.08] border-white/15 shadow-lg'
-                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-white/10')
-                      }
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto content-scroll px-6 pb-10 pt-1">
+              {/* Primary provider — Videasy */}
+              <motion.button
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => handleSelect(primary)}
+                className={
+                  'w-full relative overflow-hidden rounded-2xl border text-left transition-all duration-200 group active:scale-[0.98] mb-2 ' +
+                  (selectedProvider === primary.id
+                    ? 'border-[#8B5CF6]/40'
+                    : 'border-white/[0.08] hover:border-[#8B5CF6]/30')
+                }
+                style={{
+                  background: selectedProvider === primary.id
+                    ? 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(139,92,246,0.05) 100%)'
+                    : 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(139,92,246,0.02) 100%)',
+                }}
+              >
+                {/* Glow */}
+                {selectedProvider === primary.id && (
+                  <motion.div
+                    layoutId="primary-glow"
+                    className="absolute -inset-px rounded-2xl border-2 border-[#8B5CF6]/50 pointer-events-none"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+                  />
+                )}
+
+                <div className="relative z-10 p-4">
+                  <div className="flex items-center gap-4">
+                    {/* Icon */}
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-lg font-bold"
+                      style={{ backgroundColor: primary.color + '20', color: primary.color }}
                     >
-                      {/* Provider icon/avatar */}
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white font-bold text-sm transition-transform duration-200 group-hover:scale-105"
-                        style={{ backgroundColor: provider.color + '20', color: provider.color }}
-                      >
-                        {provider.icon}
-                      </div>
+                      {primary.icon}
+                    </div>
 
-                      {/* Provider info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-semibold text-sm">{provider.name}</span>
-                          {isActive && (
-                            <span className="text-[10px] font-bold text-[#e50914] bg-[#e50914]/10 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-white/35 text-xs mt-0.5 truncate">{provider.description}</p>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-bold text-base">{primary.name}</span>
+                        <span className="text-[10px] font-bold text-[#8B5CF6] bg-[#8B5CF6]/15 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                          Recommended
+                        </span>
                       </div>
+                      <p className="text-white/40 text-xs mt-1">{primary.description}</p>
+                    </div>
 
-                      {/* Play icon on hover */}
-                      <div className={
-                        'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ' +
-                        (isActive
-                          ? 'bg-[#e50914] text-white'
-                          : 'bg-white/[0.06] text-white/40 group-hover:bg-[#e50914] group-hover:text-white')
-                      }>
-                        {isActive ? (
-                          <Check className="w-3.5 h-3.5" />
-                        ) : (
-                          <svg className="w-3 h-3 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        )}
-                      </div>
-
-                      {/* Active border highlight */}
-                      {isActive && (
-                        <motion.div
-                          layoutId="provider-active"
-                          className="absolute inset-0 rounded-xl border-2 border-[#e50914]/40 pointer-events-none"
-                          transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
-                        />
+                    {/* Play button */}
+                    <div className={
+                      'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ' +
+                      (selectedProvider === primary.id
+                        ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30'
+                        : 'bg-white/[0.08] text-white/60 group-hover:bg-[#8B5CF6] group-hover:text-white')
+                    }>
+                      {selectedProvider === primary.id ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5 ml-0.5" />
                       )}
-                    </motion.button>
-                  );
-                })}
+                    </div>
+                  </div>
+
+                  {/* Feature pills */}
+                  <div className="flex items-center gap-2 mt-3.5">
+                    {features.map((f) => (
+                      <div
+                        key={f.label}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06]"
+                      >
+                        <f.icon className="w-3 h-3 text-white/40" />
+                        <span className="text-white/50 text-[11px] font-medium">{f.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* Divider with label */}
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-white/[0.06]" />
+                <span className="text-white/20 text-[11px] font-medium uppercase tracking-wider">Other Sources</span>
+                <div className="flex-1 h-px bg-white/[0.06]" />
               </div>
 
-              <p className="text-white/20 text-xs text-center mt-6">
-                If one provider doesn&apos;t work, try another
-              </p>
+              {/* Fallback providers */}
+              <div className="space-y-2">
+                {fallbacks.map((provider, idx) => (
+                  <ProviderRow
+                    key={provider.id}
+                    provider={provider}
+                    isActive={provider.id === selectedProvider}
+                    onClick={() => handleSelect(provider)}
+                    idx={idx}
+                  />
+                ))}
+              </div>
+
+              {/* Footer hint */}
+              <div className="flex items-center justify-center gap-1.5 mt-6 text-white/15 text-xs">
+                <ChevronRight className="w-3 h-3" />
+                <span>If one source doesn&apos;t work, try another</span>
+              </div>
             </div>
           </motion.div>
         </>

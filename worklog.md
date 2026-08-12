@@ -558,3 +558,22 @@ Stage Summary:
 - Session tokens: 32-byte random hex strings
 - User avatar shown in sidebar (initial letter circle + name/email)
 - Zero lint errors, verified register/login/logout on desktop and mobile
+---
+Task ID: 1
+Agent: Main
+Task: Set Videasy as primary provider and redesign Select Provider page
+
+Work Log:
+- Read Videasy documentation from https://www.videasy.to/docs
+- Updated src/lib/providers.ts: Added Videasy as first provider with `primary: true`, using player.videasy.net URLs with overlay, nextEpisode, episodeSelector, autoplayNextEpisode, and color params
+- Updated src/store/app-store.ts: Changed default `selectedProvider` from 'vidsrc-sbs' to 'videasy'
+- Rewrote src/components/movie/ProviderSelector.tsx: New clean design with Videasy as featured card (purple gradient, Recommended badge, HD Quality/Subtitles/Auto-Next feature pills), divider, and compact fallback provider list
+- Updated src/components/movie/VideoPlayer.tsx: Added Crown icon for primary provider, dynamic color for loading spinner and active indicator
+- Fixed src/components/movie/TvDetail.tsx: Replaced hardcoded vidsrc.sbs URL with getEmbedUrl() + proper provider system, added mediaType/tmdbId/season/episode props to VideoPlayer
+- Updated src/components/movie/MovieDetail.tsx: Added Crown icon import and display for primary provider on source button
+
+Stage Summary:
+- Videasy is now the default and primary streaming provider
+- Provider selector has a clean 2-section layout (featured + alternatives)
+- TV shows now properly use the provider system (was hardcoded before)
+- Lint passes, browser verification confirms all elements render correctly

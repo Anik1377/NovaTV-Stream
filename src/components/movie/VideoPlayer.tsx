@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Maximize2, Minimize2, Loader2, Play, ChevronDown, Zap } from 'lucide-react';
+import { X, Maximize2, Minimize2, Loader2, Play, ChevronDown, Zap, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { providers, getProvider, getEmbedUrl } from '@/lib/providers';
 import { useAppStore } from '@/store/app-store';
@@ -107,10 +107,10 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-2 w-56 rounded-xl bg-[#1a1a1a] border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden z-20"
+                      className="absolute top-full left-0 mt-2 w-60 rounded-xl bg-[#1a1a1a] border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden z-20"
                     >
                       <div className="px-3 py-2.5 border-b border-white/[0.06]">
-                        <p className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Switch Provider</p>
+                        <p className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Switch Source</p>
                       </div>
                       <div className="py-1 max-h-72 overflow-y-auto content-scroll">
                         {providers.map((p) => {
@@ -131,11 +131,16 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                                 {p.icon}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white/90 text-xs font-medium">{p.name}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-white/90 text-xs font-medium">{p.name}</p>
+                                  {p.primary && (
+                                    <Crown className="w-3 h-3 text-amber-400" />
+                                  )}
+                                </div>
                                 <p className="text-white/30 text-[10px] truncate">{p.description}</p>
                               </div>
                               {isActive && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#e50914] shrink-0" />
+                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
                               )}
                             </button>
                           );
@@ -172,7 +177,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
           >
             {loading && !error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
-                <Loader2 className="w-10 h-10 text-[#e50914] animate-spin" />
+                <Loader2 className="w-10 h-10 animate-spin" style={{ color: activeProvider.color }} />
                 <p className="text-white/30 text-xs font-medium">Loading from {activeProvider.name}...</p>
               </div>
             )}
@@ -180,7 +185,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black">
                 <Play className="w-16 h-16 text-white/20" />
                 <p className="text-white/40 text-sm">Unable to load video from {activeProvider.name}.</p>
-                <p className="text-white/25 text-xs">Try switching to a different provider above.</p>
+                <p className="text-white/25 text-xs">Try switching to a different source above.</p>
                 <button
                   onClick={() => { setError(false); setLoading(true); }}
                   className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"

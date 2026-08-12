@@ -109,7 +109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedGenreId: null,
   selectedGenreName: '',
   navCounter: 0,
-  selectedProvider: 'vidsrc-sbs',
+  selectedProvider: 'videasy',
 
   // Navigation history
   navHistory: [],

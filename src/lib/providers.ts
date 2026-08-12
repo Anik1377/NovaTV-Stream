@@ -4,17 +4,29 @@ export interface Provider {
   description: string;
   color: string;
   icon: string;
+  primary?: boolean;
   movieUrl: (tmdbId: number) => string;
   tvUrl: (tmdbId: number, season: number, episode: number) => string;
 }
 
 export const providers: Provider[] = [
   {
+    id: 'videasy',
+    name: 'Videasy',
+    description: 'Recommended — HD, subtitles, auto-next',
+    color: '#8B5CF6',
+    icon: '▶',
+    primary: true,
+    movieUrl: (id) => `https://player.videasy.net/movie/${id}?overlay=true&color=E50914`,
+    tvUrl: (id, s, e) =>
+      `https://player.videasy.net/tv/${id}/${s}/${e}?overlay=true&nextEpisode=true&episodeSelector=true&autoplayNextEpisode=true&color=E50914`,
+  },
+  {
     id: 'vidsrc-sbs',
     name: 'VidSrc',
     description: 'Fast & reliable, subtitle support',
     color: '#e50914',
-    icon: '▶',
+    icon: '◈',
     movieUrl: (id) => `https://vidsrc.sbs/embed/movie/${id}`,
     tvUrl: (id, s, e) => `https://vidsrc.sbs/embed/tv/${id}/${s}/${e}`,
   },
