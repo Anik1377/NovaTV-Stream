@@ -395,18 +395,20 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile hamburger button */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-[90] w-10 h-10 rounded-xl bg-black/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
-        aria-label="Open menu"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="stroke-current" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="5" x2="15" y2="5" />
-          <line x1="3" y1="9" x2="15" y2="9" />
-          <line x1="3" y1="13" x2="15" y2="13" />
-        </svg>
-      </button>
+      {/* Mobile hamburger button — hidden on anime/music (they use bottom tab bar) */}
+      {!['anime', 'music'].includes(view) && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="md:hidden fixed top-3 left-3 z-[90] w-10 h-10 rounded-xl bg-black/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
+          aria-label="Open menu"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="stroke-current" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="5" x2="15" y2="5" />
+            <line x1="3" y1="9" x2="15" y2="9" />
+            <line x1="3" y1="13" x2="15" y2="13" />
+          </svg>
+        </button>
+      )}
 
       {desktopSidebar}
       {mobileDrawer}

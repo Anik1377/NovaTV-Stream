@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Film, Star, Clock, Tv } from 'lucide-react';
+import { Film, Star, Clock, Tv, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 import { Sidebar } from '@/components/movie/Sidebar';
+import { MobileTabBar } from '@/components/movie/MobileTabBar';
 import { Hero } from '@/components/movie/Hero';
 import { TrendingRanked } from '@/components/movie/TrendingRanked';
 import { PlatformSelector } from '@/components/movie/PlatformSelector';
@@ -23,6 +24,24 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
+
+/* ── Mobile back-to-home button for anime/music views ── */
+function MobileBackHome() {
+  const { goHome } = useAppStore();
+  return (
+    <button
+      onClick={goHome}
+      className="md:hidden fixed z-[90] flex items-center gap-1.5 text-white/60 active:text-white transition-colors"
+      style={{
+        top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)',
+        left: 12,
+      }}
+      aria-label="Go home"
+    >
+      <Home className="w-5 h-5" />
+    </button>
+  );
+}
 
 function HomePage() {
   const { selectGenre, mediaFilter } = useAppStore();
@@ -246,6 +265,8 @@ export default function App() {
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {(view === 'anime' || view === 'music') && <MobileTabBar />}
+      {(view === 'anime' || view === 'music') && <MobileBackHome />}
     </div>
   );
 }

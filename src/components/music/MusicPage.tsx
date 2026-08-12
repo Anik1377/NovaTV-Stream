@@ -502,8 +502,8 @@ function MiniPlayer({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 80, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed left-0 right-0 z-40"
-      style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="fixed left-0 right-0 z-40 md:bottom-0"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}
     >
       {/* Thin progress line */}
       <div className="h-[2px] w-full bg-white/5">
@@ -694,7 +694,7 @@ export function MusicPage() {
 
       {/* ── Search Bar (sticky) ── */}
       <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
-        <div className="px-4 pt-14 md:pt-3 pb-3">
+        <div className="px-4 pt-12 md:pt-3 pb-3">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
             <input
@@ -907,7 +907,7 @@ export function MusicPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-10 border-t border-white/[0.04] pt-4 pb-2 px-4 text-center">
+        <div className="mt-10 border-t border-white/[0.04] pt-4 pb-24 md:pb-2 px-4 text-center">
           <p className="text-[11px] text-white/15">StreamVault Music — Powered by YouTube</p>
         </div>
       </div>

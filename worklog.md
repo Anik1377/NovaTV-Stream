@@ -602,3 +602,22 @@ Stage Summary:
 - Music tab now matches Apple Music aesthetic from reference photo
 - Zero emojis anywhere — all icons are Lucide React SVGs
 - Browser verified: ambient glow, ranked cards, list rows, mini player, full-screen player all render correctly
+---
+Task ID: 3
+Agent: Main
+Task: Bring back bottom tab bar on mobile for Anime and Music tabs
+
+Work Log:
+- Updated Sidebar.tsx: Hides hamburger menu button on mobile when view is 'anime' or 'music'
+- Updated page.tsx: Added MobileTabBar and MobileBackHome (home icon button) conditionally for anime/music views
+- MobileBackHome positioned in iOS safe area: top: calc(env(safe-area-inset-top) + 8px)
+- Updated MusicPage.tsx: Mini player bottom offset to calc(env(safe-area-inset-bottom) + 4rem) on mobile; footer pb-24 on mobile; search bar pt-12
+- Updated AnimePage.tsx: Footer pb-28 on mobile for tab bar clearance
+- Fixed MobileTabBar.tsx: Anime tab icon changed from Music to Sparkles
+- Fixed duplicate InstallBanner in page.tsx
+
+Stage Summary:
+- Mobile: Anime/Music pages show bottom tab bar (6 tabs) + home icon button at top-left in iOS safe area
+- Mobile: All other pages show hamburger menu (no tab bar)
+- Desktop: Unchanged (always shows sidebar, no tab bar)
+- Browser verified: All 6 checks pass

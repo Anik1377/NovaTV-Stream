@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Film, Tv, Gamepad2, Music } from 'lucide-react';
+import { Home, Film, Tv, Gamepad2, Music, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 
@@ -60,7 +60,7 @@ export function MobileTabBar() {
     { key: 'home', label: 'Home', icon: Home, action: goHome, activeColor: 'text-red-500' },
     { key: 'movies', label: 'Movies', icon: Film, action: showMovies, activeColor: 'text-red-500' },
     { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows, activeColor: 'text-red-500' },
-    { key: 'anime', label: 'Anime', icon: Music, action: showAnime, activeColor: 'text-purple-400' },
+    { key: 'anime', label: 'Anime', icon: Sparkles, action: showAnime, activeColor: 'text-purple-400' },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, activeColor: 'text-emerald-400' },
     { key: 'music', label: 'Music', icon: Music, action: showMusic, activeColor: 'text-amber-400' },
   ];
