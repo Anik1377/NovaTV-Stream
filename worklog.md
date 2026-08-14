@@ -788,3 +788,26 @@ Stage Summary:
 - 17 files changed, 1277 insertions
 - Pushed to GitHub: commit 1b7cbfe
 - Lint passes clean, dev server no errors
+---
+Task ID: 3
+Agent: main
+Task: Fix top-10 showing fewer than 10 items and reduce Indian content in TV shows
+
+Work Log:
+- Investigated trending API: was using /discover/movie + /discover/tv with region=IN and 2025 year filter, too restrictive
+- Investigated TV APIs: popular-tv and top-rated-tv both used region=IN, heavily biased toward Indian content
+- Investigated Indian boost: applied 50/50 split to TV shows same as movies
+- Fixed trending API: switched to /trending/all/week which always returns 20+ globally popular results
+- Fixed popular-tv: removed region=IN to show global popular TV shows
+- Fixed top-rated-tv: removed region=IN, raised vote_count.gte to 500 for quality
+- Updated content-split.ts: added mergeWithRatio() for configurable Indian/intl ratios
+- Updated page.tsx: TV shows now use 20% Indian ratio (was 50%)
+- Added top10Source padding: if filtered trending has <10 items, pad from popular/top-rated/upcoming
+- Verified with Agent Browser: TOP 10 shows exactly 10 items, TV shows now mostly international
+- Pushed to GitHub: commit 24eb3b5
+
+Stage Summary:
+- Top 10 always shows exactly 10 items (padded from other categories if needed)
+- TV shows now ~20% Indian content (down from 50%)
+- Movies keep 50% Indian content (unchanged)
+- Trending uses proper /trending/all/week endpoint
