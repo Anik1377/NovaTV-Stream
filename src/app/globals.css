@@ -139,9 +139,25 @@ a, button, [role="button"], input, img, video, iframe {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Body overflow hidden when player is open */
+/* Body overflow hidden when player is open (iOS uses position:fixed to prevent rubber-band scroll) */
 body.player-open {
   overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS video player optimizations */
+.ios-player-container iframe {
+  -webkit-touch-callout: none;
+}
+
+/* iOS safe area for the player */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .ios-player-container {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 /* Selection color */
