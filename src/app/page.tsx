@@ -53,6 +53,7 @@ function HomePage() {
   const [topRatedTv, setTopRatedTv] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [indianBoosted, setIndianBoosted] = useState(false);
 
   // OTT Platform state
   const [platforms, setPlatforms] = useState<OttPlatform[]>(OTT_PLATFORMS);
@@ -93,6 +94,48 @@ function HomePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Lazy Indian content boost — fires after initial load
+  useEffect(() => {
+    if (loading || indianBoosted) return;
+    setIndianBoosted(true);
+    fetch('/api/tmdb/indian-boost')
+      .then(r => r.json())
+      .then(data => {
+        const indian = (data.results || []) as Movie[];
+        if (!indian.length) return;
+        setPopularMovies(prev => {
+          const fresh = indian.filter(i => i.media_type === 'movie');
+          const existing = new Set(prev.map(m => m.id));
+          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
+        });
+        setPopularTv(prev => {
+          const fresh = indian.filter(i => i.media_type === 'tv');
+          const existing = new Set(prev.map(m => m.id));
+          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
+        });
+        setTrending(prev => {
+          const existing = new Set(prev.map(m => m.id));
+          return [...indian.filter(m => !existing.has(m.id)), ...prev];
+        });
+        setTopRated(prev => {
+          const fresh = indian.filter(i => i.media_type === 'movie');
+          const existing = new Set(prev.map(m => m.id));
+          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
+        });
+        setUpcoming(prev => {
+          const fresh = indian.filter(i => i.media_type === 'movie');
+          const existing = new Set(prev.map(m => m.id));
+          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
+        });
+        setTopRatedTv(prev => {
+          const fresh = indian.filter(i => i.media_type === 'tv');
+          const existing = new Set(prev.map(m => m.id));
+          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
+        });
+      })
+      .catch(() => {});
+  }, [loading, indianBoosted]);
 
   const filteredTrending = mediaFilter === 'movie'
     ? trending.filter(m => m.media_type === 'movie')

@@ -684,3 +684,26 @@ Stage Summary:
 - No layout thrashing — labels animate opacity/transform only (GPU composited)
 - Icons stay perfectly centered during transition
 - Verified: 64px→224px→64px with smooth spring animation, no errors
+---
+Task ID: 3
+Agent: Main
+Task: Prioritize Indian content in every category
+
+Work Log:
+- Added `region=IN` to all TMDB API routes: trending, popular-movies, popular-tv, upcoming
+- Switched top-rated from `/movie/top_rated` to `/discover/movie?region=IN&sort_by=vote_average.desc&vote_count.gte=300`
+- Switched top-rated-tv from `/tv/top_rated` to `/discover/tv?region=IN&sort_by=vote_average.desc&vote_count.gte=200`
+- Changed providers and providers-list from `watch_region=US` to `watch_region=IN`
+- Added `prioritizeIndian()` helper to tmdb.ts — reorders existing results putting hi/ta/te/kn/ml/bn/gu/mr/pa/ur items first
+- Added `fetchIndianBoost()` helper to tmdb.ts — fetches extra Hindi content and prepends (available but unused due to OOM)
+- Created `/api/tmdb/indian-boost` endpoint — fetches Hindi movies, Hindi TV, Tamil movies, Telugu movies (sequential to reduce peak memory)
+- Added lazy Indian boost in page.tsx — after initial page load, fetches indian-boost and prepends unique items to every category
+- Changed `upcoming` vote_count_gte to '10' since upcoming movies have few votes
+
+Stage Summary:
+- Every category now has `region=IN` for India-aware results
+- `prioritizeIndian()` reorders any Indian-lang items to the top within each category
+- Lazy `/api/tmdb/indian-boost` fetch (Hindi+Tamil+Telugu) prepends ~80 fresh Indian items to all categories
+- Streaming providers switched to Indian region
+- Verified: indian-boost returns DDLJ, 3 Idiots, Dangal, Jawan, PK, etc.
+- Lint passes clean

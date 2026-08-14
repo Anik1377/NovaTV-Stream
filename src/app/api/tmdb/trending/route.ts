@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tmdbFetch, getImageUrl, getBackdropUrl } from '@/lib/tmdb';
+import { tmdbFetch, prioritizeIndian } from '@/lib/tmdb';
 import type { PaginatedResponse, Movie } from '@/lib/types';
 
 interface TrendingItem {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     const data = await tmdbFetch<PaginatedResponse<TrendingItem>>(
       `/trending/all/${timeWindow}`,
-      { page }
+      { page, region: 'IN' }
     );
 
     const results: Movie[] = data.results
@@ -42,7 +42,10 @@ export async function GET(req: NextRequest) {
         media_type: item.media_type as 'movie' | 'tv',
       }));
 
-    return NextResponse.json({ ...data, results });
+    // Reorder: Indian content first
+    data.results = prioritizeIndian(results);
+
+    return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch trending' }, { status: 500 });
   }

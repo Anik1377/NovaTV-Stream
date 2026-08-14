@@ -26,8 +26,8 @@ export async function GET() {
 
   try {
     const [movieRes, tvRes] = await Promise.all([
-      tmdbFetch<{ results: TmdbProvider[] }>('/watch/providers/movie', { watch_region: 'US' }),
-      tmdbFetch<{ results: TmdbProvider[] }>('/watch/providers/tv', { watch_region: 'US' }),
+      tmdbFetch<{ results: TmdbProvider[] }>('/watch/providers/movie', { watch_region: 'IN' }),
+      tmdbFetch<{ results: TmdbProvider[] }>('/watch/providers/tv', { watch_region: 'IN' }),
     ]);
 
     const logoMap = new Map<number, string | null>();

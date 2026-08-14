@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     const data = await tmdbFetch<PaginatedResponse<Record<string, unknown>>>(endpoint, {
       with_watch_providers: providerId,
-      watch_region: 'US',
+      watch_region: 'IN',
       sort_by: 'popularity.desc',
       page,
     });
