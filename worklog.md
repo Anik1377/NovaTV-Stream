@@ -728,3 +728,29 @@ Stage Summary:
 - Trending tab only shows movies/TV actually released in 2025
 - splitFiftyFifty interleaves: Indian, International, Indian, International...
 - Lint passes clean
+---
+Task ID: ios-video-player
+Agent: main
+Task: Optimize video player for iPhone/iOS users
+
+Work Log:
+- Created `/src/hooks/use-ios.ts` — iOS device detection hook (detects iPhone/iPad/iPod + iPad desktop Safari)
+- Rewrote `/src/components/movie/VideoPlayer.tsx` with comprehensive iOS optimizations:
+  - Added `playsinline` attribute on iframe to prevent iOS from forcing native fullscreen
+  - Added swipe-down-to-dismiss gesture for mobile (Framer Motion drag with spring physics)
+  - Added native iOS-style "Done" button (top-left, frosted glass pill with chevron)
+  - Hidden fullscreen toggle on iOS (Fullscreen API unsupported)
+  - Added `webkitendfullscreen` event listener to detect iOS native player "Done" button
+  - Replaced opacity fade with spring-based slide-up/slide-down open/close animations
+  - Added safe area insets for notch/Dynamic Island (top + bottom spacers)
+  - iOS-safe body scroll lock with scroll position save/restore
+  - Added `useIsMobile` hook usage for swipe gesture (mobile only)
+- Updated `/src/app/globals.css`:
+  - Body scroll lock uses `position: fixed` to prevent iOS rubber-band scrolling
+  - Disabled `-webkit-touch-callout` on player iframe (prevents long-press menu)
+  - Added `@supports` safe area padding for player container
+
+Stage Summary:
+- 3 files changed: `src/hooks/use-ios.ts` (new), `src/components/movie/VideoPlayer.tsx`, `src/app/globals.css`
+- Lint passes clean, dev server no errors
+- Pushed to GitHub: commit 549282f
