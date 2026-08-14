@@ -3,7 +3,7 @@ const TMDB_KEY = 'f71458d399e1eb9bdbfdc1c3318f5f75';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
 export const getImageUrl = (path: string | null, size: string = 'w500') => {
-  if (!path) return '/placeholder-movie.png';
+  if (!path) return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750" fill="%23222"><rect width="500" height="750"/><text x="250" y="375" text-anchor="middle" fill="%23666" font-family="system-ui" font-size="48">🎬</text></svg>');
   return `${IMG_BASE}/${size}${path}`;
 };
 

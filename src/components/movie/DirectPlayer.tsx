@@ -289,7 +289,7 @@ export function DirectPlayer({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="fixed inset-0 z-[100] bg-black flex flex-col"
-        onClick={() => { setShowControls(true); if (hideTimerRef.current) clearTimeout(hideTimerRef.current); if (playing) hideTimerRef.current = setTimeout(() => setShowControls(false), 3000); }}
+        onClick={() => { setShowControls(true); if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); if (playing) controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000); }}
       >
         {/* Safe area spacer for iOS */}
         {isIOS && (
