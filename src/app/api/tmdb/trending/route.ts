@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tmdbFetch, prioritizeIndian } from '@/lib/tmdb';
-import type { PaginatedResponse, Movie } from '@/lib/types';
+import { tmdbFetch } from '@/lib/tmdb';
+import type { Movie } from '@/lib/types';
 
-interface TrendingItem {
+const CURRENT_YEAR = new Date().getFullYear().toString();
+
+interface DiscoverItem {
   id: number;
   title?: string;
   name?: string;
@@ -14,38 +16,58 @@ interface TrendingItem {
   vote_average: number;
   vote_count: number;
   genre_ids: number[];
-  media_type: string;
   popularity: number;
   adult: boolean;
   original_language: string;
-  original_title?: string;
-  original_name?: string;
 }
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = searchParams.get('page') || '1';
-    const timeWindow = searchParams.get('time_window') || 'week';
 
-    const data = await tmdbFetch<PaginatedResponse<TrendingItem>>(
-      `/trending/all/${timeWindow}`,
-      { page, region: 'IN' }
-    );
+    // Fetch 2025 movies and TV separately via discover
+    const [moviesRes, tvRes] = await Promise.all([
+      tmdbFetch<{ results: DiscoverItem[] }>('/discover/movie', {
+        page,
+        region: 'IN',
+        sort_by: 'popularity.desc',
+        'primary_release_year': CURRENT_YEAR,
+        'vote_count.gte': '10',
+      }),
+      tmdbFetch<{ results: DiscoverItem[] }>('/discover/tv', {
+        page,
+        region: 'IN',
+        sort_by: 'popularity.desc',
+        'first_air_date_year': CURRENT_YEAR,
+        'vote_count.gte': '10',
+      }),
+    ]);
 
-    const results: Movie[] = data.results
-      .filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
-      .map((item) => ({
-        ...item,
-        title: item.title || item.name || '',
-        release_date: item.release_date || item.first_air_date,
-        media_type: item.media_type as 'movie' | 'tv',
-      }));
+    const movies: Movie[] = moviesRes.results.map(r => ({
+      ...r,
+      media_type: 'movie' as const,
+      title: r.title || '',
+      release_date: r.release_date,
+    }));
 
-    // Reorder: Indian content first
-    data.results = prioritizeIndian(results);
+    const tv: Movie[] = tvRes.results.map(r => ({
+      ...r,
+      media_type: 'tv' as const,
+      title: r.name || r.title || '',
+      name: r.name,
+      release_date: r.first_air_date,
+    }));
 
-    return NextResponse.json(data);
+    // Interleave movies and TV by popularity
+    const combined = [...movies, ...tv].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+    return NextResponse.json({
+      page: parseInt(page),
+      results: combined,
+      total_results: moviesRes.results.length + tvRes.results.length,
+      total_pages: 1,
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch trending' }, { status: 500 });
   }

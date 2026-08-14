@@ -707,3 +707,24 @@ Stage Summary:
 - Streaming providers switched to Indian region
 - Verified: indian-boost returns DDLJ, 3 Idiots, Dangal, Jawan, PK, etc.
 - Lint passes clean
+---
+Task ID: 4
+Agent: Main
+Task: 50/50 Indian/international split + trending shows 2025 releases only
+
+Work Log:
+- Created /src/lib/content-split.ts with pure client-safe utilities:
+  - isIndianLang() — checks if language is one of hi/ta/te/kn/ml/bn/gu/mr/pa/ur
+  - splitFiftyFifty() — splits array into 50% Indian + 50% international, interleaved (indian[0], intl[0], indian[1], intl[1]...)
+  - mergeWithFiftyFifty() — merges fresh Indian items into existing, enforces 50/50
+- Rewrote trending endpoint: replaced /trending/all/week with /discover/movie + /discover/tv using primary_release_year=2025 and first_air_date_year=2025
+- Updated all category routes (popular-movies, popular-tv, top-rated, top-rated-tv, upcoming) to use splitFiftyFifty
+- Updated frontend Indian boost in page.tsx to use mergeWithFiftyFifty for 50/50 enforcement
+- Cleaned tmdb.ts — removed split utilities (moved to content-split.ts)
+- Extracted pure functions to content-split.ts to avoid importing server-only tmdb.ts in client component
+
+Stage Summary:
+- Every category now shows alternating Indian/International content (~50/50)
+- Trending tab only shows movies/TV actually released in 2025
+- splitFiftyFifty interleaves: Indian, International, Indian, International...
+- Lint passes clean

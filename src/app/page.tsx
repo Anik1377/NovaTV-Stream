@@ -24,6 +24,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
+import { mergeWithFiftyFifty } from '@/lib/content-split';
 
 /* ── Mobile back-to-home button for anime view ── */
 function MobileBackHome() {
@@ -95,7 +96,7 @@ function HomePage() {
     fetchData();
   }, [fetchData]);
 
-  // Lazy Indian content boost — fires after initial load
+  // Lazy Indian content boost — fires after initial load, enforces 50/50
   useEffect(() => {
     if (loading || indianBoosted) return;
     setIndianBoosted(true);
@@ -104,35 +105,23 @@ function HomePage() {
       .then(data => {
         const indian = (data.results || []) as Movie[];
         if (!indian.length) return;
-        setPopularMovies(prev => {
+
+        const mergeMovie = (prev: Movie[]) => {
           const fresh = indian.filter(i => i.media_type === 'movie');
-          const existing = new Set(prev.map(m => m.id));
-          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
-        });
-        setPopularTv(prev => {
+          return mergeWithFiftyFifty(prev, fresh, 20);
+        };
+        const mergeTv = (prev: Movie[]) => {
           const fresh = indian.filter(i => i.media_type === 'tv');
-          const existing = new Set(prev.map(m => m.id));
-          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
-        });
-        setTrending(prev => {
-          const existing = new Set(prev.map(m => m.id));
-          return [...indian.filter(m => !existing.has(m.id)), ...prev];
-        });
-        setTopRated(prev => {
-          const fresh = indian.filter(i => i.media_type === 'movie');
-          const existing = new Set(prev.map(m => m.id));
-          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
-        });
-        setUpcoming(prev => {
-          const fresh = indian.filter(i => i.media_type === 'movie');
-          const existing = new Set(prev.map(m => m.id));
-          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
-        });
-        setTopRatedTv(prev => {
-          const fresh = indian.filter(i => i.media_type === 'tv');
-          const existing = new Set(prev.map(m => m.id));
-          return [...fresh.filter(m => !existing.has(m.id)), ...prev];
-        });
+          return mergeWithFiftyFifty(prev, fresh, 20);
+        };
+        const mergeAll = (prev: Movie[]) => mergeWithFiftyFifty(prev, indian, 20);
+
+        setPopularMovies(mergeMovie);
+        setPopularTv(mergeTv);
+        setTrending(mergeAll);
+        setTopRated(mergeMovie);
+        setUpcoming(mergeMovie);
+        setTopRatedTv(mergeTv);
       })
       .catch(() => {});
   }, [loading, indianBoosted]);
