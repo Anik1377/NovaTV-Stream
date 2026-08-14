@@ -131,7 +131,7 @@ export function SearchResults() {
       {!isSearching && searchResults.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
           {searchResults.map((movie, i) => (
-            <MovieCard key={`${movie.id}-${movie.media_type}-${i}`} movie={movie} index={i} />
+            <MovieCard key={`${movie.id}-${movie.media_type}-${i}`} movie={movie} index={i} fluid />
           ))}
         </div>
       )}

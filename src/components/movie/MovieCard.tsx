@@ -12,9 +12,11 @@ interface MovieCardProps {
   movie: Movie;
   index?: number;
   accentColor?: 'red' | 'purple';
+  /** When true, card fills its container width (for grid layouts) */
+  fluid?: boolean;
 }
 
-export function MovieCard({ movie, index = 0, accentColor = 'red' }: MovieCardProps) {
+export function MovieCard({ movie, index = 0, accentColor = 'red', fluid = false }: MovieCardProps) {
   const isPurple = accentColor === 'purple';
   const { selectMovie, selectTv } = useAppStore();
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -35,8 +37,8 @@ export function MovieCard({ movie, index = 0, accentColor = 'red' }: MovieCardPr
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
-      className="group relative flex-shrink-0 w-[140px] sm:w-[160px] md:w-[180px] cursor-pointer"
+      transition={{ delay: Math.min(index, 20) * (fluid ? 0.02 : 0.05), duration: 0.3 }}
+      className={`group relative cursor-pointer ${fluid ? 'w-full' : 'flex-shrink-0 w-[140px] sm:w-[160px] md:w-[180px]'}`}
       onClick={handleClick}
     >
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-muted">
