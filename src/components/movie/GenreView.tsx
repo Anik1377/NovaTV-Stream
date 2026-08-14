@@ -74,7 +74,7 @@ export function GenreView() {
       ) : (
         <div className="max-w-7xl mx-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 md:gap-3">
           {displayItems.map((m, i) => (
-            <MovieCard key={`${m.id}-${m.media_type}`} movie={m} index={i} />
+            <MovieCard key={`${m.id}-${m.media_type}-${i}`} movie={m} index={i} />
           ))}
         </div>
       )}

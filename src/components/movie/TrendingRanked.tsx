@@ -96,7 +96,7 @@ export function TrendingRanked({ movies }: TrendingRankedProps) {
 
           return (
             <motion.button
-              key={`${movie.id}-${movie.media_type}`}
+              key={`${movie.id}-${movie.media_type}-${i}`}
               initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: i * 0.06, duration: 0.4, ease: 'easeOut' }}

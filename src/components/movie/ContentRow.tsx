@@ -93,7 +93,7 @@ export function ContentRow({ title, movies, accentColor = 'red', icon, genreId, 
           className="flex gap-2 md:gap-3 overflow-x-auto content-scroll px-4 md:px-8 pb-2"
         >
           {movies.map((movie, i) => (
-            <MovieCard key={`${movie.id}-${movie.media_type}`} movie={movie} index={i} accentColor={accentColor} />
+            <MovieCard key={`${movie.id}-${movie.media_type}-${i}`} movie={movie} index={i} accentColor={accentColor} />
           ))}
         </div>
 
