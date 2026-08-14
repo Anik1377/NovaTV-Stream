@@ -811,3 +811,34 @@ Stage Summary:
 - TV shows now ~20% Indian content (down from 50%)
 - Movies keep 50% Indian content (unchanged)
 - Trending uses proper /trending/all/week endpoint
+---
+Task ID: 4
+Agent: main
+Task: Add 10 new genre categories, Indian content, and View More with infinite scroll
+
+Work Log:
+- Created /api/tmdb/discover route supporting genre_id, media_type, sort_by, region, page params
+- Added 'category' ViewType and selectCategory action to app-store with genreId/ sortBy/region
+- Updated ContentRow with View More button (ArrowRight icon), supports genreId/null/sortBy/region props
+- Created CategoryBrowse component with IntersectionObserver infinite scroll, shows result count
+- Added 10 new EXTRA_CATEGORIES to page.tsx:
+  1. Action & Adventure (movies, genre 28+12)
+  2. Comedy Movies (movies, genre 35)
+  3. Thriller & Suspense (movies, genre 53+9648)
+  4. Romance (movies, genre 10749)
+  5. Sci-Fi & Fantasy (all, genre 878+14)
+  6. Horror Movies (movies, genre 27)
+  7. Drama Series (TV, genre 18)
+  8. Crime & Mystery (TV, genre 80+9648)
+  9. Animation & Family (all, genre 16+10751)
+  10. Indian Hits (all, region=IN)
+- All 15 category rows now have View More buttons (including existing Popular/Top Rated/Coming Soon)
+- Tab-aware: movie categories hide in TV tab, TV categories hide in Movies tab
+- Verified: 15 View More buttons, 20 images per row, infinite scroll loads pages, Indian Hits uses region=IN
+- Pushed to GitHub: commit 90886cf
+
+Stage Summary:
+- Homepage now has 16 content rows (up from 5)
+- Every row has a functional View More button opening a paginated browse view
+- Infinite scroll auto-loads next pages with loading indicator
+- Indian Hits category provides Indian content in all tabs
