@@ -75,6 +75,15 @@ export const providers: Provider[] = [
     movieUrl: (id) => `https://playembeds.com/movie/${id}`,
     tvUrl: (id, s, e) => `https://playembeds.com/tv/${id}/${s}/${e}`,
   },
+  {
+    id: 'moviebox',
+    name: 'MovieBox',
+    description: 'Direct MP4/HLS, quality selector, subtitles',
+    color: '#00f2ff',
+    icon: '⚡',
+    movieUrl: () => 'moviebox',
+    tvUrl: () => 'moviebox',
+  },
 ];
 
 export function getProvider(id: string): Provider {

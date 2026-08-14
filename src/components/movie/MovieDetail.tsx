@@ -7,6 +7,7 @@ import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { VideoPlayer } from './VideoPlayer';
+import { DirectPlayer } from './DirectPlayer';
 import { MovieCard } from './MovieCard';
 import { ProviderSelector } from './ProviderSelector';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
@@ -17,7 +18,10 @@ export function MovieDetail() {
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showDirectPlayer, setShowDirectPlayer] = useState(false);
   const [showProviderSelector, setShowProviderSelector] = useState(false);
+  const [mbLoading, setMbLoading] = useState(false);
+  const [mbData, setMbData] = useState<{ subjectId: string; detailPath: string } | null>(null);
   const prevIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -47,11 +51,32 @@ export function MovieDetail() {
   const loading = isPending && !details;
   const activeProvider = getProvider(selectedProvider);
 
-  const handlePlay = (providerId?: string) => {
+  const handlePlay = async (providerId?: string) => {
     const pid = providerId || selectedProvider;
-    const url = getEmbedUrl(pid, 'movie', movie.id);
-    setShowPlayer(true);
     setShowProviderSelector(false);
+
+    if (pid === 'moviebox') {
+      // Search MovieBox for this title to get slug + subject_id
+      setMbLoading(true);
+      try {
+        const res = await fetch(`/api/moviebox/search?q=${encodeURIComponent(title)}`);
+        const data = await res.json();
+        const match = data.items?.[0];
+        if (match?.slug && match?.subject_id) {
+          setMbData({ subjectId: match.subject_id, detailPath: match.slug });
+          setShowDirectPlayer(true);
+        } else {
+          alert('Not found on MovieBox. Try another source.');
+        }
+      } catch {
+        alert('MovieBox search failed. Try another source.');
+      } finally {
+        setMbLoading(false);
+      }
+      return;
+    }
+
+    setShowPlayer(true);
   };
 
   const renderStars = (avg: number) => {
@@ -74,6 +99,22 @@ export function MovieDetail() {
           mediaType="movie"
           tmdbId={movie.id}
         />
+      )}
+
+      {showDirectPlayer && mbData && (
+        <DirectPlayer
+          title={title}
+          subjectId={mbData.subjectId}
+          detailPath={mbData.detailPath}
+          onClose={() => setShowDirectPlayer(false)}
+        />
+      )}
+
+      {mbLoading && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center gap-3">
+          <div className="w-10 h-10 border-2 border-[#00f2ff]/30 border-t-[#00f2ff] rounded-full animate-spin" />
+          <p className="text-white/50 text-sm">Searching MovieBox...</p>
+        </div>
       )}
 
       <ProviderSelector
