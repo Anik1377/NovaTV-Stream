@@ -10,21 +10,42 @@ export interface Provider {
 }
 
 export const providers: Provider[] = [
+  /* ── Tier 1: Most reliable, best UX ── */
+  {
+    id: 'vidsrc-cc',
+    name: 'VidSrc',
+    description: 'Recommended — HD, subtitles, fast load',
+    color: '#00f2ff',
+    icon: '◈',
+    primary: true,
+    movieUrl: (id) => `https://vidsrc.cc/v2/embed/movie/${id}`,
+    tvUrl: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`,
+  },
   {
     id: 'videasy',
     name: 'Videasy',
-    description: 'Recommended — HD, subtitles, auto-next',
+    description: 'HD, subtitles, auto-next episode',
     color: '#8B5CF6',
     icon: '▶',
-    primary: true,
     movieUrl: (id) => `https://player.videasy.net/movie/${id}?overlay=true&color=E50914`,
     tvUrl: (id, s, e) =>
       `https://player.videasy.net/tv/${id}/${s}/${e}?overlay=true&nextEpisode=true&episodeSelector=true&autoplayNextEpisode=true&color=E50914`,
   },
   {
+    id: 'vidsrc-icu',
+    name: 'VidSrc ICU',
+    description: 'Alternate server, multi-audio',
+    color: '#f59e0b',
+    icon: '★',
+    movieUrl: (id) => `https://vidsrc.icu/embed/movie/${id}`,
+    tvUrl: (id, s, e) => `https://vidsrc.icu/embed/tv/${id}/${s}/${e}`,
+  },
+
+  /* ── Tier 2: Good backups ── */
+  {
     id: 'vidsrc-sbs',
-    name: 'VidSrc',
-    description: 'Fast & reliable, subtitle support',
+    name: 'VidSrc SBS',
+    description: 'Fast & reliable',
     color: '#e50914',
     icon: '◈',
     movieUrl: (id) => `https://vidsrc.sbs/embed/movie/${id}`,
@@ -33,7 +54,7 @@ export const providers: Provider[] = [
   {
     id: 'vidsrc-pm',
     name: 'VidSrc PM',
-    description: 'Alternate server, multi-audio',
+    description: 'High quality streams',
     color: '#6366f1',
     icon: '◈',
     movieUrl: (id) => `https://vidsrc.pm/embed/movie/${id}`,
@@ -42,21 +63,32 @@ export const providers: Provider[] = [
   {
     id: 'vidsrc-pro',
     name: 'VidSrc Pro',
-    description: 'High quality streams',
-    color: '#f59e0b',
+    description: 'Premium quality source',
+    color: '#f97316',
     icon: '★',
     movieUrl: (id) => `https://vidsrc.pro/embed/movie/${id}`,
     tvUrl: (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
   },
   {
-    id: '2embed',
-    name: '2Embed',
-    description: 'Wide library, fast load',
+    id: 'vidlink',
+    name: 'VidLink',
+    description: 'Multi-server, wide library',
+    color: '#10b981',
+    icon: '◉',
+    movieUrl: (id) => `https://vidlink.pro/movie/${id}`,
+    tvUrl: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: 'embed-su',
+    name: 'Embed.su',
+    description: 'Direct streams, minimal ads',
     color: '#3b82f6',
     icon: '▷',
-    movieUrl: (id) => `https://www.2embed.cc/embed/${id}`,
-    tvUrl: (id, s, e) => `https://www.2embed.cc/embed/${id}/${s}/${e}`,
+    movieUrl: (id) => `https://embed.su/embed/movie/${id}`,
+    tvUrl: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}`,
   },
+
+  /* ── Tier 3: Fallbacks ── */
   {
     id: 'multiembed',
     name: 'MultiEmbed',
@@ -69,20 +101,11 @@ export const providers: Provider[] = [
   {
     id: 'playembeds',
     name: 'PlayEmbeds',
-    description: 'Direct streams, minimal ads',
-    color: '#10b981',
+    description: 'Direct embed source',
+    color: '#14b8a6',
     icon: '◉',
     movieUrl: (id) => `https://playembeds.com/movie/${id}`,
     tvUrl: (id, s, e) => `https://playembeds.com/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'moviebox',
-    name: 'MovieBox',
-    description: 'Direct MP4/HLS, quality selector, subtitles',
-    color: '#00f2ff',
-    icon: '⚡',
-    movieUrl: () => 'moviebox',
-    tvUrl: () => 'moviebox',
   },
 ];
 

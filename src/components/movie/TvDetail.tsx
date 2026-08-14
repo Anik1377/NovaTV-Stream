@@ -8,7 +8,6 @@ import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VideoPlayer } from './VideoPlayer';
-import { DirectPlayer } from './DirectPlayer';
 import { MovieCard } from './MovieCard';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
@@ -20,9 +19,6 @@ export function TvDetail() {
   const [loading, setLoading] = useState(true);
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
-  const [showDirectPlayer, setShowDirectPlayer] = useState(false);
-  const [mbLoading, setMbLoading] = useState(false);
-  const [mbData, setMbData] = useState<{ subjectId: string; detailPath: string } | null>(null);
   const [seasonDropdownOpen, setSeasonDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -63,26 +59,6 @@ export function TvDetail() {
   const playEpisode = async (episode: Episode) => {
     setSelectedEpisode(episode);
 
-    if (selectedProvider === 'moviebox') {
-      setMbLoading(true);
-      try {
-        const res = await fetch(`/api/moviebox/search?q=${encodeURIComponent(title)}`);
-        const data = await res.json();
-        const match = data.items?.[0];
-        if (match?.slug && match?.subject_id) {
-          setMbData({ subjectId: match.subject_id, detailPath: match.slug });
-          setShowDirectPlayer(true);
-        } else {
-          alert('Not found on MovieBox. Try another source.');
-        }
-      } catch {
-        alert('MovieBox search failed. Try another source.');
-      } finally {
-        setMbLoading(false);
-      }
-      return;
-    }
-
     setShowPlayer(true);
   };
 
@@ -102,24 +78,6 @@ export function TvDetail() {
           season={selectedSeason}
           episode={epNum}
         />
-      )}
-
-      {showDirectPlayer && mbData && (
-        <DirectPlayer
-          title={`${title} S${String(selectedSeason).padStart(2,'0')}E${String(epNum).padStart(2,'0')}`}
-          subjectId={mbData.subjectId}
-          detailPath={mbData.detailPath}
-          se={selectedSeason}
-          ep={epNum}
-          onClose={() => setShowDirectPlayer(false)}
-        />
-      )}
-
-      {mbLoading && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 border-2 border-[#00f2ff]/30 border-t-[#00f2ff] rounded-full animate-spin" />
-          <p className="text-white/50 text-sm">Searching MovieBox...</p>
-        </div>
       )}
 
       <motion.div
