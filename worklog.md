@@ -640,3 +640,25 @@ Stage Summary:
 - Search input has debounced API calls (400ms), clear button, and proper empty/loading/results states
 - Blue accent color for Search tab to differentiate from red (content) tabs
 - Lint passes clean
+---
+Task ID: 1
+Agent: Main
+Task: Redesign desktop sidebar with hover-to-expand behavior
+
+Work Log:
+- Removed `collapsed` state and `toggleCollapse` callback
+- Added `hovered` state, defaulting to collapsed (64px)
+- Added `onMouseEnter`/`onMouseLeave` on `<aside>` to control `hovered`
+- `expanded = hovered && !mobileOpen` — sidebar expands only on desktop hover
+- Replaced all `collapsed` references with `!expanded` for centering logic
+- Removed PanelLeftClose/PanelLeftOpen imports and the Collapse toggle button
+- Centered logo in collapsed state with conditional `justify-center` class
+- Added shadow and border enhancement on expand for depth effect
+- Changed `transition-[width]` to `transition-all` for smoother overall animation
+
+Stage Summary:
+- Sidebar starts at 64px (icons only, centered)
+- On mouse hover → smoothly expands to 224px showing labels, search, logo text
+- On mouse leave → collapses back to 64px
+- Browser verified: 64px collapsed → 224px on hover → 64px on leave
+- Lint passes clean, dev server no errors

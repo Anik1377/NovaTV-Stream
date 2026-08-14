@@ -9,8 +9,6 @@ import {
   Radio,
   Gamepad2,
   Download,
-  PanelLeftClose,
-  PanelLeftOpen,
   X,
   LogIn,
   LogOut,
@@ -73,15 +71,12 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   const authUser = useAuthStore(s => s.user);
   const authLogout = useAuthStore(s => s.logout);
 
-  const [collapsed, setCollapsed] = useState(false);
+  // Sidebar starts collapsed, expands on hover
+  const [hovered, setHovered] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const toggleCollapse = useCallback(() => {
-    setCollapsed(p => !p);
-  }, []);
 
   /* ── Search with debounce ── */
   const handleSearch = useCallback(async (query: string) => {
@@ -147,17 +142,19 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     setMobileOpen(false);
   };
 
-  const w = collapsed ? COLLAPSED_W : EXPANDED_W;
-  const expanded = !collapsed;
+  const expanded = hovered && !mobileOpen;
+  const w = expanded ? EXPANDED_W : COLLAPSED_W;
 
   /* ── Desktop sidebar ── */
   const desktopSidebar = (
     <aside
-      className="hidden md:flex flex-col h-screen sticky top-0 shrink-0 border-r border-white/[0.06] bg-black/95 backdrop-blur-xl transition-[width] duration-300 ease-in-out overflow-hidden"
+      className={`hidden md:flex flex-col h-screen sticky top-0 shrink-0 border-r border-white/[0.06] bg-black/95 backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'border-r-white/10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]' : ''}`}
       style={{ width: w }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Logo */}
-      <div className="flex items-center h-14 px-3.5 shrink-0">
+      <div className={`flex items-center h-14 shrink-0 ${!expanded ? 'justify-center' : 'px-3.5'}`}>
         <button onClick={goHome} className="flex items-center gap-2.5 shrink-0 group">
           <div className="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-500 transition-colors">
             <Film className="w-5 h-5 text-white" />
@@ -204,9 +201,9 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
             <button
               key={item.key}
               onClick={() => handleNavClick(item)}
-              title={collapsed ? item.label : undefined}
+              title={!expanded ? item.label : undefined}
               className={`w-full flex items-center gap-2.5 rounded-lg transition-colors duration-150 ${
-                collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+                !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
               } ${getActiveStyle(item, active)}`}
             >
               <item.icon className={`w-[18px] h-[18px] shrink-0 ${getActiveIcon(item, active)}`} />
@@ -223,11 +220,11 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
           <>
             <button
               onClick={() => { showProfile(); setMobileOpen(false); }}
-              title={collapsed ? `Profile (${authUser.email})` : undefined}
+              title={!expanded ? `Profile (${authUser.email})` : undefined}
               className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/60 hover:text-white hover:bg-white/[0.06] ${
                 view === 'profile' ? '!text-white !bg-white/10' : ''
               } ${
-                collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+                !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
               }`}
             >
               <span className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
@@ -237,7 +234,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                 <span className="flex-1 text-left truncate">{authUser.name || 'Profile'}</span>
               </SidebarLabel>
             </button>
-            {!collapsed && (
+            {expanded && (
               <button
                 onClick={authLogout}
                 className="w-full flex items-center gap-2.5 px-2.5 h-8 rounded-lg transition-colors text-white/25 hover:text-red-400 hover:bg-red-500/10"
@@ -250,9 +247,9 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
         ) : (
           <button
             onClick={onAuthClick}
-            title={collapsed ? 'Sign In' : undefined}
+            title={!expanded ? 'Sign In' : undefined}
             className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-white hover:bg-white/[0.06] ${
-              collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+              !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
             }`}
           >
             <LogIn className="w-[18px] h-[18px] shrink-0" />
@@ -263,9 +260,9 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
         {onInstallClick && (
           <button
             onClick={onInstallClick}
-            title={collapsed ? 'Install App' : undefined}
+            title={!expanded ? 'Install App' : undefined}
             className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-red-400 hover:bg-red-500/10 ${
-              collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
+              !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
             }`}
           >
             <span className="relative shrink-0">
@@ -275,19 +272,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
             <SidebarLabel show={expanded}>Install App</SidebarLabel>
           </button>
         )}
-        <button
-          onClick={toggleCollapse}
-          title={collapsed ? 'Expand' : 'Collapse'}
-          className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/25 hover:text-white/50 hover:bg-white/[0.04] ${
-            collapsed ? 'justify-center h-10' : 'px-2.5 h-10'
-          }`}
-        >
-          {collapsed
-            ? <PanelLeftOpen className="w-[18px] h-[18px] shrink-0" />
-            : <PanelLeftClose className="w-[18px] h-[18px] shrink-0" />
-          }
-          <SidebarLabel show={expanded}>Collapse</SidebarLabel>
-        </button>
       </div>
     </aside>
   );
@@ -402,7 +386,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     </AnimatePresence>
   );
 
-  const showHamburger = !['anime', 'home'].includes(view);
+  const showHamburger = !['anime', 'home', 'search'].includes(view);
 
   return (
     <>
