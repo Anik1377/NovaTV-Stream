@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Film, Star, Clock, Tv, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -24,7 +24,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
-import { mergeWithFiftyFifty } from '@/lib/content-split';
+import { mergeWithFiftyFifty, mergeWithRatio } from '@/lib/content-split';
 
 /* ── Mobile back-to-home button for anime view ── */
 function MobileBackHome() {
@@ -112,7 +112,8 @@ function HomePage() {
         };
         const mergeTv = (prev: Movie[]) => {
           const fresh = indian.filter(i => i.media_type === 'tv');
-          return mergeWithFiftyFifty(prev, fresh, 20);
+          // Only 20% Indian content for TV shows
+          return mergeWithRatio(prev, fresh, 20, 0.2);
         };
         const mergeAll = (prev: Movie[]) => mergeWithFiftyFifty(prev, indian, 20);
 
@@ -121,7 +122,7 @@ function HomePage() {
         setTrending(mergeAll);
         setTopRated(mergeMovie);
         setUpcoming(mergeMovie);
-        setTopRatedTv(mergeTv);
+        setTopRatedTv(prev => mergeWithRatio(prev, indian.filter(i => i.media_type === 'tv'), 20, 0.2));
       })
       .catch(() => {});
   }, [loading, indianBoosted]);
@@ -131,6 +132,19 @@ function HomePage() {
     : mediaFilter === 'tv'
     ? trending.filter(m => m.media_type === 'tv')
     : trending;
+
+  // Ensure top-10 always has at least 10 items — pad from other categories if needed
+  const top10Source = useMemo(() => {
+    if (filteredTrending.length >= 10) return filteredTrending;
+    const ids = new Set(filteredTrending.map(m => m.id));
+    const pool = mediaFilter === 'tv'
+      ? [...popularTv, ...topRatedTv]
+      : mediaFilter === 'movie'
+      ? [...popularMovies, ...topRated, ...upcoming]
+      : [...popularMovies, ...popularTv, ...topRated, ...topRatedTv, ...upcoming];
+    const extras = pool.filter(m => !ids.has(m.id));
+    return [...filteredTrending, ...extras].slice(0, 20);
+  }, [filteredTrending, mediaFilter, popularMovies, popularTv, topRated, topRatedTv, upcoming]);
 
   const handleProviderSelect = useCallback(async (platform: OttPlatform | null) => {
     setSelectedProvider(platform);
@@ -220,8 +234,8 @@ function HomePage() {
         </div>
       )}
 
-      {/* Trending Right Now - Ranked */}
-      <TrendingRanked movies={mediaFilter === 'all' ? trending : filteredTrending} />
+      {/* Trending Right Now - Ranked — always padded to 10 */}
+      <TrendingRanked movies={top10Source} />
 
       {/* Browse by Platform */}
       <PlatformSelector platforms={platforms} selectedProvider={selectedProvider?.id ?? null} onSelectProvider={handleProviderSelect} />

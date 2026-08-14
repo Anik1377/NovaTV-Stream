@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { tmdbFetch } from '@/lib/tmdb';
 import type { Movie } from '@/lib/types';
 
-const CURRENT_YEAR = new Date().getFullYear().toString();
-
-interface DiscoverItem {
+interface TrendingItem {
   id: number;
   title?: string;
   name?: string;
@@ -19,53 +17,32 @@ interface DiscoverItem {
   popularity: number;
   adult: boolean;
   original_language: string;
+  media_type?: string;
 }
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = searchParams.get('page') || '1';
+    const timeWindow = searchParams.get('time_window') || 'week';
 
-    // Fetch 2025 movies and TV separately via discover
-    const [moviesRes, tvRes] = await Promise.all([
-      tmdbFetch<{ results: DiscoverItem[] }>('/discover/movie', {
-        page,
-        region: 'IN',
-        sort_by: 'popularity.desc',
-        'primary_release_year': CURRENT_YEAR,
-        'vote_count.gte': '10',
-      }),
-      tmdbFetch<{ results: DiscoverItem[] }>('/discover/tv', {
-        page,
-        region: 'IN',
-        sort_by: 'popularity.desc',
-        'first_air_date_year': CURRENT_YEAR,
-        'vote_count.gte': '10',
-      }),
-    ]);
+    // Use TMDB's trending endpoint — always returns 20 popular items
+    const data = await tmdbFetch<{ results: TrendingItem[] }>(
+      `/trending/all/${timeWindow}`,
+      { page },
+    );
 
-    const movies: Movie[] = moviesRes.results.map(r => ({
+    const results: Movie[] = data.results.map((r) => ({
       ...r,
-      media_type: 'movie' as const,
-      title: r.title || '',
-      release_date: r.release_date,
+      media_type: (r.media_type as 'movie' | 'tv') || (r.first_air_date ? 'tv' : 'movie'),
+      title: r.title || r.name || '',
+      release_date: r.release_date || r.first_air_date,
     }));
-
-    const tv: Movie[] = tvRes.results.map(r => ({
-      ...r,
-      media_type: 'tv' as const,
-      title: r.name || r.title || '',
-      name: r.name,
-      release_date: r.first_air_date,
-    }));
-
-    // Interleave movies and TV by popularity
-    const combined = [...movies, ...tv].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
 
     return NextResponse.json({
       page: parseInt(page),
-      results: combined,
-      total_results: moviesRes.results.length + tvRes.results.length,
+      results,
+      total_results: results.length,
       total_pages: 1,
     });
   } catch (error) {

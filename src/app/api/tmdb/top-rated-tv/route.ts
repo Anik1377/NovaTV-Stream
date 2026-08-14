@@ -6,11 +6,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = searchParams.get('page') || '1';
+    // No region=IN — show global top rated TV shows
     const data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
       page,
-      region: 'IN',
       sort_by: 'vote_average.desc',
-      'vote_count.gte': '200',
+      'vote_count.gte': '500',
     });
     return NextResponse.json(data);
   } catch {
