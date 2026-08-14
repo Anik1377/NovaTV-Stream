@@ -21,18 +21,26 @@ interface BasicItem {
 export async function GET() {
   try {
     // Sequential fetches to reduce peak memory
-    const moviesRes = await tmdbFetch<{ results: BasicItem[] }>('/discover/movie', {
-      region: 'IN', sort_by: 'popularity.desc', with_original_language: 'hi', 'vote_count.gte': '50',
-    });
-    const tvRes = await tmdbFetch<{ results: BasicItem[] }>('/discover/tv', {
-      region: 'IN', sort_by: 'popularity.desc', with_original_language: 'hi', 'vote_count.gte': '30',
-    });
-    const tamilRes = await tmdbFetch<{ results: BasicItem[] }>('/discover/movie', {
-      region: 'IN', sort_by: 'popularity.desc', with_original_language: 'ta', 'vote_count.gte': '20',
-    });
-    const teluguRes = await tmdbFetch<{ results: BasicItem[] }>('/discover/movie', {
-      region: 'IN', sort_by: 'popularity.desc', with_original_language: 'te', 'vote_count.gte': '20',
-    });
+    const [moviesRes, tvHiRes, tvTaRes, tvTeRes, tamilRes, teluguRes] = await Promise.all([
+      tmdbFetch<{ results: BasicItem[] }>('/discover/movie', {
+        region: 'IN', sort_by: 'popularity.desc', with_original_language: 'hi', 'vote_count.gte': '50',
+      }),
+      tmdbFetch<{ results: BasicItem[] }>('/discover/tv', {
+        region: 'IN', sort_by: 'popularity.desc', with_original_language: 'hi', 'vote_count.gte': '30',
+      }),
+      tmdbFetch<{ results: BasicItem[] }>('/discover/tv', {
+        region: 'IN', sort_by: 'popularity.desc', with_original_language: 'ta', 'vote_count.gte': '10',
+      }),
+      tmdbFetch<{ results: BasicItem[] }>('/discover/tv', {
+        region: 'IN', sort_by: 'popularity.desc', with_original_language: 'te', 'vote_count.gte': '10',
+      }),
+      tmdbFetch<{ results: BasicItem[] }>('/discover/movie', {
+        region: 'IN', sort_by: 'popularity.desc', with_original_language: 'ta', 'vote_count.gte': '20',
+      }),
+      tmdbFetch<{ results: BasicItem[] }>('/discover/movie', {
+        region: 'IN', sort_by: 'popularity.desc', with_original_language: 'te', 'vote_count.gte': '20',
+      }),
+    ]);
 
     const normalize = (items: BasicItem[], type: 'movie' | 'tv') =>
       items.map(r => ({
@@ -46,7 +54,9 @@ export async function GET() {
     const all: ReturnType<typeof normalize> = [];
     for (const item of [
       ...normalize(moviesRes.results, 'movie'),
-      ...normalize(tvRes.results, 'tv'),
+      ...normalize(tvHiRes.results, 'tv'),
+      ...normalize(tvTaRes.results, 'tv'),
+      ...normalize(tvTeRes.results, 'tv'),
       ...normalize(tamilRes.results, 'movie'),
       ...normalize(teluguRes.results, 'movie'),
     ]) {

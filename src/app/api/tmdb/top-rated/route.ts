@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tmdbFetch } from '@/lib/tmdb';
-import { splitFiftyFifty } from '@/lib/content-split';
 import type { PaginatedResponse, Movie } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
@@ -13,7 +12,6 @@ export async function GET(req: NextRequest) {
       sort_by: 'vote_average.desc',
       'vote_count.gte': '300',
     });
-    data.results = splitFiftyFifty(data.results);
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: 'Failed to fetch top rated movies' }, { status: 500 });
