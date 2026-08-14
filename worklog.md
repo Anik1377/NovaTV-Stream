@@ -842,3 +842,21 @@ Stage Summary:
 - Every row has a functional View More button opening a paginated browse view
 - Infinite scroll auto-loads next pages with loading indicator
 - Indian Hits category provides Indian content in all tabs
+---
+Task ID: supabase-setup
+Agent: main
+Task: Install and configure Supabase with SSR support
+
+Work Log:
+- Installed @supabase/supabase-js@2.112.3 and @supabase/ssr@0.12.4 via bun
+- Created .env.local with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+- Created src/utils/supabase/server.ts — server-side Supabase client using cookies from next/headers
+- Created src/utils/supabase/client.ts — browser-side Supabase client using createBrowserClient
+- Created src/utils/supabase/middleware.ts — middleware Supabase client helper (fixed bug: original code returned only NextResponse, not the supabase client; updated to return { supabase, response })
+- Created src/middleware.ts — Next.js middleware that uses the Supabase middleware helper for session refresh, with matcher excluding static assets
+- Verified: lint passes, dev server runs, all API routes return 200, no console errors, page renders correctly
+
+Stage Summary:
+- Supabase SSR fully integrated: server client, browser client, middleware session refresh
+- Bug fix applied to middleware helper: returns both supabase client AND response (original only returned response)
+- Existing app (page.tsx) was NOT modified — Supabase clients are ready to import from @/utils/supabase/server or @/utils/supabase/client
