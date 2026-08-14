@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Film, Star, Clock, Tv, Home } from 'lucide-react';
+import {
+  Film, Star, Clock, Tv, Home, Swords, Heart, Ghost, Zap,
+  Shield, Globe, Baby, Clapperboard, Popcorn, Flame,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
 import { Sidebar } from '@/components/movie/Sidebar';
@@ -14,6 +17,7 @@ import { MovieDetail } from '@/components/movie/MovieDetail';
 import { TvDetail } from '@/components/movie/TvDetail';
 import { SearchResults } from '@/components/movie/SearchResults';
 import { GenreView } from '@/components/movie/GenreView';
+import { CategoryBrowse } from '@/components/movie/CategoryBrowse';
 import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
@@ -25,6 +29,29 @@ import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 import { mergeWithFiftyFifty, mergeWithRatio } from '@/lib/content-split';
+
+/* ── Genre category definitions ── */
+interface CategoryDef {
+  key: string;
+  title: string;
+  genreIds: string;          // TMDB comma-separated genre IDs
+  mediaType: 'movie' | 'tv' | 'all';
+  icon: React.ReactNode;
+  showWhen: 'movie' | 'tv' | 'all';
+}
+
+const EXTRA_CATEGORIES: CategoryDef[] = [
+  { key: 'action',     title: 'Action & Adventure',  genreIds: '28,12',     mediaType: 'movie', showWhen: 'movie', icon: <Swords className="w-5 h-5" /> },
+  { key: 'comedy',     title: 'Comedy Movies',       genreIds: '35',       mediaType: 'movie', showWhen: 'movie', icon: <Popcorn className="w-5 h-5" /> },
+  { key: 'thriller',   title: 'Thriller & Suspense', genreIds: '53,9648',  mediaType: 'movie', showWhen: 'movie', icon: <Shield className="w-5 h-5" /> },
+  { key: 'romance',    title: 'Romance',             genreIds: '10749',    mediaType: 'movie', showWhen: 'movie', icon: <Heart className="w-5 h-5" /> },
+  { key: 'scifi',      title: 'Sci-Fi & Fantasy',    genreIds: '878,14',   mediaType: 'all',   showWhen: 'movie', icon: <Zap className="w-5 h-5" /> },
+  { key: 'horror',     title: 'Horror Movies',       genreIds: '27',       mediaType: 'movie', showWhen: 'movie', icon: <Ghost className="w-5 h-5" /> },
+  { key: 'drama-tv',   title: 'Drama Series',        genreIds: '18',       mediaType: 'tv',    showWhen: 'tv',    icon: <Clapperboard className="w-5 h-5" /> },
+  { key: 'crime-tv',   title: 'Crime & Mystery',     genreIds: '80,9648',  mediaType: 'tv',    showWhen: 'tv',    icon: <Shield className="w-5 h-5" /> },
+  { key: 'animation',  title: 'Animation & Family',  genreIds: '16,10751', mediaType: 'all',   showWhen: 'all',   icon: <Baby className="w-5 h-5" /> },
+  { key: 'indian',     title: 'Indian Hits',         genreIds: '',         mediaType: 'all',   showWhen: 'all',   icon: <Globe className="w-5 h-5" /> },
+];
 
 /* ── Mobile back-to-home button for anime view ── */
 function MobileBackHome() {
@@ -55,6 +82,9 @@ function HomePage() {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [indianBoosted, setIndianBoosted] = useState(false);
+
+  // Extra category data
+  const [categoryData, setCategoryData] = useState<Record<string, Movie[]>>({});
 
   // OTT Platform state
   const [platforms, setPlatforms] = useState<OttPlatform[]>(OTT_PLATFORMS);
@@ -92,6 +122,51 @@ function HomePage() {
     }
   }, []);
 
+  // Fetch extra genre categories in parallel
+  useEffect(() => {
+    if (loading) return;
+
+    const fetches = EXTRA_CATEGORIES.map(async (cat) => {
+      try {
+        if (cat.key === 'indian') {
+          // Indian hits: fetch with region=IN
+          const [movieRes, tvRes] = await Promise.all([
+            fetch('/api/tmdb/discover?region=IN&media_type=movie&sort_by=popularity.desc').then(r => r.json()),
+            fetch('/api/tmdb/discover?region=IN&media_type=tv&sort_by=popularity.desc').then(r => r.json()),
+          ]);
+          const combined = [
+            ...(movieRes.results || []).map((m: Movie) => ({ ...m, media_type: 'movie' as const })),
+            ...(tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })),
+          ].sort((a: Movie, b: Movie) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+          return { key: cat.key, data: combined };
+        }
+
+        if (cat.mediaType === 'all') {
+          const [movieRes, tvRes] = await Promise.all([
+            fetch(`/api/tmdb/discover?genre_id=${cat.genreIds}&media_type=movie`).then(r => r.json()),
+            fetch(`/api/tmdb/discover?genre_id=${cat.genreIds}&media_type=tv`).then(r => r.json()),
+          ]);
+          const combined = [
+            ...(movieRes.results || []).map((m: Movie) => ({ ...m, media_type: 'movie' as const })),
+            ...(tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })),
+          ].sort((a: Movie, b: Movie) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
+          return { key: cat.key, data: combined };
+        }
+
+        const res = await fetch(`/api/tmdb/discover?genre_id=${cat.genreIds}&media_type=${cat.mediaType}`).then(r => r.json());
+        return { key: cat.key, data: (res.results || []).map((m: Movie) => ({ ...m, media_type: cat.mediaType })).slice(0, 20) };
+      } catch {
+        return { key: cat.key, data: [] };
+      }
+    });
+
+    Promise.all(fetches).then(results => {
+      const map: Record<string, Movie[]> = {};
+      for (const r of results) map[r.key] = r.data;
+      setCategoryData(map);
+    });
+  }, [loading]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -112,7 +187,6 @@ function HomePage() {
         };
         const mergeTv = (prev: Movie[]) => {
           const fresh = indian.filter(i => i.media_type === 'tv');
-          // Only 20% Indian content for TV shows
           return mergeWithRatio(prev, fresh, 20, 0.2);
         };
         const mergeAll = (prev: Movie[]) => mergeWithFiftyFifty(prev, indian, 20);
@@ -195,7 +269,7 @@ function HomePage() {
           </div>
         </div>
         {/* Content row skeletons */}
-        {[1, 2, 3, 4].map((s) => (
+        {Array.from({ length: 12 }).map((s) => (
           <div key={s} className="px-4 md:px-8 mb-8">
             <div className="h-5 w-36 rounded bg-white/[0.06] mb-4 animate-pulse" />
             <div className="flex gap-3 overflow-hidden">
@@ -260,18 +334,47 @@ function HomePage() {
 
       {mediaFilter !== 'tv' && (
         <div>
-          <ContentRow title="Popular Movies" movies={popularMovies} icon={<Film className="w-5 h-5" />} />
-          <ContentRow title="Top Rated Movies" movies={topRated} icon={<Star className="w-5 h-5" />} />
-          {upcoming.length > 0 && <ContentRow title="Coming Soon" movies={upcoming} icon={<Clock className="w-5 h-5" />} />}
+          <ContentRow title="Popular Movies" movies={popularMovies} icon={<Film className="w-5 h-5" />} genreId={null} mediaType="movie" sortBy="popularity.desc" />
+          <ContentRow title="Top Rated Movies" movies={topRated} icon={<Star className="w-5 h-5" />} genreId={null} mediaType="movie" sortBy="vote_average.desc" />
+          {upcoming.length > 0 && <ContentRow title="Coming Soon" movies={upcoming} icon={<Clock className="w-5 h-5" />} genreId={null} mediaType="movie" />}
         </div>
       )}
 
       {mediaFilter !== 'movie' && (
         <div>
-          <ContentRow title="Popular TV Shows" movies={popularTv} icon={<Tv className="w-5 h-5" />} />
-          <ContentRow title="Top Rated TV Shows" movies={topRatedTv} icon={<Star className="w-5 h-5" />} />
+          <ContentRow title="Popular TV Shows" movies={popularTv} icon={<Tv className="w-5 h-5" />} genreId={null} mediaType="tv" sortBy="popularity.desc" />
+          <ContentRow title="Top Rated TV Shows" movies={topRatedTv} icon={<Star className="w-5 h-5" />} genreId={null} mediaType="tv" sortBy="vote_average.desc" />
         </div>
       )}
+
+      {/* Extra Genre Categories */}
+      {EXTRA_CATEGORIES.map(cat => {
+        const data = categoryData[cat.key] || [];
+        if (!data.length) return null;
+
+        // Filter visibility based on tab
+        const show =
+          cat.showWhen === 'all' ||
+          (cat.showWhen === 'movie' && mediaFilter !== 'tv') ||
+          (cat.showWhen === 'tv' && mediaFilter !== 'movie');
+        if (!show) return null;
+
+        // For Indian hits, use a special genre-free browse with region
+        const isIndian = cat.key === 'indian';
+        const viewGenreId = isIndian ? null : parseInt(cat.genreIds.split(',')[0]);
+
+        return (
+          <ContentRow
+            key={cat.key}
+            title={cat.title}
+            movies={data}
+            icon={cat.icon}
+            genreId={viewGenreId}
+            mediaType={cat.mediaType}
+            region={isIndian ? 'IN' : undefined}
+          />
+        );
+      })}
 
       <SiteFooter />
     </div>
@@ -302,6 +405,7 @@ export default function App() {
           {view === 'tv' && <TvDetail />}
           {view === 'search' && <SearchResults />}
           {view === 'genre' && <GenreView />}
+          {view === 'category' && <CategoryBrowse />}
           {view === 'livetv' && <LiveTV />}
           {view === 'anime' && <AnimePage />}
           {view === 'games' && <GamesPage key={navCounter} />}

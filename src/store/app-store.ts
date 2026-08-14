@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'livetv' | 'anime' | 'games' | 'profile';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'profile';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -15,6 +15,7 @@ interface AppState {
   selectedEpisode: Episode | null;
   selectedGenreId: number | null;
   selectedGenreName: string;
+  selectedCategory: { genreId: number | null; title: string; mediaType: 'movie' | 'tv' | 'all'; sortBy?: string; region?: string } | null;
   navCounter: number;
   selectedProvider: string;
 
@@ -33,6 +34,7 @@ interface AppState {
   setSelectedSeason: (season: number) => void;
   setSelectedEpisode: (episode: Episode | null) => void;
   selectGenre: (id: number, name: string) => void;
+  selectCategory: (genreId: number | null, title: string, mediaType: 'movie' | 'tv' | 'all', sortBy?: string, region?: string) => void;
   goHome: () => void;
   showMovies: () => void;
   showTvShows: () => void;
@@ -56,6 +58,7 @@ interface AppState {
 const resetState = {
   selectedMovie: null,
   selectedTv: null,
+  selectedCategory: null,
   searchQuery: '',
   searchResults: [],
   selectedEpisode: null,
@@ -109,6 +112,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedEpisode: null,
   selectedGenreId: null,
   selectedGenreName: '',
+  selectedCategory: null,
   navCounter: 0,
   selectedProvider: 'vidsrc-cc',
 
@@ -139,6 +143,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectGenre: (id, name) => {
     navigate(set, 'genre');
     set({ selectedGenreId: id, selectedGenreName: name });
+  },
+
+  selectCategory: (genreId, title, mediaType, sortBy, region) => {
+    navigate(set, 'category');
+    set({ selectedCategory: { genreId, title, mediaType, sortBy, region } });
   },
 
   goHome: () => set({ view: 'home', mediaFilter: 'all', ...resetState, navHistory: [] }),
