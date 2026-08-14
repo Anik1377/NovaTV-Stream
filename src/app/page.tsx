@@ -259,16 +259,16 @@ function HomePage() {
         <div className="h-[70vh] md:h-screen bg-white/[0.03] animate-pulse" />
         {/* Genre pills skeleton */}
         <div className="px-4 md:px-8 -mt-4 mb-6 flex gap-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="shrink-0 h-8 w-20 rounded-full bg-white/[0.06] animate-pulse" />
+          {Array.from({ length: 8 }, (_, i) => (
+            <div key={`gp-${i}`} className="shrink-0 h-8 w-20 rounded-full bg-white/[0.06] animate-pulse" />
           ))}
         </div>
         {/* Trending skeleton */}
         <div className="px-4 md:px-8 mb-8">
           <div className="h-6 w-48 rounded bg-white/[0.06] mb-4 animate-pulse" />
           <div className="flex gap-3 overflow-hidden">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-[130px] md:w-[200px]">
+            {Array.from({ length: 10 }, (_, i) => (
+              <div key={`tr-${i}`} className="shrink-0 w-[130px] md:w-[200px]">
                 <div className="aspect-[2/3] rounded-lg bg-white/[0.06] animate-pulse" />
                 <div className="h-3 w-3/4 rounded bg-white/[0.06] mt-2 animate-pulse" />
                 <div className="h-2.5 w-1/2 rounded bg-white/[0.06] mt-1.5 animate-pulse" />
@@ -277,12 +277,12 @@ function HomePage() {
           </div>
         </div>
         {/* Content row skeletons */}
-        {Array.from({ length: 12 }).map((s) => (
-          <div key={s} className="px-4 md:px-8 mb-8">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div key={`row-${i}`} className="px-4 md:px-8 mb-8">
             <div className="h-5 w-36 rounded bg-white/[0.06] mb-4 animate-pulse" />
             <div className="flex gap-3 overflow-hidden">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="shrink-0 w-[120px] md:w-[160px]">
+              {Array.from({ length: 8 }, (_, j) => (
+                <div key={`row-${i}-card-${j}`} className="shrink-0 w-[120px] md:w-[160px]">
                   <div className="aspect-[2/3] rounded-lg bg-white/[0.06] animate-pulse" />
                   <div className="h-3 w-3/4 rounded bg-white/[0.06] mt-2 animate-pulse" />
                 </div>
@@ -296,9 +296,9 @@ function HomePage() {
 
   return (
     <div>
-      {mediaFilter === 'all' && <Hero movies={trending.slice(0, 8)} />}
-      {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
-      {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero movies={filteredTrending.slice(0, 8)} />}
+      {mediaFilter === 'all' && <Hero key="hero-all" movies={trending.slice(0, 8)} />}
+      {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero key="hero-movie" movies={filteredTrending.slice(0, 8)} />}
+      {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero key="hero-tv" movies={filteredTrending.slice(0, 8)} />}
 
       {genres.length > 0 && (
         <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-4')}>
@@ -324,7 +324,7 @@ function HomePage() {
 
       {/* Platform results */}
       {selectedProvider && providerLoading && (
-        <div className="px-4 md:px-8 py-8">
+        <div key="provider-loading" className="px-4 md:px-8 py-8">
           <div className="flex items-center gap-3 text-white/50">
             <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
             <span className="text-sm">Loading {selectedProvider.name} content...</span>
@@ -332,10 +332,10 @@ function HomePage() {
         </div>
       )}
       {selectedProvider && !providerLoading && providerMovies.length > 0 && (
-        <ContentRow title={`${selectedProvider.name} — Popular`} movies={providerMovies} />
+        <ContentRow key="provider-results" title={`${selectedProvider.name} — Popular`} movies={providerMovies} />
       )}
       {selectedProvider && !providerLoading && providerMovies.length === 0 && (
-        <div className="px-4 md:px-8 py-8 text-center">
+        <div key="provider-empty" className="px-4 md:px-8 py-8 text-center">
           <p className="text-white/40 text-sm">No results found for {selectedProvider.name}.</p>
         </div>
       )}
