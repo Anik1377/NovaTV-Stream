@@ -754,3 +754,37 @@ Stage Summary:
 - 3 files changed: `src/hooks/use-ios.ts` (new), `src/components/movie/VideoPlayer.tsx`, `src/app/globals.css`
 - Lint passes clean, dev server no errors
 - Pushed to GitHub: commit 549282f
+---
+Task ID: moviebox-integration
+Agent: main
+Task: Implement MovieBox API player and data features
+
+Work Log:
+- Read and analyzed MovieBox-API (walterwhite-69/Moviebox-API) source code
+- Created /src/lib/moviebox.ts — Full API client with:
+  - Auto JWT token management (x-user header, cookie fallback, 50min TTL)
+  - 7 public functions: getMovieboxHome, getMovieboxCategory, searchMoviebox, suggestMoviebox, getMovieboxDetail, getMovieboxStream, getMovieboxCaptions
+  - Dynamic player domain discovery for stream URLs
+  - Proper browser-like headers (User-Agent, Referer, sec-ch-ua)
+- Created 9 API routes under /api/moviebox/:
+  - home, movies, tv-series, animation, search, suggest, detail, stream, captions
+- Added MovieBox as provider in providers.ts (id: 'moviebox', cyan ⚡ icon)
+- Installed hls.js v1.7.0 for HLS stream playback
+- Built DirectPlayer component (/src/components/movie/DirectPlayer.tsx):
+  - Native HTML5 <video> with HLS.js support (and iOS native HLS fallback)
+  - Multi-quality selector (720p/1080p/4K with MP4 format preference)
+  - Subtitle support with SRT/VTT parser and CC toggle
+  - Custom video controls: play/pause, seek bar, progress, buffered indicator
+  - iOS safe area insets, playsinline attribute
+  - Auto-hide controls on play (3s timer)
+  - Keyboard shortcuts: Space (play/pause), Arrow keys (seek/volume), Esc (close)
+  - Double-click for fullscreen toggle
+- Integrated into MovieDetail.tsx and TvDetail.tsx:
+  - MovieBox provider triggers title search → slug/subjectId lookup → DirectPlayer
+  - Loading spinner while searching MovieBox
+  - Falls back to alert if not found
+
+Stage Summary:
+- 17 files changed, 1277 insertions
+- Pushed to GitHub: commit 1b7cbfe
+- Lint passes clean, dev server no errors
