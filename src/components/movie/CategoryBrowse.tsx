@@ -21,6 +21,7 @@ export function CategoryBrowse() {
   const mediaType = selectedCategory?.mediaType || 'all';
   const sortBy = selectedCategory?.sortBy;
   const region = selectedCategory?.region;
+  const languages = selectedCategory?.languages; // e.g. 'hi,ta,te'
 
   const fetchPage = useCallback(async (p: number, append = false) => {
     const isLoadMore = append;
@@ -29,30 +30,63 @@ export function CategoryBrowse() {
 
     try {
       let results: Movie[] = [];
-      const buildUrl = (type: 'movie' | 'tv', pg: number) => {
+
+      const buildUrl = (type: 'movie' | 'tv', pg: number, lang?: string) => {
         const params = new URLSearchParams({ media_type: type, page: String(pg) });
         if (genreId) params.set('genre_id', String(genreId));
         if (sortBy) params.set('sort_by', sortBy);
         if (region) params.set('region', region);
+        if (lang) params.set('with_original_language', lang);
         return `/api/tmdb/discover?${params}`;
       };
 
-      const fetchType = (type: 'movie' | 'tv', pg: number) =>
-        fetch(buildUrl(type, pg))
+      const fetchType = (type: 'movie' | 'tv', pg: number, lang?: string) =>
+        fetch(buildUrl(type, pg, lang))
           .then(r => r.json())
           .then(d => ({ data: (d.results || []) as Movie[], pages: d.total_pages || 1 }))
           .catch(() => ({ data: [], pages: 1 }));
 
-      if (mediaType === 'all') {
-        const [movieRes, tvRes] = await Promise.all([fetchType('movie', p), fetchType('tv', p)]);
-        results = [...movieRes.data, ...tvRes.data].sort(
-          (a, b) => (b.popularity || 0) - (a.popularity || 0),
-        );
-        setTotalPages(Math.max(movieRes.pages, tvRes.pages));
+      // If multi-language, fetch per language and combine
+      const langs = languages ? languages.split(',').filter(Boolean) : [];
+
+      if (langs.length > 0) {
+        const perLang: Movie[][] = [];
+        let maxPages = 1;
+
+        for (const lang of langs) {
+          if (mediaType === 'all' || mediaType === 'movie') {
+            const r = await fetchType('movie', p, lang);
+            perLang.push(r.data);
+            maxPages = Math.max(maxPages, r.pages);
+          }
+          if (mediaType === 'all' || mediaType === 'tv') {
+            const r = await fetchType('tv', p, lang);
+            perLang.push(r.data);
+            maxPages = Math.max(maxPages, r.pages);
+          }
+        }
+
+        // Deduplicate by id, sort by popularity
+        const seen = new Set<number>();
+        results = perLang.flat().filter(m => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        }).sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+        setTotalPages(maxPages);
       } else {
-        const res = await fetchType(mediaType, p);
-        results = res.data;
-        setTotalPages(res.pages);
+        if (mediaType === 'all') {
+          const [movieRes, tvRes] = await Promise.all([fetchType('movie', p), fetchType('tv', p)]);
+          results = [...movieRes.data, ...tvRes.data].sort(
+            (a, b) => (b.popularity || 0) - (a.popularity || 0),
+          );
+          setTotalPages(Math.max(movieRes.pages, tvRes.pages));
+        } else {
+          const res = await fetchType(mediaType, p);
+          results = res.data;
+          setTotalPages(res.pages);
+        }
       }
 
       setItems(prev => (append ? [...prev, ...results] : results));
@@ -62,7 +96,7 @@ export function CategoryBrowse() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [genreId, mediaType, sortBy, region]);
+  }, [genreId, mediaType, sortBy, region, languages]);
 
   // Initial fetch
   useEffect(() => {

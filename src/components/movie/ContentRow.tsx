@@ -19,9 +19,11 @@ interface ContentRowProps {
   sortBy?: string;
   /** Region override for "View More" (e.g. 'IN') */
   region?: string;
+  /** Comma-separated language codes for "View More" (e.g. 'hi,ta,te') */
+  languages?: string;
 }
 
-export function ContentRow({ title, movies, accentColor = 'red', icon, genreId, mediaType = 'all', sortBy, region }: ContentRowProps) {
+export function ContentRow({ title, movies, accentColor = 'red', icon, genreId, mediaType = 'all', sortBy, region, languages }: ContentRowProps) {
   const isPurple = accentColor === 'purple';
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
@@ -48,7 +50,7 @@ export function ContentRow({ title, movies, accentColor = 'red', icon, genreId, 
 
   const handleViewMore = () => {
     if (genreId !== undefined) {
-      selectCategory(genreId, title, mediaType, sortBy, region);
+      selectCategory(genreId, title, mediaType, sortBy, region, languages);
     }
   };
 

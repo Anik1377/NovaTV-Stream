@@ -129,16 +129,24 @@ function HomePage() {
     const fetches = EXTRA_CATEGORIES.map(async (cat) => {
       try {
         if (cat.key === 'indian') {
-          // Indian hits: fetch with region=IN
-          const [movieRes, tvRes] = await Promise.all([
-            fetch('/api/tmdb/discover?region=IN&media_type=movie&sort_by=popularity.desc').then(r => r.json()),
-            fetch('/api/tmdb/discover?region=IN&media_type=tv&sort_by=popularity.desc').then(r => r.json()),
-          ]);
-          const combined = [
-            ...(movieRes.results || []).map((m: Movie) => ({ ...m, media_type: 'movie' as const })),
-            ...(tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })),
-          ].sort((a: Movie, b: Movie) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
-          return { key: cat.key, data: combined };
+          // Indian hits: fetch ONLY Indian-made content by language
+          const langs = ['hi', 'ta', 'te', 'kn', 'ml', 'bn'];
+          const fetches2 = langs.flatMap(lang =>
+            (['movie', 'tv'] as const).map(type =>
+              fetch(`/api/tmdb/discover?media_type=${type}&sort_by=popularity.desc&with_original_language=${lang}`)
+                .then(r => r.json())
+                .then(d => (d.results || []).map((m: Movie) => ({ ...m, media_type: type as 'movie' | 'tv' })))
+                .catch(() => [] as Movie[])
+            )
+          );
+          const allResults = await Promise.all(fetches2);
+          const seen = new Set<number>();
+          const deduped = allResults.flat().filter(m => {
+            if (seen.has(m.id)) return false;
+            seen.add(m.id);
+            return true;
+          });
+          return { key: cat.key, data: deduped.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20) };
         }
 
         if (cat.mediaType === 'all') {
@@ -359,7 +367,7 @@ function HomePage() {
           (cat.showWhen === 'tv' && mediaFilter !== 'movie');
         if (!show) return null;
 
-        // For Indian hits, use a special genre-free browse with region
+        // For Indian hits, pass language codes for View More
         const isIndian = cat.key === 'indian';
         const viewGenreId = isIndian ? null : parseInt(cat.genreIds.split(',')[0]);
 
@@ -371,7 +379,7 @@ function HomePage() {
             icon={cat.icon}
             genreId={viewGenreId}
             mediaType={cat.mediaType}
-            region={isIndian ? 'IN' : undefined}
+            languages={isIndian ? 'hi,ta,te,kn,ml,bn' : undefined}
           />
         );
       })}

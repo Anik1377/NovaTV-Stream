@@ -15,7 +15,7 @@ interface AppState {
   selectedEpisode: Episode | null;
   selectedGenreId: number | null;
   selectedGenreName: string;
-  selectedCategory: { genreId: number | null; title: string; mediaType: 'movie' | 'tv' | 'all'; sortBy?: string; region?: string } | null;
+  selectedCategory: { genreId: number | null; title: string; mediaType: 'movie' | 'tv' | 'all'; sortBy?: string; region?: string; languages?: string } | null;
   navCounter: number;
   selectedProvider: string;
 
@@ -34,7 +34,7 @@ interface AppState {
   setSelectedSeason: (season: number) => void;
   setSelectedEpisode: (episode: Episode | null) => void;
   selectGenre: (id: number, name: string) => void;
-  selectCategory: (genreId: number | null, title: string, mediaType: 'movie' | 'tv' | 'all', sortBy?: string, region?: string) => void;
+  selectCategory: (genreId: number | null, title: string, mediaType: 'movie' | 'tv' | 'all', sortBy?: string, region?: string, languages?: string) => void;
   goHome: () => void;
   showMovies: () => void;
   showTvShows: () => void;
@@ -145,9 +145,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ selectedGenreId: id, selectedGenreName: name });
   },
 
-  selectCategory: (genreId, title, mediaType, sortBy, region) => {
+  selectCategory: (genreId, title, mediaType, sortBy, region, languages) => {
     navigate(set, 'category');
-    set({ selectedCategory: { genreId, title, mediaType, sortBy, region } });
+    set({ selectedCategory: { genreId, title, mediaType, sortBy, region, languages } });
   },
 
   goHome: () => set({ view: 'home', mediaFilter: 'all', ...resetState, navHistory: [] }),
