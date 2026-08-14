@@ -662,3 +662,25 @@ Stage Summary:
 - On mouse leave → collapses back to 64px
 - Browser verified: 64px collapsed → 224px on hover → 64px on leave
 - Lint passes clean, dev server no errors
+---
+Task ID: 2
+Agent: Main
+Task: Make sidebar animation smoother
+
+Work Log:
+- Replaced plain `<aside>` with `motion.aside` using spring physics (stiffness: 350, damping: 30, mass: 0.8)
+- Replaced CSS `transition-all` with framer-motion spring for width, boxShadow, and borderRightColor
+- Rewrote SidebarLabel: replaced `width: 0/auto` (layout thrashing) with GPU-accelerated opacity + translateX(-6) + blur(2px)
+- Label spring: stiffness: 500, damping: 35, mass: 0.5 — snappy but smooth
+- Search bar animation also uses spring instead of duration-based transition
+- Added `will-change-[opacity,transform,filter]` on labels and `will-change-[width,box-shadow]` on aside
+- Fixed logo padding: always `px-3.5` (no instant jump between justify-center and px)
+- Nav buttons: `h-10` always set (no height toggle), only padding/justify toggles
+- Added `initial={false}` on AnimatePresence to prevent entry animation on page load
+- Added `pointerEvents: none` on labels to prevent click interference
+
+Stage Summary:
+- Sidebar now uses spring physics throughout — feels natural and fluid
+- No layout thrashing — labels animate opacity/transform only (GPU composited)
+- Icons stay perfectly centered during transition
+- Verified: 64px→224px→64px with smooth spring animation, no errors

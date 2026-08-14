@@ -30,17 +30,24 @@ function AnimeIcon({ className }: { className?: string }) {
   );
 }
 
-/* ── Collapsible label (declared outside render) ── */
+/* ── Collapsible label — GPU-accelerated fade + slide ── */
+const labelVariants = {
+  show: { opacity: 1, x: 0, filter: 'blur(0px)' },
+  hide: { opacity: 0, x: -6, filter: 'blur(2px)' },
+};
+
 function SidebarLabel({ show, children }: { show: boolean; children: React.ReactNode }) {
   return (
-    <AnimatePresence>
+    <AnimatePresence initial={false}>
       {show && (
         <motion.span
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: 'auto' }}
-          exit={{ opacity: 0, width: 0 }}
-          transition={{ duration: 0.15 }}
-          className="text-[13px] font-medium overflow-hidden whitespace-nowrap"
+          variants={labelVariants}
+          initial="hide"
+          animate="show"
+          exit="hide"
+          transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.5 }}
+          className="text-[13px] font-medium overflow-hidden whitespace-nowrap will-change-[opacity,transform,filter]"
+          style={{ pointerEvents: 'none' }}
         >
           {children}
         </motion.span>
@@ -143,18 +150,25 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   };
 
   const expanded = hovered && !mobileOpen;
-  const w = expanded ? EXPANDED_W : COLLAPSED_W;
+
+  /* ── Spring config for sidebar width ── */
+  const sidebarSpring = { type: 'spring' as const, stiffness: 350, damping: 30, mass: 0.8 };
 
   /* ── Desktop sidebar ── */
   const desktopSidebar = (
-    <aside
-      className={`hidden md:flex flex-col h-screen sticky top-0 shrink-0 border-r border-white/[0.06] bg-black/95 backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden ${expanded ? 'border-r-white/10 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]' : ''}`}
-      style={{ width: w }}
+    <motion.aside
+      className="hidden md:flex flex-col h-screen sticky top-0 shrink-0 border-r border-white/[0.06] bg-black/95 backdrop-blur-xl overflow-hidden will-change-[width,box-shadow]"
+      animate={{
+        width: expanded ? EXPANDED_W : COLLAPSED_W,
+        boxShadow: expanded ? '4px 0 24px -4px rgba(0,0,0,0.5)' : '0px 0px 0px 0px rgba(0,0,0,0)',
+        borderRightColor: expanded ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
+      }}
+      transition={sidebarSpring}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* Logo */}
-      <div className={`flex items-center h-14 shrink-0 ${!expanded ? 'justify-center' : 'px-3.5'}`}>
+      <div className="flex items-center h-14 shrink-0 px-3.5">
         <button onClick={goHome} className="flex items-center gap-2.5 shrink-0 group">
           <div className="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-red-500 transition-colors">
             <Film className="w-5 h-5 text-white" />
@@ -165,14 +179,15 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
 
       {/* Search (expanded only) */}
       <div className="px-2.5 mb-1 shrink-0">
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {expanded && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 32, mass: 0.5 }}
               className="overflow-hidden"
+              style={{ willChange: 'opacity, height' }}
             >
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25" />
@@ -202,8 +217,8 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
               key={item.key}
               onClick={() => handleNavClick(item)}
               title={!expanded ? item.label : undefined}
-              className={`w-full flex items-center gap-2.5 rounded-lg transition-colors duration-150 ${
-                !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
+              className={`w-full flex items-center gap-2.5 h-10 rounded-lg transition-colors duration-150 ${
+                !expanded ? 'justify-center px-2' : 'px-2.5'
               } ${getActiveStyle(item, active)}`}
             >
               <item.icon className={`w-[18px] h-[18px] shrink-0 ${getActiveIcon(item, active)}`} />
@@ -221,10 +236,10 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
             <button
               onClick={() => { showProfile(); setMobileOpen(false); }}
               title={!expanded ? `Profile (${authUser.email})` : undefined}
-              className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/60 hover:text-white hover:bg-white/[0.06] ${
+              className={`w-full flex items-center gap-2.5 h-10 rounded-lg transition-colors text-white/60 hover:text-white hover:bg-white/[0.06] ${
                 view === 'profile' ? '!text-white !bg-white/10' : ''
               } ${
-                !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
+                !expanded ? 'justify-center px-2' : 'px-2.5'
               }`}
             >
               <span className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
@@ -248,8 +263,8 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
           <button
             onClick={onAuthClick}
             title={!expanded ? 'Sign In' : undefined}
-            className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-white hover:bg-white/[0.06] ${
-              !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
+            className={`w-full flex items-center gap-2.5 h-10 rounded-lg transition-colors text-white/35 hover:text-white hover:bg-white/[0.06] ${
+              !expanded ? 'justify-center px-2' : 'px-2.5'
             }`}
           >
             <LogIn className="w-[18px] h-[18px] shrink-0" />
@@ -261,8 +276,8 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
           <button
             onClick={onInstallClick}
             title={!expanded ? 'Install App' : undefined}
-            className={`w-full flex items-center gap-2.5 rounded-lg transition-colors text-white/35 hover:text-red-400 hover:bg-red-500/10 ${
-              !expanded ? 'justify-center h-10' : 'px-2.5 h-10'
+            className={`w-full flex items-center gap-2.5 h-10 rounded-lg transition-colors text-white/35 hover:text-red-400 hover:bg-red-500/10 ${
+              !expanded ? 'justify-center px-2' : 'px-2.5'
             }`}
           >
             <span className="relative shrink-0">
@@ -273,7 +288,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
           </button>
         )}
       </div>
-    </aside>
+    </motion.aside>
   );
 
   /* ── Mobile drawer ── */
