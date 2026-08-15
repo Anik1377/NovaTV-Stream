@@ -1,43 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Play, ExternalLink, Loader2, Globe, Tv } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ArrowLeft, Play, ExternalLink, Loader2, Globe, Tv, Flame, Clock, Sparkles, Calendar, Film } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ── Types ──
-interface Trailer {
-  key: string;
-  name: string;
-  type: string;
-}
-
-interface WatchProvider {
-  name: string;
-  logo_path: string;
-}
-
+interface Trailer { key: string; name: string; type: string; }
+interface WatchProvider { name: string; logo_path: string; }
 interface ShowReelItem {
-  id: number;
-  title: string;
-  overview: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  release_date: string;
-  popularity: number;
-  vote_average: number;
-  vote_count: number;
-  genre_ids: number[];
-  hypeScore: number;
-  trailers: Trailer[];
-  watchProviders: WatchProvider[];
-  status: string;
-  tagline?: string;
+  id: number; title: string; overview: string; poster_path: string | null;
+  backdrop_path: string | null; release_date: string; popularity: number;
+  vote_average: number; vote_count: number; genre_ids: number[];
+  hypeScore: number; trailers: Trailer[]; watchProviders: WatchProvider[];
+  status: string; tagline?: string;
 }
-
 interface BuzzData {
   analysis: string;
   sources: { title: string; url: string; snippet: string; host_name: string }[];
@@ -45,17 +25,30 @@ interface BuzzData {
 }
 
 // ── Helpers ──
-function getHypeLabel(score: number): { label: string; barClass: string; textColor: string } {
-  if (score <= 30) return { label: 'Low Key', barClass: 'from-zinc-500 to-zinc-400', textColor: 'text-zinc-400' };
-  if (score <= 60) return { label: 'Building Up', barClass: 'from-orange-500 to-yellow-400', textColor: 'text-orange-400' };
-  if (score <= 80) return { label: 'High Hype', barClass: 'from-orange-600 to-amber-400', textColor: 'text-amber-400' };
-  return { label: 'Off The Charts', barClass: 'from-red-600 to-red-400', textColor: 'text-red-400' };
+function getHypeConfig(score: number) {
+  if (score <= 30) return { label: 'Low Key', barFrom: '#71717a', barTo: '#a1a1aa', textColor: 'text-zinc-400', glow: '' };
+  if (score <= 60) return { label: 'Building Up', barFrom: '#f97316', barTo: '#facc15', textColor: 'text-orange-400', glow: 'shadow-orange-500/20' };
+  if (score <= 80) return { label: 'High Hype', barFrom: '#ea580c', barTo: '#fbbf24', textColor: 'text-amber-400', glow: 'shadow-amber-500/20' };
+  return { label: 'Off The Charts', barFrom: '#dc2626', barTo: '#f87171', textColor: 'text-red-400', glow: 'shadow-red-500/40' };
 }
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return 'TBA';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function getCountdown(dateStr: string): string | null {
+  if (!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return null;
+  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((diff % (1000 * 60)) / 1000);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  return `${h}h ${m}m ${s}s`;
 }
 
 function formatViews(n: number): string {
@@ -71,264 +64,220 @@ const GENRE_MAP: Record<number, string> = {
   10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
 };
 
+// ── Live Countdown Component ──
+function LiveCountdown({ dateStr }: { dateStr: string }) {
+  const [timeLeft, setTimeLeft] = useState(getCountdown(dateStr));
+  useEffect(() => {
+    const iv = setInterval(() => setTimeLeft(getCountdown(dateStr)), 1000);
+    return () => clearInterval(iv);
+  }, [dateStr]);
+  if (!timeLeft) return null;
+  return (
+    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm">
+      <Clock className="w-4 h-4 text-emerald-400 animate-pulse" />
+      <span className="text-sm font-mono font-bold text-emerald-300 tracking-wider">{timeLeft}</span>
+    </div>
+  );
+}
+
 // ── Component ──
 export function ShowReelDetail() {
   const { selectedShowreel, showShowreels } = useAppStore();
   const movie = selectedShowreel as ShowReelItem | null;
+  const containerRef = useRef<HTMLDivElement>(null);
+ 
+  // Parallax scroll
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end start'] });
+  const backdropY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
+  const backdropScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
 
-  // Derive initial trailer from movie data (no effect needed)
   const activeTrailer = movie?.trailers?.length
     ? (movie.trailers.find((t) => t.name.toLowerCase().includes('official'))?.key || movie.trailers[0].key)
     : null;
   const [trailerOverride, setTrailerOverride] = useState<string | null>(null);
   const currentTrailer = trailerOverride || activeTrailer;
 
-  // Fetch buzz
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
-  const [buzzLoading, setBuzzLoading] = useState(false);
+  const [buzzLoading, setBuzzLoading] = useState(!!movie);
 
   useEffect(() => {
     if (!movie) return;
     let cancelled = false;
     fetch(`/api/showreels/buzz?id=${movie.id}&title=${encodeURIComponent(movie.title)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (!data.error) setBuzz(data);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setBuzzLoading(false); });
+      .then((r) => r.json()).then((data) => { if (cancelled) return; if (!data.error) setBuzz(data); })
+      .catch(() => {}).finally(() => { if (!cancelled) setBuzzLoading(false); });
     return () => { cancelled = true; };
   }, [movie]);
 
-  const handleBack = useCallback(() => {
-    showShowreels();
-  }, [showShowreels]);
+  const handleBack = useCallback(() => { showShowreels(); }, [showShowreels]);
 
   if (!movie) return null;
 
-  const hype = getHypeLabel(movie.hypeScore);
+  const hype = getHypeConfig(movie.hypeScore);
+  const isOffCharts = movie.hypeScore > 80;
   const genres = (movie.genre_ids || []).map((id) => GENRE_MAP[id] || '').filter(Boolean);
 
   return (
-    <div className="min-h-screen">
-      {/* Mobile back button */}
-      <button
-        onClick={handleBack}
-        className="md:hidden fixed z-[90] flex items-center gap-1.5 text-white/60 active:text-white transition-colors"
-        style={{ top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)', left: 12 }}
-        aria-label="Back to ShowReels"
-      >
+    <div ref={containerRef} className="min-h-screen relative overflow-hidden">
+      {/* Film grain */}
+      <div className="pointer-events-none fixed inset-0 z-[1] opacity-[0.03]" aria-hidden="true">
+        <svg className="w-full h-full"><filter id="grain2"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" /></filter><rect width="100%" height="100%" filter="url(#grain2)" /></svg>
+      </div>
+
+      {/* Ambient background glow */}
+      {isOffCharts && <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-red-500/[0.04] rounded-full blur-[150px] pointer-events-none" />}
+
+      {/* Mobile back */}
+      <button onClick={handleBack} className="md:hidden fixed z-[90] flex items-center gap-1.5 text-white/60 active:text-white transition-colors" style={{ top: 'max(env(safe-area-inset-top, 0px) + 12px, 12px)', left: 12 }} aria-label="Back">
         <ArrowLeft className="w-5 h-5" />
       </button>
 
-      {/* Hero section */}
-      <div className="relative h-[50vh] md:h-[60vh] overflow-hidden">
-        {movie.backdrop_path ? (
-          <img
-            src={getBackdropUrl(movie.backdrop_path, 'original')}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-black" />
-        )}
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
+      {/* Hero with parallax */}
+      <div className="relative h-[55vh] md:h-[65vh] overflow-hidden">
+        <motion.div style={{ y: backdropY, scale: backdropScale }} className="absolute inset-[-10%]">
+          {movie.backdrop_path ? (
+            <img src={getBackdropUrl(movie.backdrop_path, 'original')} alt={movie.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-black" />
+          )}
+        </motion.div>
+        {/* Cinematic overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+        {/* Top vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,transparent_50%,black_100%)]" />
 
         {/* Hero content */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8">
-          <button
-            onClick={handleBack}
-            className="hidden md:flex items-center gap-2 text-white/70 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back to ShowReels</span>
+        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 relative z-10">
+          <button onClick={handleBack} className="hidden md:flex items-center gap-2 text-white/70 hover:text-white mb-5 transition-colors">
+            <ArrowLeft className="w-4 h-4" /><span className="text-sm">Back to ShowReels</span>
           </button>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl md:text-5xl font-bold text-white mb-2 max-w-3xl"
-          >
-            {movie.title}
-          </motion.h1>
-
-          {movie.tagline && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-white/60 text-sm md:text-base italic mb-3 max-w-2xl"
-            >
-              &ldquo;{movie.tagline}&rdquo;
-            </motion.p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-white/70 text-sm">{formatDate(movie.release_date)}</span>
-            {movie.vote_average > 0 && (
-              <span className="text-amber-400 text-sm font-medium">★ {movie.vote_average.toFixed(1)}</span>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white mb-2 max-w-3xl tracking-tight drop-shadow-2xl">{movie.title}</h1>
+            {movie.tagline && (
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="text-white/50 text-sm md:text-lg italic mb-4 max-w-2xl">&ldquo;{movie.tagline}&rdquo;</motion.p>
             )}
-            {genres.map((g) => (
-              <Badge key={g} variant="secondary" className="bg-white/10 text-white/70 border-white/10 text-xs">
-                {g}
-              </Badge>
-            ))}
-          </div>
 
-          {/* Large hype meter */}
-          <div className="max-w-md">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className={`text-sm font-bold ${hype.textColor}`}>{hype.label}</span>
-              <span className={`text-2xl font-black ${hype.textColor}`}>{movie.hypeScore}</span>
+            {/* Meta row */}
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <div className="flex items-center gap-1.5 text-white/70 text-sm"><Calendar className="w-3.5 h-3.5" />{formatDate(movie.release_date)}</div>
+              {movie.vote_average > 0 && <span className="text-amber-400 text-sm font-bold">★ {movie.vote_average.toFixed(1)}</span>}
+              {genres.map((g) => (
+                <Badge key={g} variant="secondary" className="bg-white/10 text-white/70 border-white/10 text-xs backdrop-blur-sm">{g}</Badge>
+              ))}
             </div>
-            <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${movie.hypeScore}%` }}
-                transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
-                className={`h-full rounded-full bg-gradient-to-r ${hype.barClass}`}
-              />
+
+            {/* Countdown + Hype Meter side by side */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+              <LiveCountdown dateStr={movie.release_date} />
+              <div className="w-full sm:w-80">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Flame className={`w-5 h-5 ${hype.textColor}`} />
+                    <span className={`text-sm font-black tracking-wider uppercase ${hype.textColor} ${isOffCharts ? 'animate-pulse' : ''}`}>{hype.label}</span>
+                  </div>
+                  <span className={`text-3xl md:text-4xl font-black tabular-nums ${hype.textColor} drop-shadow-lg`}>{movie.hypeScore}</span>
+                </div>
+                <div className="relative h-3.5 w-full rounded-full bg-white/[0.08] overflow-hidden">
+                  {isOffCharts && <motion.div initial={{ width: 0 }} animate={{ width: `${movie.hypeScore}%` }} transition={{ duration: 1.5, delay: 0.3 }} className={`absolute inset-y-0 left-0 rounded-full bg-red-500/30 blur-lg`} />}
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${movie.hypeScore}%` }} transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.2 }} className={`relative h-full rounded-full ${isOffCharts ? 'shadow-[0_0_20px_rgba(239,68,68,0.6)]' : ''}`} style={{ background: `linear-gradient(90deg, ${hype.barFrom}, ${hype.barTo})` }}>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-[shimmer_2s_infinite]" />
+                  </motion.div>
+                </div>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-4 md:px-8 py-6 space-y-8 max-w-6xl mx-auto">
-        {/* Overview */}
+      <div className="relative z-10 px-4 md:px-8 py-6 space-y-10 max-w-6xl mx-auto">
+        {/* Synopsis */}
         {movie.overview && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-2">Synopsis</h2>
-            <p className="text-white/60 text-sm leading-relaxed max-w-3xl">{movie.overview}</p>
-          </div>
+          <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><Film className="w-5 h-5 text-amber-400" />Synopsis</h2>
+            <p className="text-white/60 text-sm md:text-base leading-relaxed max-w-3xl">{movie.overview}</p>
+          </motion.section>
         )}
 
         {/* Trailer Section */}
         {movie.trailers.length > 0 && currentTrailer && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Play className="w-5 h-5 text-red-500" fill="currentColor" />
-              Trailers ({movie.trailers.length})
+              Trailers <span className="text-white/30 font-normal">({movie.trailers.length})</span>
             </h2>
-
-            {/* Main player */}
-            <div className="relative w-full rounded-xl overflow-hidden bg-black aspect-video mb-4">
-              <iframe
-                src={`https://www.youtube.com/embed/${currentTrailer}?autoplay=0&rel=0`}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                title={`${movie.title} trailer`}
-              />
+            {/* Main player with cinematic frame */}
+            <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/50 border border-white/[0.06]">
+              <div className="relative w-full aspect-video">
+                <iframe src={`https://www.youtube.com/embed/${currentTrailer}?autoplay=0&rel=0&modestbranding=1`} className="absolute inset-0 w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={`${movie.title} trailer`} />
+              </div>
             </div>
-
-            {/* Trailer thumbnails */}
             {movie.trailers.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <div className="flex gap-2.5 overflow-x-auto mt-4 pb-2 scrollbar-none">
                 {movie.trailers.map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() => setTrailerOverride(t.key)}
-                    className={`shrink-0 relative w-40 md:w-48 aspect-video rounded-lg overflow-hidden border-2 transition-all ${
-                      currentTrailer === t.key
-                        ? 'border-amber-500 ring-1 ring-amber-500/30'
-                        : 'border-white/10 hover:border-white/30'
-                    }`}
-                  >
-                    <img
-                      src={`https://img.youtube.com/vi/${t.key}/mqdefault.jpg`}
-                      alt={t.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                      <Play className="w-6 h-6 text-white" fill="white" />
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-[10px] text-white/80 line-clamp-1">{t.name}</p>
+                  <button key={t.key} onClick={() => setTrailerOverride(t.key)} className={`shrink-0 relative w-40 md:w-48 aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300 ${currentTrailer === t.key ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-lg shadow-amber-500/10 scale-105' : 'border-white/10 hover:border-white/30 hover:scale-105'}`}>
+                    <img src={`https://img.youtube.com/vi/${t.key}/mqdefault.jpg`} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-80 group-hover:opacity-100"><Play className="w-7 h-7 text-white" fill="white" /></div>
+                    <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-t from-black/90 to-transparent">
+                      <p className="text-[10px] text-white/80 line-clamp-1 font-medium">{t.name}</p>
                     </div>
                   </button>
                 ))}
               </div>
             )}
-          </div>
+          </motion.section>
         )}
 
         {/* Where to Watch */}
         {movie.watchProviders.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Tv className="w-5 h-5 text-amber-400" />
-              Where to Watch
-            </h2>
+          <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Tv className="w-5 h-5 text-amber-400" />Where to Watch</h2>
             <div className="flex flex-wrap gap-3">
               {movie.watchProviders.map((p) => (
-                <div
-                  key={p.name}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.06]"
-                >
-                  <img
-                    src={`https://image.tmdb.org/t/p/w45${p.logo_path}`}
-                    alt={p.name}
-                    className="w-8 h-8 rounded object-contain"
-                  />
+                <div key={p.name} className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.06] hover:bg-white/[0.08] transition-colors">
+                  <img src={`https://image.tmdb.org/t/p/w45${p.logo_path}`} alt={p.name} className="w-8 h-8 rounded object-contain" />
                   <span className="text-sm text-white/80 font-medium">{p.name}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.section>
         )}
 
-        {/* Internet Buzz Section */}
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Globe className="w-5 h-5 text-emerald-400" />
-            Internet Buzz
+        {/* Internet Buzz */}
+        <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <Globe className="w-5 h-5 text-emerald-400" />Internet Buzz
+            <Sparkles className="w-4 h-4 text-emerald-400/50" />
           </h2>
 
           {buzzLoading && (
-            <div className="space-y-4">
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <div className="space-y-2">
-                {Array.from({ length: 3 }, (_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
-                ))}
-              </div>
-            </div>
+            <div className="space-y-4"><Skeleton className="h-28 w-full rounded-xl" /><div className="space-y-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div></div>
           )}
 
           {!buzzLoading && buzz && (
             <div className="space-y-6">
               {/* AI Analysis */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/5 to-amber-500/5 border border-white/[0.06]">
-                <p className="text-white/80 text-sm leading-relaxed">{buzz.analysis}</p>
+              <div className="relative p-5 rounded-2xl bg-gradient-to-br from-emerald-500/[0.06] to-amber-500/[0.06] border border-white/[0.06] backdrop-blur-sm">
+                <div className="absolute top-3 right-3"><Sparkles className="w-4 h-4 text-emerald-400/40" /></div>
+                <p className="text-white/80 text-sm leading-relaxed pr-6">{buzz.analysis}</p>
               </div>
 
-              {/* What People Are Saying */}
+              {/* Sources */}
               {buzz.sources.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-white/70 mb-3">What People Are Saying</h3>
+                  <h3 className="text-sm font-bold text-white/70 mb-3 uppercase tracking-wider">What People Are Saying</h3>
                   <div className="space-y-2">
                     {buzz.sources.map((s, i) => (
-                      <a
-                        key={i}
-                        href={s.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.04] transition-colors group"
-                      >
+                      <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="block p-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/[0.08] transition-all group">
                         <div className="flex items-start gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white/90 group-hover:text-white line-clamp-1 mb-0.5">
-                              {s.title}
-                            </p>
-                            <p className="text-xs text-white/50 line-clamp-2 mb-1">{s.snippet}</p>
-                            <span className="text-[10px] text-amber-400/70 font-medium">{s.host_name}</span>
+                            <p className="text-sm font-medium text-white/90 group-hover:text-white line-clamp-1 mb-1 transition-colors">{s.title}</p>
+                            <p className="text-xs text-white/40 line-clamp-2 mb-1.5 leading-relaxed">{s.snippet}</p>
+                            <span className="text-[10px] text-amber-400/70 font-semibold uppercase tracking-wider">{s.host_name}</span>
                           </div>
-                          <ExternalLink className="w-4 h-4 shrink-0 text-white/20 group-hover:text-white/50 mt-0.5" />
+                          <ExternalLink className="w-4 h-4 shrink-0 text-white/15 group-hover:text-white/40 mt-0.5 transition-colors" />
                         </div>
                       </a>
                     ))}
@@ -336,36 +285,23 @@ export function ShowReelDetail() {
                 </div>
               )}
 
-              {/* YouTube Buzz */}
+              {/* YouTube Reactions */}
               {buzz.youtubeBuzz.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-white/70 mb-3">YouTube Reactions</h3>
+                  <h3 className="text-sm font-bold text-white/70 mb-3 uppercase tracking-wider">YouTube Reactions</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {buzz.youtubeBuzz.map((v) => (
-                      <a
-                        key={v.videoId}
-                        href={`https://www.youtube.com/watch?v=${v.videoId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group block rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.04] hover:border-white/[0.08] transition-colors"
-                      >
+                      <a key={v.videoId} href={`https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noopener noreferrer" className="group block rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.04] hover:border-white/[0.1] transition-all hover:shadow-lg hover:shadow-black/20">
                         <div className="relative aspect-video">
-                          <img
-                            src={v.thumbnail}
-                            alt={v.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="w-8 h-8 text-white" fill="white" />
-                          </div>
+                          <img src={v.thumbnail} alt={v.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"><Play className="w-8 h-8 text-white" fill="white" /></div>
                         </div>
                         <div className="p-2.5">
                           <p className="text-xs font-medium text-white/80 line-clamp-2 leading-tight mb-1">{v.title}</p>
-                          <p className="text-[10px] text-white/40">{v.channelTitle}</p>
-                          {v.viewCount > 0 && (
-                            <p className="text-[10px] text-white/30 mt-0.5">{formatViews(v.viewCount)} views</p>
-                          )}
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] text-white/40 truncate mr-2">{v.channelTitle}</p>
+                            {v.viewCount > 0 && <p className="text-[10px] text-white/30 shrink-0">{formatViews(v.viewCount)} views</p>}
+                          </div>
                         </div>
                       </a>
                     ))}
@@ -375,11 +311,11 @@ export function ShowReelDetail() {
             </div>
           )}
 
-          {!buzzLoading && !buzz && (
-            <p className="text-white/30 text-sm">Buzz data unavailable for this title.</p>
-          )}
-        </div>
+          {!buzzLoading && !buzz && <p className="text-white/30 text-sm">Buzz data unavailable for this title.</p>}
+        </motion.section>
       </div>
+
+      <div className="h-32" />
     </div>
   );
 }

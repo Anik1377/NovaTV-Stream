@@ -165,3 +165,13 @@ body.player-open {
   background: rgba(229, 9, 20, 0.4);
   color: #fff;
 }
+
+/* Shimmer animation for hype bars */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }

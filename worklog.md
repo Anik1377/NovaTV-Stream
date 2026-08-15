@@ -140,3 +140,35 @@ Stage Summary:
 - New files: src/app/api/showreels/route.ts, src/app/api/showreels/buzz/route.ts, src/components/showreel/ShowReelsPage.tsx, src/components/showreel/ShowReelDetail.tsx
 - Modified: src/store/app-store.ts, src/components/movie/Sidebar.tsx, src/components/movie/MobileTabBar.tsx, src/app/page.tsx
 - Feature complete: Hall of Fame grid with hype meters, detail pages with trailers + AI buzz analysis
+
+---
+Task ID: 4
+Agent: main
+Task: Enhance ShowReels with better data + cinematic visual effects
+
+Work Log:
+- Broadened API data sources: added trending/movie/week + movie/popular + now_playing page 2
+- Removed trailer-only filter: now ALL movies with any video content are included (40 results, up from ~10)
+- Accept all video types (Trailer, Teaser, Clip, Featurette, BTS) not just Trailers
+- Increased batch size from 5 to 8 for faster processing
+- Extended date range to 6 months back for recently released films
+- Added countdown timer badges on cards (Xm Yd format)
+- Built 3D perspective tilt effect on card hover (Framer Motion spring physics)
+- Added film grain SVG overlay for cinematic texture
+- Added cinematic letterbox bars (top + bottom)
+- Added spotlight cursor-following radial gradient
+- Added ambient background glow orbs (amber + red)
+- Enhanced hype meter with glow layer, shimmer animation, and dynamic gradient colors
+- Added stats bar (total films, off-the-charts count, average hype)
+- Added icons to filter pills
+- Added scroll-triggered animations on detail page (whileInView)
+- Added parallax scroll on detail hero backdrop (scrollYProgress)
+- Added live countdown timer on detail page (updates every second)
+- Off The Charts cards get red glow border + fire particle overlay + pulsing score
+- Added shimmer keyframe animation in globals.css
+
+Stage Summary:
+- API now returns 40 movies (all with video content), up from ~10
+- Cinematic visual effects: 3D tilt, film grain, parallax, spotlight, letterbox bars, ambient glow
+- Enhanced hype meters with glow/shimmer/pulse for high-hype items
+- Live countdown timers, stats bar, improved card design
