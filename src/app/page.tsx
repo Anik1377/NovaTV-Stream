@@ -24,6 +24,9 @@ import { GamesPage } from '@/components/game/GamesPage';
 import { AsianPage } from '@/components/asian/AsianPage';
 import { ShowReelsPage } from '@/components/showreel/ShowReelsPage';
 import { ShowReelDetail } from '@/components/showreel/ShowReelDetail';
+import { ReadPage } from '@/components/read/ReadPage';
+import { MangaDetail } from '@/components/read/MangaDetail';
+import { MangaReader } from '@/components/read/MangaReader';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
@@ -407,6 +410,9 @@ export default function App() {
           {view === 'asian' && <AsianPage />}
           {view === 'showreels' && <ShowReelsPage />}
           {view === 'showreel-detail' && <ShowReelDetail />}
+          {view === 'read' && <ReadPage />}
+          {view === 'manga-detail' && <MangaDetail />}
+          {view === 'manga-reader' && <MangaReader />}
           {view === 'games' && <GamesPage key={navCounter} />}
           {view === 'profile' && <ProfilePage />}
         </motion.div>
@@ -416,7 +422,7 @@ export default function App() {
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <MobileSearchButton key={view} />
       <MobileTabBar />
-      {(view === 'anime' || view === 'asian' || view === 'showreels') && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian' || view === 'showreels' || view === 'read') && <MobileBackHome />}
     </div>
   );
 }

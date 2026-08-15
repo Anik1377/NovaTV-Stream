@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard } from 'lucide-react';
+import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen } from 'lucide-react';
 import { ProfileAvatar } from '@/lib/avatars';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -39,7 +39,7 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showAsian, showGames, showShowreels, showLiveTV, showProfile } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showAsian, showGames, showShowreels, showRead, showLiveTV, showProfile } = useAppStore();
   const authUser = useAuthStore((s) => s.user);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -56,7 +56,7 @@ export function MobileTabBar() {
       case 'anime':
         return view === 'anime';
       case 'more':
-        return view === 'games' || view === 'livetv' || view === 'asian' || view === 'showreels' || view === 'showreel-detail';
+        return view === 'games' || view === 'livetv' || view === 'asian' || view === 'showreels' || view === 'showreel-detail' || view === 'read' || view === 'manga-detail' || view === 'manga-reader';
       case 'profile':
         return view === 'profile';
       default:
@@ -95,6 +95,7 @@ export function MobileTabBar() {
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV, color: 'text-blue-400' },
     { key: 'asian', label: 'Asian Cinema', icon: Globe, action: showAsian, color: 'text-rose-400' },
     { key: 'showreels', label: 'ShowReels', icon: Clapperboard, action: showShowreels, color: 'text-amber-400' },
+    { key: 'read', label: 'Read', icon: BookOpen, action: showRead, color: 'text-sky-400' },
   ];
 
   const handleTabClick = (tab: TabItem) => {

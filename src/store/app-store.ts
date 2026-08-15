@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -45,9 +45,15 @@ interface AppState {
   showGames: () => void;
   showSearch: () => void;
   showProfile: () => void;
+  showRead: () => void;
   // ShowReel detail
   selectedShowreel: Movie | null;
   selectShowreel: (movie: Movie) => void;
+  // Manga
+  selectedManga: { id: string; title: string; coverUrl: string } | null;
+  selectManga: (manga: { id: string; title: string; coverUrl: string }) => void;
+  selectedChapterId: string | null;
+  selectChapter: (chapterId: string) => void;
   bumpNav: () => void;
   setSelectedProvider: (providerId: string) => void;
 
@@ -165,6 +171,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   showShowreels: () => set({ view: 'showreels', ...resetState, navHistory: [] }),
   showSearch: () => set({ view: 'search', ...resetState, navHistory: [] }),
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
+  showRead: () => set({ view: 'read', ...resetState, navHistory: [] }),
+  selectedManga: null,
+  selectManga: (manga) => { navigate(set, 'manga-detail'); set({ selectedManga: manga }); },
+  selectedChapterId: null,
+  selectChapter: (chapterId) => { navigate(set, 'manga-reader'); set({ selectedChapterId: chapterId }); },
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
   setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),
