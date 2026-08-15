@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal } from 'lucide-react';
+import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,7 +38,7 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showLiveTV, showProfile } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showAsian, showGames, showLiveTV, showProfile } = useAppStore();
   const authUser = useAuthStore((s) => s.user);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -55,7 +55,7 @@ export function MobileTabBar() {
       case 'anime':
         return view === 'anime';
       case 'more':
-        return view === 'games' || view === 'livetv';
+        return view === 'games' || view === 'livetv' || view === 'asian';
       case 'profile':
         return view === 'profile';
       default:
@@ -92,6 +92,7 @@ export function MobileTabBar() {
   const moreItems = [
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, color: 'text-emerald-400' },
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV, color: 'text-blue-400' },
+    { key: 'asian', label: 'Asian Cinema', icon: Globe, action: showAsian, color: 'text-rose-400' },
   ];
 
   const handleTabClick = (tab: TabItem) => {
@@ -190,7 +191,7 @@ export function MobileTabBar() {
               </div>
               <div className="space-y-2">
                 {moreItems.map((item) => {
-                  const active = item.key === 'games' ? view === 'games' : view === 'livetv';
+                  const active = item.key === 'games' ? view === 'games' : item.key === 'asian' ? view === 'asian' : view === 'livetv';
                   return (
                     <motion.button
                       key={item.key}

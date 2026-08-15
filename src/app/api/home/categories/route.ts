@@ -21,7 +21,6 @@ const CATEGORY_MAP: Record<string, CategoryDef> = {
   'drama-tv':  { genreIds: '18',        mediaType: 'tv'    },
   'crime-tv':  { genreIds: '80,9648',   mediaType: 'tv'    },
   animation:   { genreIds: '16,10751',  mediaType: 'all'   },
-  indian:      { mediaType: 'all', languages: ['hi', 'ta', 'te', 'kn', 'ml', 'bn'] },
 };
 
 // Per-key cache: stores resolved Movie[] arrays

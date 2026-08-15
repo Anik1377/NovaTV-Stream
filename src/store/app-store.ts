@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'profile';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'profile';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -40,6 +40,7 @@ interface AppState {
   showTvShows: () => void;
   showLiveTV: () => void;
   showAnime: () => void;
+  showAsian: () => void;
   showGames: () => void;
   showSearch: () => void;
   showProfile: () => void;
@@ -156,6 +157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   showTvShows: () => set({ view: 'home', mediaFilter: 'tv', ...resetState, navHistory: [] }),
   showLiveTV: () => set({ view: 'livetv', ...resetState, navHistory: [] }),
   showAnime: () => set({ view: 'anime', ...resetState, navHistory: [] }),
+  showAsian: () => set({ view: 'asian', ...resetState, navHistory: [] }),
   showSearch: () => set({ view: 'search', ...resetState, navHistory: [] }),
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),

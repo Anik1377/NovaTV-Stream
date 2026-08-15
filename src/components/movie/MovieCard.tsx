@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, Star } from 'lucide-react';
+import { Play, Star, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -18,7 +18,7 @@ interface MovieCardProps {
 
 export function MovieCard({ movie, index = 0, accentColor = 'red', fluid = false }: MovieCardProps) {
   const isPurple = accentColor === 'purple';
-  const { selectMovie, selectTv } = useAppStore();
+  const { selectMovie, selectTv, toggleWatchlist, isInWatchlist } = useAppStore();
   const [imgLoaded, setImgLoaded] = useState(false);
   const isTv = movie.media_type === 'tv' || !!movie.first_air_date;
   const title = movie.title || movie.name || 'Unknown';
@@ -82,6 +82,24 @@ export function MovieCard({ movie, index = 0, accentColor = 'red', fluid = false
             {isTv ? 'TV' : 'Movie'}
           </span>
         </div>
+        {/* Watchlist heart */}
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
+          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Heart className={`w-3.5 h-3.5 ${isInWatchlist(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/70'}`} />
+        </button>
+        {/* Color-coded rating badge */}
+        {rating && parseFloat(rating) > 0 && (
+          <div className="absolute top-8 right-2 z-10 px-1.5 py-0.5 rounded-md backdrop-blur-sm text-[10px] font-bold"
+            style={{
+              backgroundColor: parseFloat(rating) >= 7 ? 'rgba(34,197,94,0.85)' : parseFloat(rating) >= 5 ? 'rgba(234,179,8,0.85)' : 'rgba(239,68,68,0.85)',
+              color: '#fff',
+            }}
+          >
+            ★ {rating}
+          </div>
+        )}
       </div>
       <div className="mt-2 px-1">
         <p className="text-xs text-white/90 font-medium truncate">{title}</p>

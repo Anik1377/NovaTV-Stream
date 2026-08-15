@@ -23,3 +23,41 @@ Stage Summary:
 - Local Prisma User records created/synced on login for watch history compatibility
 - Profile data (name, bio, avatar) stored in both Supabase user_metadata and local DB
 - Zero console errors, clean lint, dev server stable
+---
+Task ID: 2-a
+Agent: Main
+Task: Fix Disney+ SVG logo
+
+Work Log:
+- Replaced broken custom Disney+ SVG with proper Simple Icons version
+
+Stage Summary:
+- Disney+ logo now uses standard Simple Icons format compatible with CSS masking
+---
+Task ID: 2-b
+Agent: Main
+Task: Add Asian Cinema page, fix OTT provider region, 50/50 Indian content integration
+
+Work Log:
+- Changed watch_region from 'IN' to 'US' in src/app/api/tmdb/providers/route.ts so OTT platforms (Hulu, Max, Peacock) return US content
+- Verified home API already uses watch_region: 'US' for providers
+- Created src/components/asian/AsianPage.tsx: full-featured Asian Cinema browsing page with Korean, Japanese, Chinese, Thai, Pakistani, Bangladeshi language sections, horizontal rows + grid view, lazy loading, media type tabs
+- Added 'asian' to ViewType union in src/store/app-store.ts
+- Added showAsian() action to app store
+- Added AsianPage import and view rendering in src/app/page.tsx
+- Added MobileBackHome for asian view
+- Removed 'indian' category from EXTRA_CATEGORIES in page.tsx
+- Removed mergeWithFiftyFifty/mergeWithRatio import (now handled server-side)
+- Removed isIndian logic from category rendering in page.tsx
+- Added Globe icon and showAsian to MobileTabBar: asian item in More drawer, active state handling
+- Added Globe icon, showAsian, and asian nav item to Sidebar with rose color theme
+- Added 'asian' to isSpecialView and showHamburger arrays in Sidebar
+- Modified src/app/api/home/route.ts: added Indian movie/TV discover fetches, shuffleArray and mergeFiftyFifty helpers, merged popular movies/TV 50/50 global+Indian
+- Removed 'indian' entry from CATEGORY_MAP in src/app/api/home/categories/route.ts
+
+Stage Summary:
+- OTT provider content now loads from US region for full platform availability
+- Asian Cinema page added as dedicated section with 6 language filters and lazy loading
+- Indian content integrated 50/50 into Popular Movies/TV rows server-side (randomized shuffle)
+- Separate 'Indian Hits' category removed since Indian content is now blended into main popular rows
+- Clean lint, all views (home, anime, asian, sidebar, mobile tab bar) properly wired

@@ -12,6 +12,7 @@ import {
   X,
   LogIn,
   LogOut,
+  Globe,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -74,7 +75,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames, showProfile, setSearchResults, setView, setSearchQuery } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showAsian, showGames, showProfile, setSearchResults, setView, setSearchQuery } = useAppStore();
   const authUser = useAuthStore(s => s.user);
   const authLogout = useAuthStore(s => s.logout);
 
@@ -108,7 +109,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   }, [inputValue, handleSearch]);
 
   /* ── Active state logic ── */
-  const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv', 'profile'].includes(view);
+  const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv', 'asian', 'profile'].includes(view);
   const getActive = (item: NavItem): boolean => {
     if (item.key === 'home') return view === 'home' && mediaFilter === 'all' && !isSpecialView;
     if (item.key === 'movies') return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
@@ -119,6 +120,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   const getActiveStyle = (item: NavItem, active: boolean): string => {
     if (active) {
       if (item.key === 'anime') return 'bg-purple-500/15 text-purple-300';
+      if (item.key === 'asian') return 'bg-rose-500/15 text-rose-300';
       if (item.key === 'games') return 'bg-emerald-500/15 text-emerald-300';
       return 'bg-white/10 text-white';
     }
@@ -128,6 +130,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   const getActiveIcon = (item: NavItem, active: boolean): string => {
     if (!active) return 'text-white/35';
     if (item.key === 'anime') return 'text-purple-400';
+    if (item.key === 'asian') return 'text-rose-400';
     if (item.key === 'games') return 'text-emerald-400';
     return 'text-red-500';
   };
@@ -138,6 +141,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     { key: 'movies', label: 'Movies', icon: Film, action: showMovies },
     { key: 'tvshows', label: 'TV Shows', icon: Tv, action: showTvShows },
     { key: 'anime', label: 'Anime', icon: AnimeIcon, action: showAnime },
+    { key: 'asian', label: 'Asian', icon: Globe, action: showAsian },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames },
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV },
   ];
@@ -401,7 +405,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     </AnimatePresence>
   );
 
-  const showHamburger = !['anime', 'home', 'search'].includes(view);
+  const showHamburger = !['anime', 'asian', 'home', 'search'].includes(view);
 
   return (
     <>

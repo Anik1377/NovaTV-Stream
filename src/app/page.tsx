@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Film, Star, Clock, Tv, Home, Swords, Heart, Ghost, Zap,
-  Shield, Globe, Baby, Clapperboard, Popcorn,
+  Shield, Globe, Baby, Clapperboard, Popcorn, Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -21,6 +21,7 @@ import { CategoryBrowse } from '@/components/movie/CategoryBrowse';
 import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
+import { AsianPage } from '@/components/asian/AsianPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
@@ -29,7 +30,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
-import { mergeWithFiftyFifty, mergeWithRatio } from '@/lib/content-split';
+
 
 /* ── Genre category definitions ── */
 interface CategoryDef {
@@ -51,7 +52,6 @@ const EXTRA_CATEGORIES: CategoryDef[] = [
   { key: 'drama-tv',   title: 'Drama Series',        genreIds: '18',       mediaType: 'tv',    showWhen: 'tv',    icon: <Clapperboard className="w-5 h-5" /> },
   { key: 'crime-tv',   title: 'Crime & Mystery',     genreIds: '80,9648',  mediaType: 'tv',    showWhen: 'tv',    icon: <Shield className="w-5 h-5" /> },
   { key: 'animation',  title: 'Animation & Family',  genreIds: '16,10751', mediaType: 'all',   showWhen: 'all',   icon: <Baby className="w-5 h-5" /> },
-  { key: 'indian',     title: 'Indian Hits',         genreIds: '',         mediaType: 'all',   showWhen: 'all',   icon: <Globe className="w-5 h-5" /> },
 ];
 
 /* ── Intersection Observer hook for lazy loading ── */
@@ -107,6 +107,39 @@ function MobileBackHome() {
     >
       <Home className="w-5 h-5" />
     </button>
+  );
+}
+
+/* ── Surprise Me button ── */
+function SurpriseMeButton({ movies }: { movies: Movie[] }) {
+  const { selectMovie, selectTv } = useAppStore();
+  const [spinning, setSpinning] = useState(false);
+
+  const handleSurprise = useCallback(() => {
+    if (spinning || !movies.length) return;
+    setSpinning(true);
+    setTimeout(() => {
+      const movie = movies[Math.floor(Math.random() * movies.length)];
+      if (movie.media_type === 'tv' || movie.first_air_date) {
+        selectTv({ ...movie, name: movie.name || movie.title });
+      } else {
+        selectMovie(movie);
+      }
+      setSpinning(false);
+    }, 600);
+  }, [movies, spinning, selectMovie, selectTv]);
+
+  if (!movies.length) return null;
+  return (
+    <motion.button
+      onClick={handleSurprise}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 transition-shadow"
+    >
+      <Sparkles className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
+      <span className="hidden sm:inline">Surprise Me</span>
+    </motion.button>
   );
 }
 
@@ -205,6 +238,12 @@ function HomePage() {
     } catch { setProviderMovies([]); }
     finally { setProviderLoading(false); }
   }, []);
+
+  const allMovies = useMemo(() => {
+    const pool = [...trending, ...popularMovies, ...popularTv, ...topRated, ...topRatedTv, ...upcoming];
+    const ids = new Set<number>();
+    return pool.filter(m => { if (ids.has(m.id)) return false; ids.add(m.id); return true; });
+  }, [trending, popularMovies, popularTv, topRated, topRatedTv, upcoming]);
 
   if (loading) {
     return (
@@ -317,8 +356,7 @@ function HomePage() {
         const data = categoryData[cat.key] || [];
         if (!data.length) return null;
 
-        const isIndian = cat.key === 'indian';
-        const viewGenreId = isIndian ? null : parseInt(cat.genreIds.split(',')[0]);
+        const viewGenreId = parseInt(cat.genreIds.split(',')[0]);
 
         return (
           <LazyContentRow
@@ -328,12 +366,12 @@ function HomePage() {
             icon={cat.icon}
             genreId={viewGenreId}
             mediaType={cat.mediaType}
-            languages={isIndian ? 'hi,ta,te,kn,ml,bn' : undefined}
           />
         );
       })}
 
       <SiteFooter />
+      <SurpriseMeButton movies={allMovies} />
     </div>
   );
 }
@@ -364,6 +402,7 @@ export default function App() {
           {view === 'category' && <CategoryBrowse />}
           {view === 'livetv' && <LiveTV />}
           {view === 'anime' && <AnimePage />}
+          {view === 'asian' && <AsianPage />}
           {view === 'games' && <GamesPage key={navCounter} />}
           {view === 'profile' && <ProfilePage />}
         </motion.div>
@@ -373,7 +412,7 @@ export default function App() {
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <MobileSearchButton key={view} />
       <MobileTabBar />
-      {view === 'anime' && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian') && <MobileBackHome />}
     </div>
   );
 }
