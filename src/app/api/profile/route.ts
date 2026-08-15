@@ -1,23 +1,35 @@
-import { getSessionUser, ok, unauthorized, badRequest } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from 'next/server';
+import { getSessionUser } from '@/lib/auth';
+import { ok, badRequest } from '@/lib/auth';
 
 export async function GET() {
   const { user, res: errRes } = await getSessionUser();
   if (errRes) return errRes;
 
-  const { db } = await import('@/lib/db');
-  const historyCount = await db.watchHistory.count({ where: { userId: user!.id } });
+  try {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    if (!supabase) return ok({ ...user!, stats: { watchHistoryCount: 0 } });
 
-  return ok({
-    id: user!.id,
-    email: user!.email,
-    name: user!.name,
-    avatar: user!.avatar,
-    bio: user!.bio,
-    createdAt: user!.createdAt,
-    stats: { watchHistoryCount: historyCount },
-  });
+    const { count } = await supabase
+      .from('watch_history')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user!.id);
+
+    return ok({
+      id: user!.id,
+      email: user!.email,
+      name: user!.name,
+      avatar: user!.avatar,
+      bio: user!.bio,
+      createdAt: user!.createdAt,
+      stats: { watchHistoryCount: count || 0 },
+    });
+  } catch {
+    return ok({ ...user!, stats: { watchHistoryCount: 0 } });
+  }
 }
 
 export async function PUT(req: Request) {
@@ -28,46 +40,52 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { name, bio, avatar } = body;
 
-    if (avatar && !avatar.startsWith('http') && !avatar.startsWith('data:') && avatar.length > 4) {
-      return badRequest('Invalid avatar');
-    }
     if (bio && bio.length > 200) {
       return badRequest('Bio must be 200 characters or less');
     }
 
-    // Update Supabase user_metadata
+    // Update Supabase profile table
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
-    if (supabase) {
-      const updates: Record<string, unknown> = {};
-      if (name !== undefined) updates.name = name || null;
-      if (bio !== undefined) updates.bio = bio || null;
-      if (avatar !== undefined) updates.avatar = avatar || '🔴';
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (name !== undefined) updates.name = name || null;
+    if (bio !== undefined) updates.bio = bio || null;
+    if (avatar !== undefined) updates.avatar = avatar || '🔴';
 
-      await supabase.auth.updateUser({
-        data: updates,
-      });
+    if (supabase) {
+      // Try updating the profiles table first
+      const { error: tableError } = await supabase
+        .from('profiles')
+        .update(updates)
+      .eq('id', user!.id);
+
+      // If table doesn't exist yet, fall back to user_metadata
+      if (tableError && tableError.code === '42P01') {
+        const metaUpdates: Record<string, unknown> = {};
+        if (name !== undefined) metaUpdates.name = name || null;
+        if (bio !== undefined) metaUpdates.bio = bio || null;
+        if (avatar !== undefined) metaUpdates.avatar = avatar || '🔴';
+        await supabase.auth.updateUser({ data: metaUpdates });
+      }
     }
 
-    // Update local Prisma user
-    const { db } = await import('@/lib/db');
-    const updated = await db.user.update({
-      where: { id: user!.id },
-      data: {
-        ...(name !== undefined ? { name: name || null } : {}),
-        ...(bio !== undefined ? { bio: bio || null } : {}),
-        ...(avatar !== undefined ? { avatar: avatar || '🔴' } : {}),
-      },
-    });
+    // Also update local store via user_metadata as fallback
+    if (supabase) {
+      const metaUpdates: Record<string, unknown> = {};
+      if (name !== undefined) metaUpdates.name = name || null;
+      if (bio !== undefined) metaUpdates.bio = bio || null;
+      if (avatar !== undefined) metaUpdates.avatar = avatar || '🔴';
+      await supabase.auth.updateUser({ data: metaUpdates });
+    }
 
     return ok({
-      id: updated.id,
-      email: updated.email,
-      name: updated.name,
-      avatar: updated.avatar || '🔴',
-      bio: updated.bio,
-      createdAt: updated.createdAt,
+      id: user!.id,
+      email: user!.email,
+      name: name !== undefined ? (name || null) : user!.name,
+      avatar: avatar !== undefined ? (avatar || '🔴') : (user!.avatar || '🔴'),
+      bio: bio !== undefined ? (bio || null) : user!.bio,
+      createdAt: user!.createdAt,
     });
   } catch {
     return badRequest('Failed to update profile');

@@ -1,4 +1,6 @@
-import { getSessionUser, ok, unauthorized, badRequest } from '@/lib/auth';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { getSessionUser, ok, badRequest } from '@/lib/auth';
 import { NextRequest } from 'next/server';
 
 export async function GET(req: NextRequest) {
@@ -6,17 +8,22 @@ export async function GET(req: NextRequest) {
   if (errRes) return errRes;
 
   try {
-    const { db } = await import('@/lib/db');
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    if (!supabase) return ok([]);
+
     const url = new URL(req.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
 
-    const history = await db.watchHistory.findMany({
-      where: { userId: user!.id },
-      orderBy: { watchedAt: 'desc' },
-      take: limit,
-    });
+    const { data, error } = await supabase
+      .from('watch_history')
+      .select('*')
+      .eq('user_id', user!.id)
+      .order('watched_at', { ascending: false })
+      .limit(limit);
 
-    return ok(history);
+    if (error) return ok([]);
+    return ok(data || []);
   } catch {
     return ok([]);
   }
@@ -34,39 +41,46 @@ export async function POST(req: Request) {
       return badRequest('tmdbId, title, and mediaType are required');
     }
 
-    const { db } = await import('@/lib/db');
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    if (!supabase) return badRequest('Service unavailable');
 
-    // Upsert: update watchedAt if same tmdbId+season+episode exists
-    const existing = await db.watchHistory.findFirst({
-      where: {
-        userId: user!.id,
-        tmdbId,
-        season: season ?? null,
-        episode: episode ?? null,
-      },
-    });
+    // Upsert: check if same tmdbId+season+episode exists
+    const { data: existing } = await supabase
+      .from('watch_history')
+      .select('id')
+      .eq('user_id', user!.id)
+      .eq('tmdb_id', tmdbId)
+      .eq('season', season ?? null)
+      .eq('episode', episode ?? null)
+      .limit(1);
 
-    if (existing) {
-      const updated = await db.watchHistory.update({
-        where: { id: existing.id },
-        data: { watchedAt: new Date() },
-      });
-      return ok(updated);
+    if (existing && existing.length > 0) {
+      const { data } = await supabase
+        .from('watch_history')
+        .update({ watched_at: new Date().toISOString() })
+        .eq('id', existing[0].id)
+        .select()
+        .single();
+      return ok(data);
     }
 
-    const entry = await db.watchHistory.create({
-      data: {
-        userId: user!.id,
-        tmdbId,
+    const { data, error } = await supabase
+      .from('watch_history')
+      .insert({
+        user_id: user!.id,
+        tmdb_id: tmdbId,
         title,
-        posterPath: posterPath || null,
-        mediaType,
+        poster_path: posterPath || null,
+        media_type: mediaType,
         season: season ?? null,
         episode: episode ?? null,
-      },
-    });
+      })
+      .select()
+      .single();
 
-    return ok(entry);
+    if (error) return badRequest(error.message);
+    return ok(data);
   } catch {
     return badRequest('Failed to record watch history');
   }
@@ -77,19 +91,28 @@ export async function DELETE(req: NextRequest) {
   if (errRes) return errRes;
 
   try {
-    const { db } = await import('@/lib/db');
     const url = new URL(req.url);
     const id = url.searchParams.get('id');
 
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    if (!supabase) return badRequest('Service unavailable');
+
     if (id) {
-      const entry = await db.watchHistory.findFirst({ where: { id, userId: user!.id } });
-      if (!entry) return badRequest('Not found');
-      await db.watchHistory.delete({ where: { id } });
+      const { error } = await supabase
+        .from('watch_history')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user!.id);
+      if (error) return badRequest('Not found');
       return ok({ success: true });
     }
 
     // Clear all history
-    await db.watchHistory.deleteMany({ where: { userId: user!.id } });
+    await supabase
+      .from('watch_history')
+      .delete()
+      .eq('user_id', user!.id);
     return ok({ success: true });
   } catch {
     return badRequest('Failed to delete');

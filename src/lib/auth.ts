@@ -2,7 +2,16 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
-/** Get the authenticated user via Supabase, ensure local Prisma User exists */
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  avatar: string | null;
+  bio: string | null;
+  createdAt?: string;
+}
+
+/** Get the authenticated user via Supabase, with profile data */
 export async function getSessionUser() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -20,54 +29,44 @@ export async function getSessionUser() {
     return { user: null, res: unauthorized() };
   }
 
-  // Get or create local Prisma user (for watch history relations)
-  let user;
-  try {
-    const { db } = await import('@/lib/db');
-    user = await db.user.findUnique({ where: { id: authUser.id } });
+  const meta = authUser.user_metadata || {};
 
-    if (!user) {
-      user = await db.user.create({
-        data: {
-          id: authUser.id,
-          email: authUser.email!,
-          name: authUser.user_metadata?.name || null,
-          avatar: authUser.user_metadata?.avatar || null,
-          bio: authUser.user_metadata?.bio || null,
+  // Try getting profile from Supabase profiles table
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
+
+    if (profile) {
+      return {
+        user: {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name || meta.name || null,
+          avatar: profile.avatar || meta.avatar || '🔴',
+          bio: profile.bio || meta.bio || null,
+          createdAt: profile.created_at,
         },
-      });
-    } else {
-      // Sync user_metadata → local DB
-      const meta = authUser.user_metadata || {};
-      const needsUpdate =
-        (meta.name !== undefined && meta.name !== user.name) ||
-        (meta.avatar !== undefined && meta.avatar !== user.avatar) ||
-        (meta.bio !== undefined && meta.bio !== user.bio);
-      if (needsUpdate) {
-        user = await db.user.update({
-          where: { id: user.id },
-          data: {
-            ...(meta.name !== undefined ? { name: meta.name || null } : {}),
-            ...(meta.avatar !== undefined ? { avatar: meta.avatar || null } : {}),
-            ...(meta.bio !== undefined ? { bio: meta.bio || null } : {}),
-          },
-        });
-      }
+        res: null,
+      };
     }
   } catch {
-    // Prisma unavailable — return user from Supabase metadata only
-    const meta = authUser.user_metadata || {};
-    user = {
+    // profiles table might not exist yet — fall through to metadata
+  }
+
+  // Fallback: use user_metadata
+  return {
+    user: {
       id: authUser.id,
       email: authUser.email!,
       name: meta.name || null,
-      avatar: meta.avatar || null,
+      avatar: meta.avatar || '🔴',
       bio: meta.bio || null,
-      createdAt: new Date(),
-    };
-  }
-
-  return { user, res: null };
+    },
+    res: null,
+  };
 }
 
 export function unauthorized() {

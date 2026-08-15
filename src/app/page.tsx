@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Film, Star, Clock, Tv, Home, Swords, Heart, Ghost, Zap,
-  Shield, Globe, Baby, Clapperboard, Popcorn, Flame,
+  Shield, Globe, Baby, Clapperboard, Popcorn,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -35,7 +35,7 @@ import { mergeWithFiftyFifty, mergeWithRatio } from '@/lib/content-split';
 interface CategoryDef {
   key: string;
   title: string;
-  genreIds: string;          // TMDB comma-separated genre IDs
+  genreIds: string;
   mediaType: 'movie' | 'tv' | 'all';
   icon: React.ReactNode;
   showWhen: 'movie' | 'tv' | 'all';
@@ -54,6 +54,47 @@ const EXTRA_CATEGORIES: CategoryDef[] = [
   { key: 'indian',     title: 'Indian Hits',         genreIds: '',         mediaType: 'all',   showWhen: 'all',   icon: <Globe className="w-5 h-5" /> },
 ];
 
+/* ── Intersection Observer hook for lazy loading ── */
+function useLazyLoad(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || isVisible) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      { rootMargin: '200px 0px', threshold }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isVisible, threshold]);
+
+  return { ref, isVisible };
+}
+
+/* ── Lazy ContentRow wrapper ── */
+function LazyContentRow({ title, icon, movies, ...props }: React.ComponentProps<typeof ContentRow>) {
+  const { ref, isVisible } = useLazyLoad();
+  if (!isVisible) {
+    // Render placeholder to reserve space
+    return (
+      <div ref={ref} className="px-4 md:px-8 mb-8">
+        <div className="h-5 w-36 rounded bg-white/[0.06] mb-4 animate-pulse" />
+        <div className="flex gap-3 overflow-hidden">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="shrink-0 w-[120px] md:w-[160px]">
+              <div className="aspect-[2/3] rounded-lg bg-white/[0.06] animate-pulse" />
+              <div className="h-3 w-3/4 rounded bg-white/[0.06] mt-2 animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return <ContentRow title={title} icon={icon} movies={movies} {...props} />;
+}
+
 /* ── Mobile back-to-home button for anime view ── */
 function MobileBackHome() {
   const { goHome } = useAppStore();
@@ -61,10 +102,7 @@ function MobileBackHome() {
     <button
       onClick={goHome}
       className="md:hidden fixed z-[90] flex items-center gap-1.5 text-white/60 active:text-white transition-colors"
-      style={{
-        top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)',
-        left: 12,
-      }}
+      style={{ top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)', left: 12 }}
       aria-label="Go home"
     >
       <Home className="w-5 h-5" />
@@ -82,10 +120,10 @@ function HomePage() {
   const [topRatedTv, setTopRatedTv] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
-  const [indianBoosted, setIndianBoosted] = useState(false);
 
-  // Extra category data
+  // Lazy-loaded category data
   const [categoryData, setCategoryData] = useState<Record<string, Movie[]>>({});
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
   // OTT Platform state
   const [platforms, setPlatforms] = useState<OttPlatform[]>(OTT_PLATFORMS);
@@ -93,122 +131,44 @@ function HomePage() {
   const [providerMovies, setProviderMovies] = useState<Movie[]>([]);
   const [providerLoading, setProviderLoading] = useState(false);
 
+  // SINGLE fetch for all home data
   const fetchData = useCallback(async () => {
     try {
-      const [trendingRes, moviesRes, tvRes, topRatedRes, upcomingRes, topRatedTvRes, genresRes, providersRes] = await Promise.all([
-        fetch('/api/tmdb/trending?time_window=week').then((r) => r.json()),
-        fetch('/api/tmdb/popular-movies').then((r) => r.json()),
-        fetch('/api/tmdb/popular-tv').then((r) => r.json()),
-        fetch('/api/tmdb/top-rated').then((r) => r.json()),
-        fetch('/api/tmdb/upcoming').then((r) => r.json()),
-        fetch('/api/tmdb/top-rated-tv').then((r) => r.json()),
-        fetch('/api/tmdb/genres').then((r) => r.json()),
-        fetch('/api/tmdb/providers-list').then((r) => r.json()).catch(() => ({ results: [] })),
-      ]);
+      const res = await fetch('/api/home');
+      const data = await res.json();
 
-      setTrending((trendingRes.results || []).slice(0, 20));
-      setPopularMovies((moviesRes.results || []).slice(0, 20));
-      setPopularTv((tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
-      setTopRated((topRatedRes.results || []).slice(0, 20));
-      setUpcoming((upcomingRes.results || []).slice(0, 20));
-      setTopRatedTv((topRatedTvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
-      setGenres(genresRes.genres || []);
-      if (providersRes.results?.length) {
-        setPlatforms(mergeProviderLogos(OTT_PLATFORMS, providersRes.results));
+      setTrending((data.trending?.results || []).slice(0, 20));
+      setPopularMovies((data.popularMovies?.results || []).slice(0, 20));
+      setPopularTv((data.popularTv?.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
+      setTopRated((data.topRated?.results || []).slice(0, 20));
+      setUpcoming((data.upcoming?.results || []).slice(0, 20));
+      setTopRatedTv((data.topRatedTv?.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })).slice(0, 20));
+      setGenres(data.genres?.genres || []);
+      if (data.providers?.results?.length) {
+        setPlatforms(mergeProviderLogos(OTT_PLATFORMS, data.providers.results));
       }
     } catch (error) {
-      console.error('Failed to fetch data:', error);
+      console.error('Failed to fetch home data:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Fetch extra genre categories in parallel
-  useEffect(() => {
-    if (loading) return;
-
-    const fetches = EXTRA_CATEGORIES.map(async (cat) => {
-      try {
-        if (cat.key === 'indian') {
-          // Indian hits: fetch ONLY Indian-made content by language
-          const langs = ['hi', 'ta', 'te', 'kn', 'ml', 'bn'];
-          const fetches2 = langs.flatMap(lang =>
-            (['movie', 'tv'] as const).map(type =>
-              fetch(`/api/tmdb/discover?media_type=${type}&sort_by=popularity.desc&with_original_language=${lang}`)
-                .then(r => r.json())
-                .then(d => (d.results || []).map((m: Movie) => ({ ...m, media_type: type as 'movie' | 'tv' })))
-                .catch(() => [] as Movie[])
-            )
-          );
-          const allResults = await Promise.all(fetches2);
-          const seen = new Set<number>();
-          const deduped = allResults.flat().filter(m => {
-            if (seen.has(m.id)) return false;
-            seen.add(m.id);
-            return true;
-          });
-          return { key: cat.key, data: deduped.sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20) };
-        }
-
-        if (cat.mediaType === 'all') {
-          const [movieRes, tvRes] = await Promise.all([
-            fetch(`/api/tmdb/discover?genre_id=${cat.genreIds}&media_type=movie`).then(r => r.json()),
-            fetch(`/api/tmdb/discover?genre_id=${cat.genreIds}&media_type=tv`).then(r => r.json()),
-          ]);
-          const combined = [
-            ...(movieRes.results || []).map((m: Movie) => ({ ...m, media_type: 'movie' as const })),
-            ...(tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })),
-          ].sort((a: Movie, b: Movie) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
-          return { key: cat.key, data: combined };
-        }
-
-        const res = await fetch(`/api/tmdb/discover?genre_id=${cat.genreIds}&media_type=${cat.mediaType}`).then(r => r.json());
-        return { key: cat.key, data: (res.results || []).map((m: Movie) => ({ ...m, media_type: cat.mediaType })).slice(0, 20) };
-      } catch {
-        return { key: cat.key, data: [] };
-      }
-    });
-
-    Promise.all(fetches).then(results => {
-      const map: Record<string, Movie[]> = {};
-      for (const r of results) map[r.key] = r.data;
-      setCategoryData(map);
-    });
-  }, [loading]);
+  // Lazy-load categories when they scroll into view
+  const { ref: categorySentinelRef, isVisible: categoriesNearViewport } = useLazyLoad(0);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (loading || categoriesLoaded || !categoriesNearViewport) return;
+    setCategoriesLoaded(true);
 
-  // Lazy Indian content boost — fires after initial load, enforces 50/50
-  useEffect(() => {
-    if (loading || indianBoosted) return;
-    setIndianBoosted(true);
-    fetch('/api/tmdb/indian-boost')
+    const keys = EXTRA_CATEGORIES.map(c => c.key).join(',');
+    fetch(`/api/home/categories?keys=${keys}`)
       .then(r => r.json())
-      .then(data => {
-        const indian = (data.results || []) as Movie[];
-        if (!indian.length) return;
-
-        const mergeMovie = (prev: Movie[]) => {
-          const fresh = indian.filter(i => i.media_type === 'movie');
-          return mergeWithFiftyFifty(prev, fresh, 20);
-        };
-        const mergeTv = (prev: Movie[]) => {
-          const fresh = indian.filter(i => i.media_type === 'tv');
-          return mergeWithRatio(prev, fresh, 20, 0.2);
-        };
-        const mergeAll = (prev: Movie[]) => mergeWithFiftyFifty(prev, indian, 20);
-
-        setPopularMovies(mergeMovie);
-        setPopularTv(mergeTv);
-        setTrending(mergeAll);
-        setTopRated(mergeMovie);
-        setUpcoming(mergeMovie);
-        setTopRatedTv(prev => mergeWithRatio(prev, indian.filter(i => i.media_type === 'tv'), 20, 0.2));
-      })
+      .then(data => setCategoryData(data))
       .catch(() => {});
-  }, [loading, indianBoosted]);
+  }, [loading, categoriesLoaded, categoriesNearViewport]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filteredTrending = mediaFilter === 'movie'
     ? trending.filter(m => m.media_type === 'movie')
@@ -216,7 +176,6 @@ function HomePage() {
     ? trending.filter(m => m.media_type === 'tv')
     : trending;
 
-  // Ensure top-10 always has at least 10 items — pad from other categories if needed
   const top10Source = useMemo(() => {
     if (filteredTrending.length >= 10) return filteredTrending;
     const ids = new Set(filteredTrending.map(m => m.id));
@@ -231,10 +190,7 @@ function HomePage() {
 
   const handleProviderSelect = useCallback(async (platform: OttPlatform | null) => {
     setSelectedProvider(platform);
-    if (!platform) {
-      setProviderMovies([]);
-      return;
-    }
+    if (!platform) { setProviderMovies([]); return; }
     setProviderLoading(true);
     try {
       const [moviesRes, tvRes] = await Promise.all([
@@ -246,25 +202,19 @@ function HomePage() {
         ...(tvRes.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })),
       ].sort((a: Movie, b: Movie) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 20);
       setProviderMovies(combined);
-    } catch {
-      setProviderMovies([]);
-    } finally {
-      setProviderLoading(false);
-    }
+    } catch { setProviderMovies([]); }
+    finally { setProviderLoading(false); }
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen">
-        {/* Hero skeleton */}
         <div className="h-[70vh] md:h-screen bg-white/[0.03] animate-pulse" />
-        {/* Genre pills skeleton */}
         <div className="px-4 md:px-8 -mt-4 mb-6 flex gap-2">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={`gp-${i}`} className="shrink-0 h-8 w-20 rounded-full bg-white/[0.06] animate-pulse" />
           ))}
         </div>
-        {/* Trending skeleton */}
         <div className="px-4 md:px-8 mb-8">
           <div className="h-6 w-48 rounded bg-white/[0.06] mb-4 animate-pulse" />
           <div className="flex gap-3 overflow-hidden">
@@ -277,8 +227,7 @@ function HomePage() {
             ))}
           </div>
         </div>
-        {/* Content row skeletons */}
-        {Array.from({ length: 12 }, (_, i) => (
+        {Array.from({ length: 4 }, (_, i) => (
           <div key={`row-${i}`} className="px-4 md:px-8 mb-8">
             <div className="h-5 w-36 rounded bg-white/[0.06] mb-4 animate-pulse" />
             <div className="flex gap-3 overflow-hidden">
@@ -294,6 +243,13 @@ function HomePage() {
       </div>
     );
   }
+
+  // Determine which categories to show based on filter
+  const visibleCategories = EXTRA_CATEGORIES.filter(cat => {
+    return cat.showWhen === 'all' ||
+      (cat.showWhen === 'movie' && mediaFilter !== 'tv') ||
+      (cat.showWhen === 'tv' && mediaFilter !== 'movie');
+  });
 
   return (
     <div>
@@ -317,13 +273,10 @@ function HomePage() {
         </div>
       )}
 
-      {/* Trending Right Now - Ranked — always padded to 10 */}
       <TrendingRanked movies={top10Source} />
 
-      {/* Browse by Platform */}
       <PlatformSelector platforms={platforms} selectedProvider={selectedProvider?.id ?? null} onSelectProvider={handleProviderSelect} />
 
-      {/* Platform results */}
       {selectedProvider && providerLoading && (
         <div key="provider-loading" className="px-4 md:px-8 py-8">
           <div className="flex items-center gap-3 text-white/50">
@@ -356,24 +309,19 @@ function HomePage() {
         </div>
       )}
 
-      {/* Extra Genre Categories */}
-      {EXTRA_CATEGORIES.map(cat => {
+      {/* Category sentinel — triggers lazy category fetch */}
+      <div ref={categorySentinelRef} className="h-1" />
+
+      {/* Extra Genre Categories — lazy loaded */}
+      {visibleCategories.map(cat => {
         const data = categoryData[cat.key] || [];
         if (!data.length) return null;
 
-        // Filter visibility based on tab
-        const show =
-          cat.showWhen === 'all' ||
-          (cat.showWhen === 'movie' && mediaFilter !== 'tv') ||
-          (cat.showWhen === 'tv' && mediaFilter !== 'movie');
-        if (!show) return null;
-
-        // For Indian hits, pass language codes for View More
         const isIndian = cat.key === 'indian';
         const viewGenreId = isIndian ? null : parseInt(cat.genreIds.split(',')[0]);
 
         return (
-          <ContentRow
+          <LazyContentRow
             key={cat.key}
             title={cat.title}
             movies={data}
@@ -396,7 +344,6 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const fetchUser = useAuthStore(s => s.fetchUser);
 
-  // Fetch auth session on mount
   useEffect(() => { fetchUser(); }, [fetchUser]);
 
   return (
