@@ -1,6 +1,9 @@
 'use client';
 
-import { Home, Film, Tv, Gamepad2, Search } from 'lucide-react';
+import { Home, Film, Tv, Gamepad2, User } from 'lucide-react';
+import { useAppStore } from '@/store/app-store';
+import { useAuthStore } from '@/store/auth-store';
+import { motion } from 'framer-motion';
 
 function AnimeIcon({ className }: { className?: string }) {
   return (
@@ -18,9 +21,6 @@ function AnimeIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-import { motion } from 'framer-motion';
-import { useAppStore } from '@/store/app-store';
-
 interface TabItem {
   key: string;
   label: string;
@@ -30,9 +30,10 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showSearch } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showProfile } = useAppStore();
+  const authUser = useAuthStore(s => s.user);
 
-  const isSpecialView = view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv';
+  const isSpecialView = view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'category';
 
   const isActive = (key: string) => {
     switch (key) {
@@ -44,10 +45,10 @@ export function MobileTabBar() {
         return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
       case 'anime':
         return view === 'anime';
-      case 'search':
-        return view === 'search';
       case 'games':
         return view === 'games';
+      case 'profile':
+        return view === 'profile';
       default:
         return false;
     }
@@ -57,7 +58,6 @@ export function MobileTabBar() {
     if (!active) return 'text-white/40';
     if (key === 'anime') return 'text-purple-400';
     if (key === 'games') return 'text-emerald-400';
-    if (key === 'search') return 'text-blue-400';
     return 'text-red-500';
   };
 
@@ -69,7 +69,6 @@ export function MobileTabBar() {
   const getIndicatorColor = (key: string) => {
     if (key === 'anime') return 'bg-purple-400';
     if (key === 'games') return 'bg-emerald-400';
-    if (key === 'search') return 'bg-blue-400';
     return 'bg-red-500';
   };
 
@@ -79,7 +78,7 @@ export function MobileTabBar() {
     { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows, activeColor: 'text-red-500' },
     { key: 'anime', label: 'Anime', icon: AnimeIcon, action: showAnime, activeColor: 'text-purple-400' },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, activeColor: 'text-emerald-400' },
-    { key: 'search', label: 'Search', icon: Search, action: showSearch, activeColor: 'text-blue-400' },
+    { key: 'profile', label: 'Profile', icon: User, action: showProfile, activeColor: 'text-red-500' },
   ];
 
   const handleTabClick = (tab: TabItem) => {
@@ -112,7 +111,14 @@ export function MobileTabBar() {
                 animate={{ scale: active ? 1.1 : 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               >
-                <tab.icon className={`w-5 h-5 ${getIconColor(tab.key, active)}`} />
+                {/* Profile tab: show avatar circle when logged in */}
+                {tab.key === 'profile' && authUser ? (
+                  <span className={`block w-5 h-5 rounded-full text-[10px] font-bold leading-5 text-center ${active ? 'bg-red-600 text-white' : 'bg-white/20 text-white/60'}`}>
+                    {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
+                  </span>
+                ) : (
+                  <tab.icon className={`w-5 h-5 ${getIconColor(tab.key, active)}`} />
+                )}
               </motion.div>
               <span className={`text-[10px] font-medium leading-tight ${getTextColor(tab.key, active)}`}>
                 {tab.label}

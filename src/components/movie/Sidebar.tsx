@@ -405,15 +405,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile search button — always visible, opens sidebar drawer with search */}
-      <button
-        onClick={() => { setMobileOpen(true); setTimeout(() => inputRef.current?.focus(), 200); }}
-        className="md:hidden fixed top-3 right-3 z-[90] w-10 h-10 rounded-xl bg-black/70 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition-all"
-        aria-label="Search"
-      >
-        <Search className="w-[18px] h-[18px]" />
-      </button>
-
       {/* Hamburger button — hidden on home/anime (they use bottom tab bar) */}
       {showHamburger && (
         <button
