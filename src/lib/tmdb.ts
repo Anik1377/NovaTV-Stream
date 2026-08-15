@@ -1,5 +1,5 @@
 const TMDB_BASE = 'https://api.themoviedb.org/3';
-const TMDB_KEY = 'f71458d399e1eb9bdbfdc1c3318f5f75';
+const TMDB_KEY = process.env.TMDB_API_KEY!;
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
 export const getImageUrl = (path: string | null, size: string = 'w500') => {
