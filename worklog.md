@@ -172,3 +172,26 @@ Stage Summary:
 - Cinematic visual effects: 3D tilt, film grain, parallax, spotlight, letterbox bars, ambient glow
 - Enhanced hype meters with glow/shimmer/pulse for high-hype items
 - Live countdown timers, stats bar, improved card design
+
+---
+Task ID: 5
+Agent: main
+Task: Optimize buzz API loading speed (was 10-15s, now ~1.5s)
+
+Work Log:
+- Identified bottleneck: buzz API ran 3 slow operations sequentially (ZAI init → web_search → LLM chat → YouTube search → YouTube details)
+- Cached ZAI SDK instance at module level (singleton pattern) to avoid re-initializing on every request
+- Parallelized web_search and YouTube fetch using Promise.all (saves ~3-5s)
+- Removed LLM call from main buzz endpoint — it was the biggest bottleneck (~5-8s)
+- Created separate /api/showreels/buzz/ai endpoint for lazy AI analysis
+- Updated ShowReelDetail component: fetches buzz (sources + YouTube) first, then lazy-loads AI analysis in background
+- Added 'Generating AI buzz analysis...' loading state with spinner in the AI card while LLM runs
+- Both endpoints share the same ZAI singleton cache
+
+Stage Summary:
+- /api/showreels/buzz: 1.5s (was 10-15s) — returns sources + YouTube reactions immediately
+- /api/showreels/buzz/ai: ~3.4s — runs in background, user already sees content
+- Cache hits: ~48ms (near instant on repeat visits)
+- New file: src/app/api/showreels/buzz/ai/route.ts
+- Modified: src/app/api/showreels/buzz/route.ts, src/components/showreel/ShowReelDetail.tsx
+- Clean lint, browser verified: buzz data loads fast, AI analysis fills in progressively

@@ -99,13 +99,33 @@ export function ShowReelDetail() {
 
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
   const [buzzLoading, setBuzzLoading] = useState(!!movie);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (!movie) return;
     let cancelled = false;
+
+    // Fast fetch: sources + YouTube (no LLM)
     fetch(`/api/showreels/buzz?id=${movie.id}&title=${encodeURIComponent(movie.title)}`)
-      .then((r) => r.json()).then((data) => { if (cancelled) return; if (!data.error) setBuzz(data); })
+      .then((r) => r.json()).then((data) => {
+        if (cancelled) return;
+        if (!data.error) {
+          setBuzz(data);
+          // If no analysis yet, lazy-fetch AI separately
+          if (!data.analysis) {
+            setAiLoading(true);
+            fetch(`/api/showreels/buzz/ai?id=${movie.id}&title=${encodeURIComponent(movie.title)}`)
+              .then((r) => r.json()).then((aiData) => {
+                if (cancelled) return;
+                if (!aiData.error && aiData.analysis) {
+                  setBuzz((prev) => prev ? { ...prev, analysis: aiData.analysis } : null);
+                }
+              }).catch(() => {}).finally(() => { if (!cancelled) setAiLoading(false); });
+          }
+        }
+      })
       .catch(() => {}).finally(() => { if (!cancelled) setBuzzLoading(false); });
+
     return () => { cancelled = true; };
   }, [movie]);
 
@@ -260,8 +280,17 @@ export function ShowReelDetail() {
             <div className="space-y-6">
               {/* AI Analysis */}
               <div className="relative p-5 rounded-2xl bg-gradient-to-br from-emerald-500/[0.06] to-amber-500/[0.06] border border-white/[0.06] backdrop-blur-sm">
-                <div className="absolute top-3 right-3"><Sparkles className="w-4 h-4 text-emerald-400/40" /></div>
-                <p className="text-white/80 text-sm leading-relaxed pr-6">{buzz.analysis}</p>
+                <div className="absolute top-3 right-3">
+                  {aiLoading ? <Loader2 className="w-4 h-4 text-emerald-400/60 animate-spin" /> : <Sparkles className="w-4 h-4 text-emerald-400/40" />}
+                </div>
+                {buzz.analysis ? (
+                  <p className="text-white/80 text-sm leading-relaxed pr-6">{buzz.analysis}</p>
+                ) : (
+                  <div className="flex items-center gap-3 pr-6">
+                    <Loader2 className="w-4 h-4 text-emerald-400/60 animate-spin shrink-0" />
+                    <p className="text-white/40 text-sm italic">Generating AI buzz analysis...</p>
+                  </div>
+                )}
               </div>
 
               {/* Sources */}
