@@ -6,6 +6,7 @@ export interface AuthUser {
   name: string | null;
   avatar: string | null;
   bio: string | null;
+  createdAt?: string;
 }
 
 interface AuthState {
@@ -13,12 +14,20 @@ interface AuthState {
   loading: boolean;
   fetchUser: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ error?: string }>;
-  register: (email: string, password: string, name?: string) => Promise<{ error?: string }>;
+  register: (
+    email: string,
+    password: string,
+    name?: string,
+  ) => Promise<{ error?: string; emailConfirmationRequired?: boolean }>;
   logout: () => Promise<void>;
-  updateProfile: (data: { name?: string; bio?: string; avatar?: string }) => Promise<{ error?: string }>;
+  updateProfile: (data: {
+    name?: string;
+    bio?: string;
+    avatar?: string;
+  }) => Promise<{ error?: string }>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: true,
 
@@ -57,6 +66,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error || 'Registration failed' };
+      if (data.emailConfirmationRequired) {
+        return { emailConfirmationRequired: true };
+      }
       set({ user: data.user });
       return {};
     } catch {

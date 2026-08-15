@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
 import { getSessionUser, ok, unauthorized, badRequest } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { NextRequest } from 'next/server';
 
 export async function GET(req: NextRequest) {
-  const { user, res: errRes } = await getSessionUser(req);
+  const { user, res: errRes } = await getSessionUser();
   if (errRes) return errRes;
 
   const url = new URL(req.url);
@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
   return ok(history);
 }
 
-export async function POST(req: NextRequest) {
-  const { user, res: errRes } = await getSessionUser(req);
+export async function POST(req: Request) {
+  const { user, res: errRes } = await getSessionUser();
   if (errRes) return errRes;
 
   try {
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { user, res: errRes } = await getSessionUser(req);
+  const { user, res: errRes } = await getSessionUser();
   if (errRes) return errRes;
 
   try {

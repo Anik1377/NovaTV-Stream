@@ -1,27 +1,62 @@
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 import { db } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-/** Get the authenticated user from session cookie, or return null response */
-export async function getSessionUser(req: NextRequest) {
-  const token = req.cookies.get('sv_session')?.value;
-  if (!token) return { user: null, res: unauthorized() };
+/** Get the authenticated user via Supabase, ensure local Prisma User exists */
+export async function getSessionUser() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
-  const session = await db.session.findUnique({
-    where: { token },
-    include: { user: true },
-  });
-
-  if (!session || session.expiresAt < new Date()) {
-    if (session) await db.session.delete({ where: { id: session.id } });
-    const res = unauthorized();
-    res.cookies.set('sv_session', '', { maxAge: 0, path: '/' });
-    return { user: null, res };
+  if (!supabase) {
+    return { user: null, res: unauthorized() };
   }
 
-  return { user: session.user, res: null };
+  const {
+    data: { user: authUser },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !authUser) {
+    return { user: null, res: unauthorized() };
+  }
+
+  // Get or create local Prisma user (for watch history relations)
+  let user = await db.user.findUnique({ where: { id: authUser.id } });
+
+  if (!user) {
+    user = await db.user.create({
+      data: {
+        id: authUser.id,
+        email: authUser.email!,
+        name: authUser.user_metadata?.name || null,
+        avatar: authUser.user_metadata?.avatar || null,
+        bio: authUser.user_metadata?.bio || null,
+      },
+    });
+  } else {
+    // Sync user_metadata → local DB (in case they were updated elsewhere)
+    const meta = authUser.user_metadata || {};
+    const needsUpdate =
+      (meta.name !== undefined && meta.name !== user.name) ||
+      (meta.avatar !== undefined && meta.avatar !== user.avatar) ||
+      (meta.bio !== undefined && meta.bio !== user.bio);
+    if (needsUpdate) {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: {
+          ...(meta.name !== undefined ? { name: meta.name || null } : {}),
+          ...(meta.avatar !== undefined ? { avatar: meta.avatar || null } : {}),
+          ...(meta.bio !== undefined ? { bio: meta.bio || null } : {}),
+        },
+      });
+    }
+  }
+
+  return { user, res: null };
 }
 
-function unauthorized() {
+export function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 

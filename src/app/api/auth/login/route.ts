@@ -1,11 +1,9 @@
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 import { db } from '@/lib/db';
-import { compare } from 'bcryptjs';
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { NextResponse } from 'next/server';
 
-const SESSION_DAYS = 30;
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
 
@@ -13,33 +11,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+
+    if (!supabase) {
+      return NextResponse.json({ error: 'Authentication service not configured' }, { status: 503 });
     }
 
-    const valid = await compare(password, user.passwordHash);
-    if (!valid) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
+
+    if (error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
+        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      }
+      if (msg.includes('email not confirmed')) {
+        return NextResponse.json({ error: 'Please confirm your email first' }, { status: 403 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-    await db.session.create({
-      data: { token, userId: user.id, expiresAt },
+    // Ensure local user record exists
+    const authUser = data.user;
+    await db.user.upsert({
+      where: { id: authUser.id },
+      create: {
+        id: authUser.id,
+        email: authUser.email!,
+        name: authUser.user_metadata?.name || null,
+        avatar: authUser.user_metadata?.avatar || null,
+        bio: authUser.user_metadata?.bio || null,
+      },
+      update: {
+        email: authUser.email!,
+      },
     });
 
-    const res = NextResponse.json({
-      user: { id: user.id, email: user.email, name: user.name },
+    return NextResponse.json({
+      user: {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.name || null,
+        avatar: authUser.user_metadata?.avatar || null,
+        bio: authUser.user_metadata?.bio || null,
+      },
     });
-    res.cookies.set('sv_session', token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_DAYS * 24 * 60 * 60,
-    });
-    return res;
   } catch (err) {
     console.error('Login error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

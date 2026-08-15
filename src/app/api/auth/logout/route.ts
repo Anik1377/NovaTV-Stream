@@ -1,16 +1,17 @@
-import { db } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
-    const token = req.cookies.get('sv_session')?.value;
-    if (token) {
-      await db.session.deleteMany({ where: { token } });
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+
+    if (supabase) {
+      await supabase.auth.signOut();
     }
 
-    const res = NextResponse.json({ success: true });
-    res.cookies.set('sv_session', '', { maxAge: 0, path: '/' });
-    return res;
+    return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to logout' }, { status: 500 });
   }
