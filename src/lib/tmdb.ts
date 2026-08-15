@@ -1,6 +1,9 @@
 const TMDB_BASE = 'https://api.themoviedb.org/3';
-const TMDB_KEY = process.env.TMDB_API_KEY!;
 const IMG_BASE = 'https://image.tmdb.org/t/p';
+
+function getTmdbKey(): string {
+  return process.env.TMDB_API_KEY || 'f71458d399e1eb9bdbfdc1c3318f5f75';
+}
 
 export const getImageUrl = (path: string | null, size: string = 'w500') => {
   if (!path) return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750" fill="%23222"><rect width="500" height="750"/><text x="250" y="375" text-anchor="middle" fill="%23666" font-family="system-ui" font-size="48">🎬</text></svg>');
@@ -14,7 +17,7 @@ export const getBackdropUrl = (path: string | null, size: string = 'original') =
 
 export async function tmdbFetch<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${TMDB_BASE}${endpoint}`);
-  url.searchParams.set('api_key', TMDB_KEY);
+  url.searchParams.set('api_key', getTmdbKey());
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const res = await fetch(url.toString(), { next: { revalidate: 3600 } });

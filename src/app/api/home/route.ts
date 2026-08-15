@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { tmdbFetch } from '@/lib/tmdb';
 import type { Movie, Genre } from '@/lib/types';
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -10,37 +11,31 @@ type CacheEntry = {
 
 let cache: CacheEntry | null = null;
 
-async function safeFetch(url: string): Promise<Record<string, unknown> | null> {
+async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
   try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return await res.json();
+    return await fn();
   } catch {
     return null;
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const now = Date.now();
 
   if (cache && now - cache.ts < CACHE_TTL) {
     return NextResponse.json(cache.data);
   }
 
-  const proto = req.headers.get('x-forwarded-proto') || 'http';
-  const host = req.headers.get('host') || 'localhost:3000';
-  const base = `${proto}://${host}`;
-
   const [trending, popularMovies, popularTv, topRated, upcoming, topRatedTv, genres, providers] =
     await Promise.all([
-      safeFetch(`${base}/api/tmdb/trending?time_window=week`),
-      safeFetch(`${base}/api/tmdb/popular-movies`),
-      safeFetch(`${base}/api/tmdb/popular-tv`),
-      safeFetch(`${base}/api/tmdb/top-rated`),
-      safeFetch(`${base}/api/tmdb/upcoming`),
-      safeFetch(`${base}/api/tmdb/top-rated-tv`),
-      safeFetch(`${base}/api/tmdb/genres`),
-      safeFetch(`${base}/api/tmdb/providers-list`),
+      safe(() => tmdbFetch<{ results: Movie[] }>('/trending/all/week')),
+      safe(() => tmdbFetch<{ results: Movie[] }>('/movie/popular')),
+      safe(() => tmdbFetch<{ results: Movie[] }>('/tv/popular')),
+      safe(() => tmdbFetch<{ results: Movie[] }>('/movie/top_rated')),
+      safe(() => tmdbFetch<{ results: Movie[] }>('/movie/upcoming')),
+      safe(() => tmdbFetch<{ results: Movie[] }>('/tv/top_rated')),
+      safe(() => tmdbFetch<{ genres: Genre[] }>('/genre/movie/list')),
+      safe(() => tmdbFetch<{ results: { provider_id: number; provider_name: string; logo_path: string }[] }>('/watch/providers/movie', { watch_region: 'US' })),
     ]);
 
   const data: Record<string, unknown> = {
