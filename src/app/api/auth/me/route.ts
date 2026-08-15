@@ -36,8 +36,10 @@ export async function GET() {
             id: profile.id,
             email: profile.email,
             name: profile.name || meta.name || null,
-            avatar: profile.avatar || meta.avatar || '🔴',
+            avatar: profile.avatar || meta.avatar || 'hero',
             bio: profile.bio || meta.bio || null,
+            accentColor: profile.accent_color || meta.accentColor || null,
+            favoriteGenres: profile.favorite_genres || meta.favoriteGenres || [],
             createdAt: profile.created_at,
           },
         });
@@ -52,8 +54,10 @@ export async function GET() {
         id: authUser.id,
         email: authUser.email,
         name: meta.name || null,
-        avatar: meta.avatar || '🔴',
+        avatar: meta.avatar || 'hero',
         bio: meta.bio || null,
+        accentColor: meta.accentColor || null,
+        favoriteGenres: meta.favoriteGenres || [],
       },
     });
   } catch {

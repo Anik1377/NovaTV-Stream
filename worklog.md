@@ -195,3 +195,32 @@ Stage Summary:
 - New file: src/app/api/showreels/buzz/ai/route.ts
 - Modified: src/app/api/showreels/buzz/route.ts, src/components/showreel/ShowReelDetail.tsx
 - Clean lint, browser verified: buzz data loads fast, AI analysis fills in progressively
+
+---
+Task ID: 6
+Agent: main
+Task: Add Netflix-style avatar system and advanced profile customization
+
+Work Log:
+- Created src/lib/avatars.tsx: Netflix-style character avatar library with 16 unique SVG character illustrations (Hero, Explorer, Wizard, Ninja, Astronaut, Detective, Robot, Viking, Pirate, Samurai, Alien, Superhero, Mermaid, Dragon Tamer, Ghost, Star)
+- Each avatar is a hand-drawn SVG character with unique color scheme, rendered inside a circular background with radial gradient shine effect
+- Added 12 accent color options (Rose through Pink) for profile theme customization
+- Added 20 favorite genre options including specialty categories (K-Drama, Bollywood, Indie, Classic)
+- Updated AuthUser interface: added accentColor, favoriteGenres fields
+- Updated updateProfile action signature to accept new fields
+- Updated all auth endpoints (me, profile GET/PUT) to pass through accentColor and favoriteGenres from Supabase user_metadata/profiles table
+- Changed default avatar from '🔴' emoji to 'hero' slug (Netflix-style SVG character)
+- Rewrote ProfilePage.tsx with 4-step edit panel (Info → Avatar → Theme → Genres)
+- Avatar picker: 8-column grid with live preview, character name labels, colored selection ring with glow
+- Theme color picker: 6-column grid with preview card showing accent, "Match avatar color" button
+- Genre picker: multi-select genre chips with checkmark, count display
+- Profile header: large avatar with accent color shadow, online indicator, genre badges, spring animation
+- Wired ProfileAvatar into Sidebar (desktop 18px + mobile drawer 28px) and MobileTabBar (20px)
+- Clean lint (0 errors), dev server stable
+
+Stage Summary:
+- New file: src/lib/avatars.tsx (16 SVG character avatars + color system + genre options)
+- Modified: src/store/auth-store.ts, src/lib/auth.ts, src/app/api/profile/route.ts, src/app/api/auth/me/route.ts
+- Rewritten: src/components/profile/ProfilePage.tsx (4-step Netflix-style editor)
+- Updated: src/components/movie/Sidebar.tsx, src/components/movie/MobileTabBar.tsx (avatar rendering)
+- Feature: Netflix-style character avatars throughout the app, accent color theming, favorite genres

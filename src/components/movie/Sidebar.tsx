@@ -18,6 +18,7 @@ import {
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
 import { Input } from '@/components/ui/input';
+import { ProfileAvatar } from '@/lib/avatars';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ── Anime icon SVG ── */
@@ -250,8 +251,8 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                 !expanded ? 'justify-center px-2' : 'px-2.5'
               }`}
             >
-              <span className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
-                {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
+              <span className="w-[18px] h-[18px] rounded-full overflow-hidden shrink-0">
+                <ProfileAvatar slug={authUser.avatar} size={18} />
               </span>
               <SidebarLabel show={expanded}>
                 <span className="flex-1 text-left truncate">{authUser.name || 'Profile'}</span>
@@ -375,8 +376,8 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                   onClick={() => { setMobileOpen(false); showProfile(); }}
                   className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
                 >
-                  <span className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center shrink-0 text-xs font-bold text-white">
-                    {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
+                  <span className="w-7 h-7 rounded-full overflow-hidden shrink-0">
+                    <ProfileAvatar slug={authUser.avatar} size={28} />
                   </span>
                   <span className="text-[13px] font-medium flex-1 text-left truncate">{authUser.name || 'Profile'}</span>
                 </button>

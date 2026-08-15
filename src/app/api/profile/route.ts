@@ -24,6 +24,8 @@ export async function GET() {
       name: user!.name,
       avatar: user!.avatar,
       bio: user!.bio,
+      accentColor: (user as Record<string, unknown>).accentColor as string | null ?? null,
+      favoriteGenres: (user as Record<string, unknown>).favoriteGenres as string[] ?? [],
       createdAt: user!.createdAt,
       stats: { watchHistoryCount: count || 0 },
     });
@@ -38,34 +40,40 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, bio, avatar } = body;
+    const { name, bio, avatar, accentColor, favoriteGenres } = body;
 
     if (bio && bio.length > 200) {
       return badRequest('Bio must be 200 characters or less');
     }
+    if (favoriteGenres && !Array.isArray(favoriteGenres)) {
+      return badRequest('favoriteGenres must be an array');
+    }
 
-    // Update Supabase profile table
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name !== undefined) updates.name = name || null;
     if (bio !== undefined) updates.bio = bio || null;
-    if (avatar !== undefined) updates.avatar = avatar || '🔴';
+    if (avatar !== undefined) updates.avatar = avatar || 'hero';
+    if (accentColor !== undefined) updates.accent_color = accentColor || null;
+    if (favoriteGenres !== undefined) updates.favorite_genres = favoriteGenres;
 
     if (supabase) {
       // Try updating the profiles table first
       const { error: tableError } = await supabase
         .from('profiles')
         .update(updates)
-      .eq('id', user!.id);
+        .eq('id', user!.id);
 
       // If table doesn't exist yet, fall back to user_metadata
       if (tableError && tableError.code === '42P01') {
         const metaUpdates: Record<string, unknown> = {};
         if (name !== undefined) metaUpdates.name = name || null;
         if (bio !== undefined) metaUpdates.bio = bio || null;
-        if (avatar !== undefined) metaUpdates.avatar = avatar || '🔴';
+        if (avatar !== undefined) metaUpdates.avatar = avatar || 'hero';
+        if (accentColor !== undefined) metaUpdates.accentColor = accentColor || null;
+        if (favoriteGenres !== undefined) metaUpdates.favoriteGenres = favoriteGenres;
         await supabase.auth.updateUser({ data: metaUpdates });
       }
     }
@@ -75,7 +83,9 @@ export async function PUT(req: Request) {
       const metaUpdates: Record<string, unknown> = {};
       if (name !== undefined) metaUpdates.name = name || null;
       if (bio !== undefined) metaUpdates.bio = bio || null;
-      if (avatar !== undefined) metaUpdates.avatar = avatar || '🔴';
+      if (avatar !== undefined) metaUpdates.avatar = avatar || 'hero';
+      if (accentColor !== undefined) metaUpdates.accentColor = accentColor || null;
+      if (favoriteGenres !== undefined) metaUpdates.favoriteGenres = favoriteGenres;
       await supabase.auth.updateUser({ data: metaUpdates });
     }
 
@@ -83,8 +93,10 @@ export async function PUT(req: Request) {
       id: user!.id,
       email: user!.email,
       name: name !== undefined ? (name || null) : user!.name,
-      avatar: avatar !== undefined ? (avatar || '🔴') : (user!.avatar || '🔴'),
+      avatar: avatar !== undefined ? (avatar || 'hero') : (user!.avatar || 'hero'),
       bio: bio !== undefined ? (bio || null) : user!.bio,
+      accentColor: accentColor !== undefined ? (accentColor || null) : ((user as Record<string, unknown>).accentColor as string | null ?? null),
+      favoriteGenres: favoriteGenres !== undefined ? favoriteGenres : ((user as Record<string, unknown>).favoriteGenres as string[] ?? []),
       createdAt: user!.createdAt,
     });
   } catch {

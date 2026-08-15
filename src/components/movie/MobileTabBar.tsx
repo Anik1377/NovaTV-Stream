@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard } from 'lucide-react';
+import { ProfileAvatar } from '@/lib/avatars';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -135,11 +136,11 @@ export function MobileTabBar() {
                 {/* Profile tab: show avatar circle when logged in */}
                 {tab.key === 'profile' && authUser ? (
                   <span
-                    className={`block w-5 h-5 rounded-full text-[10px] font-bold leading-5 text-center ${
-                      active ? 'bg-red-600 text-white' : 'bg-white/20 text-white/60'
+                    className={`block w-5 h-5 rounded-full overflow-hidden ${
+                      active ? '' : 'opacity-60'
                     }`}
                   >
-                    {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
+                    <ProfileAvatar slug={authUser.avatar} size={20} />
                   </span>
                 ) : (
                   <tab.icon className={`w-5 h-5 ${getIconColor(tab.key, active)}`} />
