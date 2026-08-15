@@ -1,9 +1,16 @@
 'use client';
 
-import { Home, Film, Tv, Gamepad2, User } from 'lucide-react';
+import { useState } from 'react';
+import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerClose,
+} from '@/components/ui/drawer';
 
 function AnimeIcon({ className }: { className?: string }) {
   return (
@@ -21,6 +28,7 @@ function AnimeIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
 interface TabItem {
   key: string;
   label: string;
@@ -30,8 +38,9 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showProfile } = useAppStore();
-  const authUser = useAuthStore(s => s.user);
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showGames, showLiveTV, showProfile } = useAppStore();
+  const authUser = useAuthStore((s) => s.user);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const isSpecialView = view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'category';
 
@@ -45,8 +54,8 @@ export function MobileTabBar() {
         return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
       case 'anime':
         return view === 'anime';
-      case 'games':
-        return view === 'games';
+      case 'more':
+        return view === 'games' || view === 'livetv';
       case 'profile':
         return view === 'profile';
       default:
@@ -57,7 +66,7 @@ export function MobileTabBar() {
   const getIconColor = (key: string, active: boolean) => {
     if (!active) return 'text-white/40';
     if (key === 'anime') return 'text-purple-400';
-    if (key === 'games') return 'text-emerald-400';
+    if (key === 'more') return 'text-orange-400';
     return 'text-red-500';
   };
 
@@ -68,7 +77,7 @@ export function MobileTabBar() {
 
   const getIndicatorColor = (key: string) => {
     if (key === 'anime') return 'bg-purple-400';
-    if (key === 'games') return 'bg-emerald-400';
+    if (key === 'more') return 'bg-orange-400';
     return 'bg-red-500';
   };
 
@@ -77,13 +86,23 @@ export function MobileTabBar() {
     { key: 'movies', label: 'Movies', icon: Film, action: showMovies, activeColor: 'text-red-500' },
     { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows, activeColor: 'text-red-500' },
     { key: 'anime', label: 'Anime', icon: AnimeIcon, action: showAnime, activeColor: 'text-purple-400' },
-    { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, activeColor: 'text-emerald-400' },
     { key: 'profile', label: 'Profile', icon: User, action: showProfile, activeColor: 'text-red-500' },
+  ];
+
+  const moreItems = [
+    { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, color: 'text-emerald-400' },
+    { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV, color: 'text-blue-400' },
   ];
 
   const handleTabClick = (tab: TabItem) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     tab.action();
+  };
+
+  const handleMoreItemClick = (item: (typeof moreItems)[number]) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMoreOpen(false);
+    item.action();
   };
 
   return (
@@ -113,7 +132,11 @@ export function MobileTabBar() {
               >
                 {/* Profile tab: show avatar circle when logged in */}
                 {tab.key === 'profile' && authUser ? (
-                  <span className={`block w-5 h-5 rounded-full text-[10px] font-bold leading-5 text-center ${active ? 'bg-red-600 text-white' : 'bg-white/20 text-white/60'}`}>
+                  <span
+                    className={`block w-5 h-5 rounded-full text-[10px] font-bold leading-5 text-center ${
+                      active ? 'bg-red-600 text-white' : 'bg-white/20 text-white/60'
+                    }`}
+                  >
                     {authUser.avatar || (authUser.name || authUser.email)[0].toUpperCase()}
                   </span>
                 ) : (
@@ -126,6 +149,75 @@ export function MobileTabBar() {
             </motion.button>
           );
         })}
+
+        {/* More button with Drawer */}
+        <Drawer open={moreOpen} onOpenChange={setMoreOpen}>
+          <DrawerTrigger asChild>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 relative"
+            >
+              {isActive('more') && (
+                <motion.div
+                  layoutId="mobileTabIndicator"
+                  className="absolute -top-1 w-6 h-0.5 rounded-full bg-orange-400"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <motion.div
+                animate={{ scale: isActive('more') ? 1.1 : 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              >
+                <MoreHorizontal className={`w-5 h-5 ${getIconColor('more', isActive('more'))}`} />
+              </motion.div>
+              <span className={`text-[10px] font-medium leading-tight ${getTextColor('more', isActive('more'))}`}>
+                More
+              </span>
+            </motion.button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <div className="px-4 pt-2 pb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-semibold text-lg">More</h3>
+                <DrawerClose asChild>
+                  <button className="text-white/50 hover:text-white/80 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                    </svg>
+                  </button>
+                </DrawerClose>
+              </div>
+              <div className="space-y-2">
+                {moreItems.map((item) => {
+                  const active = item.key === 'games' ? view === 'games' : view === 'livetv';
+                  return (
+                    <motion.button
+                      key={item.key}
+                      onClick={() => handleMoreItemClick(item)}
+                      whileTap={{ scale: 0.97 }}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors ${
+                        active
+                          ? 'bg-white/10'
+                          : 'hover:bg-white/5 active:bg-white/10'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${active ? 'bg-white/10' : 'bg-white/5'}`}>
+                        <item.icon className={`w-5 h-5 ${item.color}`} />
+                      </div>
+                      <span className={`text-[15px] font-medium ${active ? 'text-white' : 'text-white/70'}`}>
+                        {item.label}
+                      </span>
+                      {active && (
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
     </nav>
   );
