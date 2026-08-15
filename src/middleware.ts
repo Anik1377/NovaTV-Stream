@@ -1,18 +1,36 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  const { supabase, response } = createClient(request);
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // If Supabase is not configured, just pass through
-  if (!supabase) {
+    // If Supabase is not configured, pass through immediately
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.next({
+        request: { headers: request.headers },
+      });
+    }
+
+    // Dynamic import to avoid bundling Supabase when not needed
+    const { createClient } = await import('@/utils/supabase/middleware');
+    const { supabase, response } = createClient(request);
+
+    if (!supabase) {
+      return response;
+    }
+
+    // Refresh the session so it doesn't expire
+    await supabase.auth.getUser();
+
     return response;
+  } catch (err) {
+    console.error('Middleware error:', err);
+    // On any error, pass through to avoid crashing the site
+    return NextResponse.next({
+      request: { headers: request.headers },
+    });
   }
-
-  // Refresh the session so it doesn't expire
-  await supabase.auth.getUser();
-
-  return response;
 }
 
 export const config = {

@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
-import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -45,17 +44,22 @@ export async function POST(req: Request) {
     const authUser = data.user;
 
     // Create local user record
-    await db.user.upsert({
-      where: { id: authUser.id },
-      create: {
-        id: authUser.id,
-        email: authUser.email!,
-        name: name || null,
-        avatar: '🔴',
-        bio: null,
-      },
-      update: { email: authUser.email! },
-    });
+    try {
+      const { db } = await import('@/lib/db');
+      await db.user.upsert({
+        where: { id: authUser.id },
+        create: {
+          id: authUser.id,
+          email: authUser.email!,
+          name: name || null,
+          avatar: '🔴',
+          bio: null,
+        },
+        update: { email: authUser.email! },
+      });
+    } catch {
+      // Prisma unavailable — continue anyway
+    }
 
     // If email confirmation is required, user won't have a session yet
     const session = data.session;

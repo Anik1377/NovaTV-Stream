@@ -1,21 +1,25 @@
 import { getSessionUser, ok, unauthorized, badRequest } from '@/lib/auth';
-import { db } from '@/lib/db';
 import { NextRequest } from 'next/server';
 
 export async function GET(req: NextRequest) {
   const { user, res: errRes } = await getSessionUser();
   if (errRes) return errRes;
 
-  const url = new URL(req.url);
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
+  try {
+    const { db } = await import('@/lib/db');
+    const url = new URL(req.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
 
-  const history = await db.watchHistory.findMany({
-    where: { userId: user!.id },
-    orderBy: { watchedAt: 'desc' },
-    take: limit,
-  });
+    const history = await db.watchHistory.findMany({
+      where: { userId: user!.id },
+      orderBy: { watchedAt: 'desc' },
+      take: limit,
+    });
 
-  return ok(history);
+    return ok(history);
+  } catch {
+    return ok([]);
+  }
 }
 
 export async function POST(req: Request) {
@@ -29,6 +33,8 @@ export async function POST(req: Request) {
     if (!tmdbId || !title || !mediaType) {
       return badRequest('tmdbId, title, and mediaType are required');
     }
+
+    const { db } = await import('@/lib/db');
 
     // Upsert: update watchedAt if same tmdbId+season+episode exists
     const existing = await db.watchHistory.findFirst({
@@ -71,6 +77,7 @@ export async function DELETE(req: NextRequest) {
   if (errRes) return errRes;
 
   try {
+    const { db } = await import('@/lib/db');
     const url = new URL(req.url);
     const id = url.searchParams.get('id');
 
