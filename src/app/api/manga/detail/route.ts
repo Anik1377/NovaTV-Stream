@@ -1,41 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  getCoverUrl,
+  getAuthorName,
+  getArtistName,
+  getTitle,
+  getScanlationGroup,
+  SimpleCache,
+} from '@/lib/mangadex';
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const cache = new Map<string, { data: unknown; expiry: number }>();
-
-function getCoverUrl(item: any): string {
-  const coverRel = item.relationships?.find(
-    (r: any) => r.type === 'cover_art'
-  );
-  if (!coverRel) return '';
-  return `https://uploads.mangadex.org/covers/${item.id}/${coverRel.attributes.fileName}.512.jpg`;
-}
-
-function getAuthorName(item: any): string {
-  const authorRel = item.relationships?.find(
-    (r: any) => r.type === 'author'
-  );
-  if (!authorRel) return 'Unknown';
-  const name = authorRel.attributes?.name;
-  return name?.en || Object.values(name || {})[0] || 'Unknown';
-}
-
-function getArtistName(item: any): string {
-  const artistRel = item.relationships?.find(
-    (r: any) => r.type === 'artist'
-  );
-  if (!artistRel) return 'Unknown';
-  const name = artistRel.attributes?.name;
-  return name?.en || Object.values(name || {})[0] || 'Unknown';
-}
-
-function getScanlationGroup(ch: any): string {
-  const groupRel = ch.relationships?.find(
-    (r: any) => r.type === 'scanlation_group'
-  );
-  if (!groupRel) return 'Unknown';
-  return groupRel.attributes?.name || 'Unknown';
-}
+const cache = new SimpleCache<unknown>(5 * 60 * 1000);
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id');
@@ -46,20 +19,32 @@ export async function GET(req: NextRequest) {
 
   const cacheKey = `detail:${id}`;
   const cached = cache.get(cacheKey);
-  if (cached && cached.expiry > Date.now()) {
-    return NextResponse.json(cached.data);
+  if (cached) {
+    return NextResponse.json(cached);
   }
 
   try {
+    // Build manga detail URL
+    const mangaUrl = new URL(`https://api.mangadex.org/manga/${id}`);
+    mangaUrl.searchParams.append('includes[]', 'cover_art');
+    mangaUrl.searchParams.append('includes[]', 'author');
+    mangaUrl.searchParams.append('includes[]', 'artist');
+
+    // Build chapters feed URL — exclude external-only chapters
+    const chaptersUrl = new URL(`https://api.mangadex.org/manga/${id}/feed`);
+    chaptersUrl.searchParams.append('translatedLanguage[]', 'en');
+    chaptersUrl.searchParams.append('order[chapter]', 'desc');
+    chaptersUrl.searchParams.set('limit', '200');
+    chaptersUrl.searchParams.append('includes[]', 'scanlation_group');
+    chaptersUrl.searchParams.set('includeExternalUrl', '0');
+
     const [mangaRes, chaptersRes] = await Promise.all([
-      fetch(
-        `https://api.mangadex.org/manga/${id}?includes[]=cover_art&includes[]=author&includes[]=artist`,
-        { headers: { 'User-Agent': 'MangaReader/1.0' } }
-      ),
-      fetch(
-        `https://api.mangadex.org/manga/${id}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=200&includes[]=scanlation_group`,
-        { headers: { 'User-Agent': 'MangaReader/1.0' } }
-      ),
+      fetch(mangaUrl.toString(), {
+        headers: { 'User-Agent': 'MangaReader/1.0' },
+      }),
+      fetch(chaptersUrl.toString(), {
+        headers: { 'User-Agent': 'MangaReader/1.0' },
+      }),
     ]);
 
     if (!mangaRes.ok) {
@@ -67,23 +52,24 @@ export async function GET(req: NextRequest) {
     }
 
     const mangaData = await mangaRes.json();
-    const chaptersData = await chaptersRes.json();
+    const chaptersData = chaptersRes.ok ? await chaptersRes.json() : { data: [] };
 
     const item = mangaData.data;
 
     const data = {
       manga: {
         id: item.id,
-        title:
-          item.attributes.title.en ||
-          Object.values(item.attributes.title)[0] ||
-          'Untitled',
+        title: getTitle(item),
         coverUrl: getCoverUrl(item),
         author: getAuthorName(item),
         artist: getArtistName(item),
         description:
-          item.attributes.description.en?.substring(0, 500) || '',
-        tags: item.attributes.tags.map((t: any) => t.attributes.name.en),
+          item.attributes.description.en?.substring(0, 500) ||
+          item.attributes.description.ja?.substring(0, 500) ||
+          '',
+        tags: item.attributes.tags
+          .map((t: any) => t.attributes.name.en)
+          .filter(Boolean),
         status: item.attributes.status,
         year: item.attributes.year,
         contentRating: item.attributes.contentRating,
@@ -104,8 +90,7 @@ export async function GET(req: NextRequest) {
         .filter((ch: any) => ch.pages > 0),
     };
 
-    cache.set(cacheKey, { data, expiry: Date.now() + CACHE_TTL });
-
+    cache.set(cacheKey, data);
     return NextResponse.json(data);
   } catch (error) {
     console.error('Detail fetch error:', error);

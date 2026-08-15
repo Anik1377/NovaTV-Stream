@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, Search, BookOpen, ArrowLeft } from 'lucide-react';
+import { Loader2, Search, BookOpen, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 
 interface MangaItem {
@@ -17,9 +17,9 @@ type Tab = 'all' | 'manga' | 'manhwa' | 'manhua' | 'webnovel';
 
 const TABS: { key: Tab; label: string; flag?: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'manga', label: 'Manga', flag: '🇯🇵' },
-  { key: 'manhwa', label: 'Manhwa', flag: '🇰🇷' },
-  { key: 'manhua', label: 'Manhua', flag: '🇨🇳' },
+  { key: 'manga', label: 'Manga', flag: '\u{1F1EF}\u{1F1F5}' },
+  { key: 'manhwa', label: 'Manhwa', flag: '\u{1F1F0}\u{1F1F7}' },
+  { key: 'manhua', label: 'Manhua', flag: '\u{1F1E8}\u{1F1F3}' },
   { key: 'webnovel', label: 'Webnovel' },
 ];
 
@@ -46,7 +46,9 @@ export function ReadPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [error, setError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -56,46 +58,68 @@ export function ReadPage() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      if (!append) setLoading(true);
-      else setSearching(true);
+      if (!append) {
+        setLoading(true);
+        setError(false);
+      } else {
+        setSearching(true);
+      }
 
       try {
-        let url: string;
+        const params = new URLSearchParams();
+
         if (search.trim()) {
-          const params = new URLSearchParams({ q: search.trim() });
-          if (currentOffset > 0) params.set('offset', String(currentOffset));
-          url = `/api/manga/search?${params}`;
+          params.set('q', search.trim());
+          if (currentOffset > 0) params.set('page', String(Math.floor(currentOffset / 20) + 1));
+          const res = await fetch(`/api/manga/search?${params}`, { signal: controller.signal });
+          if (!res.ok) throw new Error('Failed to search');
+          const data = await res.json();
+
+          if (controller.signal.aborted) return;
+
+          const items: MangaItem[] = (data.results || []).map((m: any) => ({
+            id: String(m.id),
+            title: String(m.title || 'Untitled'),
+            coverUrl: String(m.coverUrl || ''),
+            author: String(m.author || ''),
+            tags: Array.isArray(m.tags) ? m.tags.filter(Boolean).map(String) : [],
+          }));
+
+          setMangaList(append ? (prev) => [...prev, ...items] : items);
+          setHasMore(!!data.hasMore);
+          setTotal(data.total || 0);
         } else {
-          const params = new URLSearchParams({});
           if (tab === 'manga' || tab === 'manhwa' || tab === 'manhua') {
             params.set('type', tab);
           }
           if (currentOffset > 0) params.set('offset', String(currentOffset));
+
           const base = '/api/manga/trending';
-          url = params.toString() ? `${base}?${params}` : base;
-        }
+          const url = params.toString() ? `${base}?${params}` : base;
+          const res = await fetch(url, { signal: controller.signal });
+          if (!res.ok) throw new Error('Failed to fetch');
+          const data = await res.json();
 
-        const res = await fetch(url, { signal: controller.signal });
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
+          if (controller.signal.aborted) return;
 
-        if (controller.signal.aborted) return;
-
-        const items: MangaItem[] = (data.data || data.results || data || []).map(
-          (m: Record<string, unknown>) => ({
+          const items: MangaItem[] = (data.results || []).map((m: any) => ({
             id: String(m.id),
-            title: String(m.title || m.attributes?.title || 'Untitled'),
-            coverUrl: String(m.coverUrl || m.cover || m.attributes?.coverUrl || ''),
-            author: String(m.author || m.attributes?.author || ''),
-            tags: Array.isArray(m.tags || m.attributes?.tags) ? (m.tags || m.attributes?.tags).map(String) : [],
-          })
-        );
+            title: String(m.title || 'Untitled'),
+            coverUrl: String(m.coverUrl || ''),
+            author: String(m.author || ''),
+            tags: Array.isArray(m.tags) ? m.tags.filter(Boolean).map(String) : [],
+          }));
 
-        setMangaList(append ? (prev) => [...prev, ...items] : items);
-        setHasMore(data.hasMore || data.hasNextPage || false);
+          setMangaList(append ? (prev) => [...prev, ...items] : items);
+          setHasMore(!!data.hasMore);
+          setTotal(data.total || 0);
+        }
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          if (!append) setMangaList([]);
+          if (!append) {
+            setMangaList([]);
+            setError(true);
+          }
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -139,7 +163,7 @@ export function ReadPage() {
   );
 
   const loadMore = () => {
-    const next = offset + (mangaList.length || 20);
+    const next = offset + 20;
     setOffset(next);
     fetchManga(activeTab, searchQuery, next, true);
   };
@@ -173,7 +197,10 @@ export function ReadPage() {
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white">Read</h1>
-            <p className="text-white/50 text-sm">Manga, Manhwa & Manhua</p>
+            <p className="text-white/50 text-sm">
+              Manga, Manhwa & Manhua &middot;{' '}
+              {total > 0 && !loading ? `${total.toLocaleString()} titles` : 'Free to read'}
+            </p>
           </div>
         </div>
 
@@ -182,7 +209,7 @@ export function ReadPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <input
             type="text"
-            placeholder="Search manga..."
+            placeholder="Search manga, manhwa, manhua..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
@@ -225,7 +252,7 @@ export function ReadPage() {
             </div>
             <h3 className="text-lg font-semibold text-white/60 mb-1">Webnovels</h3>
             <p className="text-sm text-white/30 max-w-xs">
-              Coming soon! We're working on bringing webnovels to you.
+              Coming soon! We are working on bringing webnovels to you.
             </p>
           </div>
         )}
@@ -233,20 +260,38 @@ export function ReadPage() {
         {/* Loading skeletons */}
         {loading && (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: 14 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
           </div>
         )}
 
+        {/* Error state */}
+        {!loading && error && activeTab !== 'webnovel' && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <AlertCircle className="w-10 h-10 text-white/15 mb-3" />
+            <p className="text-white/40 text-sm mb-1">Failed to load manga</p>
+            <p className="text-white/25 text-xs mb-4">Check your connection and try again</p>
+            <button
+              onClick={() => fetchManga(activeTab, searchQuery, 0)}
+              className="text-amber-500 text-sm hover:text-amber-400 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Manga grid */}
-        {!loading && activeTab !== 'webnovel' && (
+        {!loading && !error && activeTab !== 'webnovel' && (
           <>
             {mangaList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Search className="w-10 h-10 text-white/15 mb-3" />
                 <p className="text-white/40 text-sm">
                   {searchQuery ? `No results for "${searchQuery}"` : 'No manga found'}
+                </p>
+                <p className="text-white/25 text-xs mt-1">
+                  {searchQuery ? 'Try different keywords' : 'Try refreshing or check back later'}
                 </p>
               </div>
             ) : (
@@ -267,12 +312,23 @@ export function ReadPage() {
                       })
                     }
                   >
-                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-white/5 mb-2">
+                    <div className="aspect-[2/3] rounded-lg overflow-hidden bg-white/5 mb-2 relative">
                       <img
                         src={proxyCover(manga.coverUrl)}
                         alt={manga.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
+                        onError={(e) => {
+                          // Show placeholder on error
+                          const el = e.target as HTMLImageElement;
+                          el.style.display = 'none';
+                          if (!el.parentElement?.querySelector('.cover-fallback')) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'cover-fallback absolute inset-0 flex items-center justify-center bg-white/5';
+                            fallback.innerHTML = '<span class=\'text-white/20 text-2xl\'>\u{1F4D6}</span>';
+                            el.parentElement?.appendChild(fallback);
+                          }
+                        }}
                       />
                     </div>
                     <p className="text-sm font-medium text-white/90 truncate">

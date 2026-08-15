@@ -9,6 +9,8 @@ import {
   User,
   Hash,
   FileText,
+  BookX,
+  AlertCircle,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 
@@ -72,6 +74,7 @@ export function MangaDetail() {
   const [chapters, setChapters] = useState<ChapterItem[]>([]);
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const loading = selectedManga !== null && loadedId !== selectedManga.id;
 
   useEffect(() => {
@@ -80,39 +83,42 @@ export function MangaDetail() {
     let cancelled = false;
 
     fetch(`/api/manga/detail?id=${mangaId}`)
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (cancelled || !data) return;
         const info: MangaInfo = {
           id: mangaId,
-          title: data.title || selectedManga.title,
-          coverUrl: data.coverUrl || data.cover || selectedManga.coverUrl || '',
-          author: data.author || data.attributes?.author || '',
-          artist: data.artist || data.attributes?.artist || '',
-          tags: Array.isArray(data.tags || data.attributes?.tags)
-            ? (data.tags || data.attributes?.tags).map(String)
+          title: data.manga?.title || data.title || selectedManga.title,
+          coverUrl: data.manga?.coverUrl || data.coverUrl || data.cover || selectedManga.coverUrl || '',
+          author: data.manga?.author || data.author || '',
+          artist: data.manga?.artist || data.artist || '',
+          tags: Array.isArray(data.manga?.tags || data.tags)
+            ? (data.manga?.tags || data.tags).map(String)
             : [],
-          status: data.status || data.attributes?.status || '',
-          year: data.year || data.attributes?.year || null,
-          description: data.description || data.attributes?.description || data.synopsis || '',
+          status: data.manga?.status || data.status || '',
+          year: data.manga?.year || data.year || null,
+          description: data.manga?.description || data.description || '',
         };
         setMangaInfo(info);
 
-        const chList: ChapterItem[] = (data.chapters || data.data || []).map(
+        const chList: ChapterItem[] = (data.chapters || []).map(
           (c: Record<string, unknown>) => ({
-            id: String(c.id || c.chapterId || ''),
-            chapter: String(c.chapter || c.num || c.number || '?'),
+            id: String(c.id || ''),
+            chapter: String(c.chapter || '?'),
             title: c.title ? String(c.title) : undefined,
             pages: typeof c.pages === 'number' ? c.pages : undefined,
-            group: c.group || c.scanlationGroup ? String(c.group || c.scanlationGroup) : undefined,
-            publishedAt: c.publishedAt || c.createdAt || c.publishAt
-              ? String(c.publishedAt || c.createdAt || c.publishAt)
-              : undefined,
+            group: c.group ? String(c.group) : undefined,
+            publishedAt: c.publishAt ? String(c.publishAt) : undefined,
           })
         );
         setChapters(chList);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setFetchError(true);
+      })
       .finally(() => {
         if (!cancelled) setLoadedId(mangaId);
       });
@@ -170,7 +176,22 @@ export function MangaDetail() {
               ))}
             </div>
           </div>
-        ) : !loading && mangaInfo ? (
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <AlertCircle className="w-10 h-10 text-white/20 mb-3" />
+            <p className="text-white/50 text-sm mb-1">Failed to load manga details</p>
+            <p className="text-white/30 text-xs">Please try again later</p>
+            <button
+              onClick={() => {
+                setLoadedId(null);
+                setFetchError(false);
+              }}
+              className="mt-4 text-amber-500 text-sm hover:text-amber-400"
+            >
+              Retry
+            </button>
+          </div>
+        ) : mangaInfo ? (
           <>
             {/* Hero section */}
             <div className="flex flex-col sm:flex-row gap-6 mb-8">
@@ -184,7 +205,11 @@ export function MangaDetail() {
                 <img
                   src={proxyCover(mangaInfo.coverUrl || selectedManga.coverUrl)}
                   alt={mangaInfo.title}
-                  className="w-36 sm:w-40 md:w-48 aspect-[2/3] object-cover rounded-2xl"
+                  className="w-36 sm:w-40 md:w-48 aspect-[2/3] object-cover rounded-2xl bg-white/5"
+                  onError={(e) => {
+                    // Hide broken image
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               </motion.div>
 
@@ -228,7 +253,7 @@ export function MangaDetail() {
                       {mangaInfo.year}
                     </span>
                   )}
-                  {(mangaInfo.tags || []).map((tag) => (
+                  {(mangaInfo.tags || []).filter(Boolean).map((tag) => (
                     <span
                       key={tag}
                       className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400"
@@ -270,8 +295,21 @@ export function MangaDetail() {
               </h2>
 
               {chapters.length === 0 ? (
-                <div className="text-center py-12 text-white/30 text-sm">
-                  No chapters available
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <BookX className="w-12 h-12 text-white/15 mb-4" />
+                  <p className="text-white/50 text-sm mb-1">
+                    No readable chapters available
+                  </p>
+                  <p className="text-white/30 text-xs max-w-xs">
+                    This manga may only be available on external sites, or no English
+                    chapters have been uploaded with readable pages yet.
+                  </p>
+                  <button
+                    onClick={showRead}
+                    className="mt-4 text-amber-500 text-sm hover:text-amber-400 transition-colors"
+                  >
+                    Browse other manga
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -318,11 +356,7 @@ export function MangaDetail() {
               )}
             </div>
           </>
-        ) : (
-          <div className="text-center py-20">
-            <p className="text-white/40">Failed to load manga details.</p>
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

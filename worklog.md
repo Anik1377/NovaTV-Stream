@@ -247,3 +247,35 @@ Stage Summary:
 - Modified: app-store.ts, Sidebar.tsx, MobileTabBar.tsx, page.tsx
 - All manga/manhwa/manhua free to read via MangaDex integration
 - Webnovel tab shows 'Coming Soon' placeholder
+
+---
+Task ID: read-fix
+Agent: Main Agent
+Task: Fix Read section - manga pages not loading and content unavailable
+
+Work Log:
+- Investigated root cause: MangaDex image proxy was blocking *.mangadex.network CDN domains (returned 403 for all chapter pages)
+- Fixed proxy to allow mangadex.network domains (the at-home/server endpoint returns these CDN URLs)
+- Added in-memory image caching to proxy for performance (max 500 entries, 24h TTL)
+- Changed trending API sort from order[followedCount]=desc to order[latestUploadedChapter]=desc for manga with recent content
+- Added availableTranslatedLanguage[]=en filter to trending and search APIs
+- Added hasMore field to trending and search API responses using total count
+- Added includeExternalUrl=0 to detail API feed query to filter out external-only chapters
+- Changed MangaReader to use data-saver (lower resolution) pages for faster loading
+- Added per-image error handling with failed image indicators in reader
+- Added chapter-level error state with retry button and prev chapter navigation
+- Added no-chapters empty state in MangaDetail with helpful message
+- Added error state and retry button in ReadPage
+- Added image error fallbacks (placeholder icon) in ReadPage grid
+- Created shared src/lib/mangadex.ts module to eliminate duplicated helper functions
+- Refactored all 4 API routes to use shared helpers and SimpleCache class
+- Verified: proxy returns 200 for mangadex.network pages (was 403 before)
+- Verified: full end-to-end flow works (browse → detail → reader with 11 pages loaded)
+- Verified: search returns results, Load More works, no-chapters state shows correctly
+
+Stage Summary:
+- Root cause: proxy whitelist only allowed mangadex.org, but MangaDex CDN uses *.mangadex.network
+- All chapter images were returning 403, making the reader completely non-functional
+- Secondary issue: many popular manga (Solo Leveling etc.) have external-only chapters with no pages
+- Fixed by: allowing mangadex.network in proxy, filtering external chapters, using data-saver pages
+- Files changed: proxy/route.ts, trending/route.ts, search/route.ts, detail/route.ts, chapter/route.ts, MangaReader.tsx, MangaDetail.tsx, ReadPage.tsx, new mangadex.ts

@@ -1,56 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  getCoverUrl,
+  getAuthorName,
+  getArtistName,
+  getTitle,
+  SimpleCache,
+} from '@/lib/mangadex';
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const cache = new Map<string, { data: unknown; expiry: number }>();
+const cache = new SimpleCache<unknown>(5 * 60 * 1000); // 5 minutes
 
-function getCoverUrl(item: any): string {
-  const coverRel = item.relationships?.find(
-    (r: any) => r.type === 'cover_art'
-  );
-  if (!coverRel) return '';
-  return `https://uploads.mangadex.org/covers/${item.id}/${coverRel.attributes.fileName}.512.jpg`;
-}
-
-function getAuthorName(item: any): string {
-  const authorRel = item.relationships?.find(
-    (r: any) => r.type === 'author'
-  );
-  if (!authorRel) return 'Unknown';
-  const name = authorRel.attributes?.name;
-  return name?.en || Object.values(name || {})[0] || 'Unknown';
-}
-
-function getArtistName(item: any): string {
-  const artistRel = item.relationships?.find(
-    (r: any) => r.type === 'artist'
-  );
-  if (!artistRel) return 'Unknown';
-  const name = artistRel.attributes?.name;
-  return name?.en || Object.values(name || {})[0] || 'Unknown';
-}
+const LANG_MAP: Record<string, string> = {
+  manga: 'ja',
+  manhwa: 'ko',
+  manhua: 'zh',
+};
 
 export async function GET(req: NextRequest) {
   const offset = req.nextUrl.searchParams.get('offset') || '0';
   const type = req.nextUrl.searchParams.get('type');
 
-  const langMap: Record<string, string> = {
-    manga: 'ja',
-    manhwa: 'ko',
-    manhua: 'zh',
-  };
-
-  const langFilter =
-    type && langMap[type] ? `&originalLanguage[]=${langMap[type]}` : '';
-
   const cacheKey = `trending:${offset}:${type || 'all'}`;
   const cached = cache.get(cacheKey);
-  if (cached && cached.expiry > Date.now()) {
-    return NextResponse.json(cached.data);
+  if (cached) {
+    return NextResponse.json(cached);
+  }
+
+  // Build URL with multiple same-key params using append
+  const url = new URL('https://api.mangadex.org/manga');
+  url.searchParams.append('includes[]', 'cover_art');
+  url.searchParams.append('includes[]', 'author');
+  url.searchParams.append('includes[]', 'artist');
+  url.searchParams.set('order[latestUploadedChapter]', 'desc');
+  url.searchParams.append('contentRating[]', 'safe');
+  url.searchParams.append('contentRating[]', 'suggestive');
+  url.searchParams.set('hasAvailableChapters', 'true');
+  url.searchParams.append('availableTranslatedLanguage[]', 'en');
+  url.searchParams.set('limit', '20');
+  url.searchParams.set('offset', offset);
+
+  if (type && LANG_MAP[type]) {
+    url.searchParams.set('originalLanguage[]', LANG_MAP[type]);
   }
 
   try {
-    const url = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=author&includes[]=artist&order[followedCount]=desc&contentRating[]=safe&contentRating[]=suggestive&hasAvailableChapters=true&limit=20&offset=${offset}${langFilter}`;
-    const res = await fetch(url, {
+    const res = await fetch(url.toString(), {
       headers: { 'User-Agent': 'MangaReader/1.0' },
     });
 
@@ -63,17 +56,17 @@ export async function GET(req: NextRequest) {
     const data = {
       results: manga.data.map((item: any) => ({
         id: item.id,
-        title:
-          item.attributes.title.en ||
-          Object.values(item.attributes.title)[0] ||
-          'Untitled',
+        title: getTitle(item),
         coverUrl: getCoverUrl(item),
         author: getAuthorName(item),
         artist: getArtistName(item),
         description:
-          item.attributes.description.en?.substring(0, 300) || '',
+          item.attributes.description.en?.substring(0, 300) ||
+          item.attributes.description.ja?.substring(0, 300) ||
+          '',
         tags: item.attributes.tags
           .map((t: any) => t.attributes.name.en)
+          .filter(Boolean)
           .slice(0, 5),
         status: item.attributes.status,
         year: item.attributes.year,
@@ -81,9 +74,10 @@ export async function GET(req: NextRequest) {
         originalLanguage: item.attributes.originalLanguage,
       })),
       total: manga.total,
+      hasMore: Number(offset) + (manga.data?.length || 0) < manga.total,
     };
 
-    cache.set(cacheKey, { data, expiry: Date.now() + CACHE_TTL });
+    cache.set(cacheKey, data);
 
     return NextResponse.json(data);
   } catch (error) {
