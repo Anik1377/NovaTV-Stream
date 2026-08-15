@@ -1,21 +1,16 @@
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  const { response } = createClient(request);
+  const { supabase, response } = createClient(request);
 
-  // NOTE: Avoid writing any logic between createClient and
-  // the final return. A simple mistake could make it very hard
-  // to debug issues with users being randomly logged out.
+  // If Supabase is not configured, just pass through
+  if (!supabase) {
+    return response;
+  }
 
-  // IMPORTANT: If you need to check auth, do it like this:
-  // const { supabase } = createClient(request);
-  // const { data: { user } } = await supabase.auth.getUser();
-  // if (!user && !request.nextUrl.pathname.startsWith('/login')) {
-  //   const url = request.nextUrl.clone();
-  //   url.pathname = '/login';
-  //   return NextResponse.redirect(url);
-  // }
+  // Refresh the session so it doesn't expire
+  await supabase.auth.getUser();
 
   return response;
 }
