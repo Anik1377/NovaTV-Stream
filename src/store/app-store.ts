@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'profile';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -41,9 +41,13 @@ interface AppState {
   showLiveTV: () => void;
   showAnime: () => void;
   showAsian: () => void;
+  showShowreels: () => void;
   showGames: () => void;
   showSearch: () => void;
   showProfile: () => void;
+  // ShowReel detail
+  selectedShowreel: Movie | null;
+  selectShowreel: (movie: Movie) => void;
   bumpNav: () => void;
   setSelectedProvider: (providerId: string) => void;
 
@@ -158,11 +162,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   showLiveTV: () => set({ view: 'livetv', ...resetState, navHistory: [] }),
   showAnime: () => set({ view: 'anime', ...resetState, navHistory: [] }),
   showAsian: () => set({ view: 'asian', ...resetState, navHistory: [] }),
+  showShowreels: () => set({ view: 'showreels', ...resetState, navHistory: [] }),
   showSearch: () => set({ view: 'search', ...resetState, navHistory: [] }),
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
   setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),
+  selectedShowreel: null,
+  selectShowreel: (movie) => { navigate(set, 'showreel-detail'); set({ selectedShowreel: movie }); },
 
   // Navigation history actions
   pushView: (view) => {

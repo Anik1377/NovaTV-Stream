@@ -98,3 +98,45 @@ Stage Summary:
 - Modified: src/components/movie/Hero.tsx
 - Hero carousel now shows official title treatment logos when available, text fallback otherwise
 - Studio/production company logos displayed below title in grayscale row
+
+---
+Task ID: 3
+Agent: showreels-builder
+Task: Build complete ShowReels Hall of Fame feature
+
+Work Log:
+- Created src/app/api/showreels/route.ts: fetches TMDB upcoming (3 pages) + now_playing, filters by release date (upcoming or just-released), batch-processes trailers (YouTube filter) and watch providers (US flatrate), calculates hype score (popularity 0-40, trailers 0-15, votes 0-15, days-to-release 0-20, official trailer bonus +10), returns top 30 sorted by hype, 10-min in-memory cache
+- Created src/app/api/showreels/buzz/route.ts: takes id+title params, uses z-ai-web-dev-sdk web_search for social buzz (top 8 results), LLM chat completions for hype analysis paragraph, YouTube API via ytFetch for reaction/discussion videos, 30-min in-memory cache
+- Created src/components/showreel/ShowReelsPage.tsx: dark cinema-themed grid page with amber/orange palette, responsive grid (2/3/4/5 cols), filter pills (All/This Month/This Year/Highest Hype), poster cards with gradient overlay, animated hype meter bar (gradient fill from zinc→orange→red based on score), trailer count badge, watch provider logos, IntersectionObserver lazy loading with skeleton placeholders, Framer Motion staggered fade-in
+- Created src/components/showreel/ShowReelDetail.tsx: backdrop hero with gradient overlay, large animated hype meter, tagline, genre badges, embedded YouTube player (16:9), scrollable trailer thumbnail row with swap functionality, Where to Watch section with provider logos, Internet Buzz section (AI analysis card, web search source cards with external links, YouTube reaction video grid), loading skeletons, mobile back button
+- Wired navigation: added ShowReels to Sidebar navItems after Asian (Clapperboard icon, amber-500/15 active style, amber-400 icon color), added to isSpecialView array, hidden hamburger on showreels view
+- Wired MobileTabBar: added ShowReels to More drawer items (Clapperboard, amber-400 color), updated isActive 'more' case to include showreels/showreel-detail views, updated active detection for showreels item
+- Wired page.tsx: imported ShowReelsPage and ShowReelDetail, added view routing for both views, added 'showreels' to MobileBackHome condition
+- Fixed ESLint errors: removed synchronous setState in useEffect by deriving initial trailer from movie data, using override state for user trailer selection
+
+Stage Summary:
+- 2 new API routes: /api/showreels (hype-scored movie list) and /api/showreels/buzz (social buzz analysis)
+- 2 new components: ShowReelsPage (Hall of Fame grid) and ShowReelDetail (movie detail with trailers/buzz)
+- Full navigation integration: sidebar, mobile tab bar, page routing, mobile back button
+- Clean lint (0 errors, 0 warnings), dev server stable
+
+---
+Task ID: 3
+Agent: main + showreels-builder subagent
+Task: Build complete ShowReels Hall of Fame feature
+
+Work Log:
+- Added 'showreels' and 'showreel-detail' to ViewType in app-store
+- Added showShowreels() action and selectShowreel(movie) action
+- Created /api/showreels API: fetches TMDB upcoming+now_playing, filters by release date, calculates hype score (0-100) based on popularity, trailer count, vote count, days-to-release proximity, and official trailer bonus
+- Created /api/showreels/buzz API: uses z-ai-web-dev-sdk web_search + LLM to generate AI hype analysis, YouTube API for reaction videos
+- Built ShowReelsPage component: responsive grid (2-5 cols), filter pills (All/This Month/This Year/Highest Hype), Hype Meter bars with gradient fill and labels (Low Key/Building Up/High Hype/Off The Charts), trailer count badges, lazy loading
+- Built ShowReelDetail component: hero section with backdrop, big hype meter, embedded YouTube trailer player with trailer switching, Where to Watch providers, Internet Buzz AI analysis, What People Are Saying web sources, YouTube Reactions grid
+- Added ShowReels to Sidebar (amber accent) and MobileTabBar More drawer
+- Fixed bug: 'movie' → 'm' variable reference in filter logic
+- Browser verified: grid loads with 10+ movies, hype meters visible, detail page works with trailers + AI buzz analysis
+
+Stage Summary:
+- New files: src/app/api/showreels/route.ts, src/app/api/showreels/buzz/route.ts, src/components/showreel/ShowReelsPage.tsx, src/components/showreel/ShowReelDetail.tsx
+- Modified: src/store/app-store.ts, src/components/movie/Sidebar.tsx, src/components/movie/MobileTabBar.tsx, src/app/page.tsx
+- Feature complete: Hall of Fame grid with hype meters, detail pages with trailers + AI buzz analysis
