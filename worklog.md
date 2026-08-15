@@ -78,3 +78,23 @@ Stage Summary:
 - Bangladeshi tab now correctly shows only Dhallywood (Bangladeshi) films
 - No more Indian Bengali/Tollywood films appearing in the Bangladeshi section
 - Pakistani tab also improved with country filter
+
+---
+Task ID: 2
+Agent: main
+Task: Add movie title logos + studio logos to hero carousel
+
+Work Log:
+- Created /api/tmdb/hero-logos endpoint that fetches TMDB images (logos) + details (production_companies) in batches of 4
+- Logo selection logic: prefer English logos, then any language, sort by aspect ratio (wider = better title treatment)
+- Studio logos: up to 4 production companies with logo_path, displayed at w92 size
+- Updated Hero component to fetch logo data on mount for top 8 trending movies
+- Title section: shows <img> of title logo if available, otherwise falls back to <h1> text
+- Studio logos section: horizontal row of grayscale studio logos between title and tagline, with hover brightness effect
+- Verified via browser: Spider-Man: Brand New Day shows stylized logo + Marvel Studios/Columbia Pictures/Pascal Pictures studio logos
+
+Stage Summary:
+- New file: src/app/api/tmdb/hero-logos/route.ts
+- Modified: src/components/movie/Hero.tsx
+- Hero carousel now shows official title treatment logos when available, text fallback otherwise
+- Studio/production company logos displayed below title in grayscale row

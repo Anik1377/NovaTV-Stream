@@ -8,10 +8,27 @@ import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import type { Movie } from '@/lib/types';
 
+interface LogoData {
+  titleLogo: string | null;
+  studios: { name: string; logo: string | null }[];
+}
+
 export function Hero({ movies }: { movies: Movie[] }) {
   const { selectMovie, selectTv } = useAppStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const moviesRef = useRef(movies);
+  const [logoData, setLogoData] = useState<Record<string, LogoData>>({});
+
+  // Fetch logo data for hero movies
+  useEffect(() => {
+    if (!movies.length) return;
+    const ids = movies.slice(0, 8).map(m => String(m.id)).join(',');
+    const types = movies.slice(0, 8).map(m => (m.media_type === 'tv' || !!m.first_air_date) ? 'tv' : 'movie').join(',');
+    fetch(`/api/tmdb/hero-logos?ids=${ids}&types=${types}`)
+      .then(r => r.json())
+      .then(data => setLogoData(data))
+      .catch(() => {});
+  }, [movies]);
 
   useEffect(() => {
     moviesRef.current = movies;
@@ -39,6 +56,9 @@ export function Hero({ movies }: { movies: Movie[] }) {
   const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
   const rating = movie.vote_average?.toFixed(1);
   const runtime = (movie as any).runtime;
+  const logos = logoData[String(movie.id)];
+  const titleLogo = logos?.titleLogo;
+  const studios = logos?.studios || [];
 
   const handlePlay = () => {
     if (isTv) {
@@ -111,10 +131,35 @@ export function Hero({ movies }: { movies: Movie[] }) {
                 </span>
               </div>
 
-              {/* Title */}
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-3 tracking-tight">
-                {title}
-              </h1>
+              {/* Title — Logo or Text fallback */}
+              {titleLogo ? (
+                <div className="mb-3">
+                  <img
+                    src={titleLogo}
+                    alt={title}
+                    className="h-20 sm:h-24 md:h-32 lg:h-40 object-contain object-left"
+                  />
+                </div>
+              ) : (
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-3 tracking-tight">
+                  {title}
+                </h1>
+              )}
+
+              {/* Studio Logos */}
+              {studios.length > 0 && (
+                <div className="flex items-center gap-2.5 mb-3">
+                  {studios.map((studio) => (
+                    <img
+                      key={studio.name}
+                      src={studio.logo}
+                      alt={studio.name}
+                      title={studio.name}
+                      className="h-5 md:h-6 object-contain opacity-60 hover:opacity-90 transition-opacity grayscale brightness-150 hover:brightness-200"
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Tagline */}
               {tagline && (
