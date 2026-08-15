@@ -224,3 +224,26 @@ Stage Summary:
 - Rewritten: src/components/profile/ProfilePage.tsx (4-step Netflix-style editor)
 - Updated: src/components/movie/Sidebar.tsx, src/components/movie/MobileTabBar.tsx (avatar rendering)
 - Feature: Netflix-style character avatars throughout the app, accent color theming, favorite genres
+
+---
+Task ID: 7
+Agent: main + subagents
+Task: Add Read section - free manga, manhwa, manhua reader
+
+Work Log:
+- Created 5 MangaDex API proxy routes: trending (with type filter), search, detail, chapter pages, image proxy
+- Image proxy adds Referer header for MangaDex CORS bypass, URL host validation for security
+- Built ReadPage: 5 filter tabs (All/Manga/Manhwa/Manhua/Webnovel), debounced search, responsive grid, lazy loading
+- Built MangaDetail: cover art, description, genre tags, status badge, 98+ chapter list with scanlation groups
+- Built MangaReader: full-screen vertical scroll reader, auto-hide top/bottom bars, tap to toggle, prev/next chapter nav
+- Fixed page URL construction bug (was passing filenames instead of full baseUrl/data/hash/page URLs)
+- Wired into sidebar (BookOpen icon, sky-500 accent), mobile tab bar More drawer, page router
+- Added read/manga-detail/manga-reader views to app store, isSpecialView, showHamburger arrays
+- Browser verified: 20 trending manga loaded, Chainsaw Man 98 chapters, 23 pages reading successfully
+
+Stage Summary:
+- 5 new API routes: /api/manga/trending, /search, /detail, /chapter, /proxy
+- 3 new components: ReadPage, MangaDetail, MangaReader
+- Modified: app-store.ts, Sidebar.tsx, MobileTabBar.tsx, page.tsx
+- All manga/manhwa/manhua free to read via MangaDex integration
+- Webnovel tab shows 'Coming Soon' placeholder
