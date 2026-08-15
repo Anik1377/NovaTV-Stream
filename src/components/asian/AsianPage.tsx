@@ -14,6 +14,8 @@ interface LangSection {
   title: string;
   lang: string;
   color: string;
+  originCountry?: string;
+  minVotes?: string;
 }
 
 const LANGUAGES: LangSection[] = [
@@ -21,8 +23,8 @@ const LANGUAGES: LangSection[] = [
   { key: 'japanese', title: 'Japanese', lang: 'ja', color: 'text-rose-400' },
   { key: 'chinese', title: 'Chinese', lang: 'zh', color: 'text-red-400' },
   { key: 'thai', title: 'Thai', lang: 'th', color: 'text-yellow-400' },
-  { key: 'pakistani', title: 'Pakistani', lang: 'ur', color: 'text-green-400' },
-  { key: 'bangladeshi', title: 'Bangladeshi', lang: 'bn', color: 'text-emerald-400' },
+  { key: 'pakistani', title: 'Pakistani', lang: 'ur', color: 'text-green-400', originCountry: 'PK', minVotes: '0' },
+  { key: 'bangladeshi', title: 'Bangladeshi', lang: 'bn', color: 'text-emerald-400', originCountry: 'BD', minVotes: '0' },
 ];
 
 type Tab = 'all' | 'movie' | 'tv';
@@ -52,8 +54,10 @@ export function AsianPage() {
   useEffect(() => {
     let cancelled = false;
     const initialLangs = LANGUAGES.slice(0, 3);
-    Promise.all(initialLangs.map(async ({ key, lang }) => {
+    Promise.all(initialLangs.map(async ({ key, lang, originCountry, minVotes }) => {
       const params = new URLSearchParams({ with_original_language: lang, sort_by: 'popularity.desc' });
+      if (originCountry) params.set('with_origin_country', originCountry);
+      if (minVotes) params.set('min_votes', minVotes);
       const [mRes, tRes] = await Promise.all([
         fetch(`/api/tmdb/discover?media_type=movie&${params}`).then(r => r.json()).catch(() => ({ results: [] })),
         fetch(`/api/tmdb/discover?media_type=tv&${params}`).then(r => r.json()).catch(() => ({ results: [] })),
@@ -75,8 +79,10 @@ export function AsianPage() {
   useEffect(() => {
     if (!gridNear) return;
     const remaining = LANGUAGES.slice(3);
-    Promise.all(remaining.map(async ({ key, lang }) => {
+    Promise.all(remaining.map(async ({ key, lang, originCountry, minVotes }) => {
       const params = new URLSearchParams({ with_original_language: lang, sort_by: 'popularity.desc' });
+      if (originCountry) params.set('with_origin_country', originCountry);
+      if (minVotes) params.set('min_votes', minVotes);
       const [mRes, tRes] = await Promise.all([
         fetch(`/api/tmdb/discover?media_type=movie&${params}`).then(r => r.json()).catch(() => ({ results: [] })),
         fetch(`/api/tmdb/discover?media_type=tv&${params}`).then(r => r.json()).catch(() => ({ results: [] })),

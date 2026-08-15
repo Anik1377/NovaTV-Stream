@@ -29,19 +29,22 @@ export async function GET(req: NextRequest) {
     const region = searchParams.get('region') || '';
     const withLang = searchParams.get('with_original_language') || '';
     const withoutGenres = searchParams.get('without_genres') || '';
+    const originCountry = searchParams.get('with_origin_country') || '';
+    const minVotes = searchParams.get('min_votes');
 
     const endpoint = mediaType === 'tv' ? '/discover/tv' : '/discover/movie';
 
     const params: Record<string, string> = {
       page,
       sort_by: sortBy,
-      'vote_count.gte': '30',
+      'vote_count.gte': minVotes || '30',
     };
 
     if (genreId) params.with_genres = genreId;
     if (withoutGenres) params.without_genres = withoutGenres;
     if (region) params.region = region;
     if (withLang) params.with_original_language = withLang;
+    if (originCountry) params.with_origin_country = originCountry;
 
     const data = await tmdbFetch<{ results: DiscoverItem[]; total_pages: number; total_results: number }>(endpoint, params);
 
