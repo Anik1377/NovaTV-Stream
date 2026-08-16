@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Film, Tv, Home, Radio, Gamepad2, X, Menu, Download } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
+import { useSearch } from '@/hooks/use-search';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,43 +32,32 @@ interface HeaderProps {
 }
 
 export function Header({ onInstallClick }: HeaderProps) {
-  const { view, mediaFilter, searchQuery, setSearchQuery, goHome, showMovies, showTvShows, setView, setSearchResults, showLiveTV, showAnime, showGames } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showGames } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSearch = useCallback(async (query: string) => {
-    setInputValue(query);
-    if (!query.trim()) {
-      goHome();
-      return;
-    }
-    try {
-      const res = await fetch(`/api/tmdb/search?query=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setSearchResults(data.results || []);
-      setView('search');
-      setSearchQuery(query);
-    } catch {
-      console.error('Search failed');
-    }
-  }, [setSearchResults, setView, setSearchQuery, goHome]);
+  const {
+    inputValue,
+    setInputValue,
+    inputRef,
+    clearSearch,
+  } = useSearch({
+    debounceMs: 400,
+    onSearchViewOpened: () => setSearchOpen(false),
+  });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (inputValue !== searchQuery) {
-        handleSearch(inputValue);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [inputValue, searchQuery, handleSearch]);
-
+  // Auto-focus search input when it opens
   useEffect(() => {
     if (searchOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [searchOpen]);
+  }, [searchOpen, inputRef]);
+
+  const handleCloseSearch = useCallback(() => {
+    setSearchOpen(false);
+    clearSearch();
+    goHome();
+  }, [clearSearch, goHome]);
 
   const isActive = (filter: 'all' | 'movie' | 'tv') => {
     if (view === 'search' || view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'anime' || view === 'games') return false;
@@ -118,7 +108,7 @@ export function Header({ onInstallClick }: HeaderProps) {
 
   const handleNavClick = (action: () => void) => {
     setSearchOpen(false);
-    setInputValue('');
+    clearSearch();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     action();
     setMobileMenuOpen(false);
@@ -174,11 +164,7 @@ export function Header({ onInstallClick }: HeaderProps) {
                   className="pl-10 pr-10 bg-black/60 border-white/20 text-white placeholder:text-white/40 focus:border-red-500/50"
                 />
                 <button
-                  onClick={() => {
-                    setSearchOpen(false);
-                    setInputValue('');
-                    goHome();
-                  }}
+                  onClick={handleCloseSearch}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
                 >
                   <X className="w-4 h-4" />

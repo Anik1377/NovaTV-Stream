@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   Film,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
+import { useSearch } from '@/hooks/use-search';
 import { Input } from '@/components/ui/input';
 import { ProfileAvatar } from '@/lib/avatars';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,38 +80,24 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showAsian, showGames, showShowreels, showRead, showProfile, showPeople, setSearchResults, setView, setSearchQuery } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showAsian, showGames, showShowreels, showRead, showProfile, showPeople } = useAppStore();
   const authUser = useAuthStore(s => s.user);
   const authLogout = useAuthStore(s => s.logout);
 
   // Sidebar starts collapsed, expands on hover
   const [hovered, setHovered] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  /* ── Search with debounce ── */
-  const handleSearch = useCallback(async (query: string) => {
-    setInputValue(query);
-    if (!query.trim()) { goHome(); return; }
-    try {
-      const res = await fetch(`/api/tmdb/search?query=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setSearchResults(data.results || []);
-      setView('search');
-      setSearchQuery(query);
-    } catch { /* ignore */ }
-  }, [setSearchResults, setView, setSearchQuery, goHome]);
-
-  useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    const { searchQuery } = useAppStore.getState();
-    if (inputValue !== searchQuery) {
-      searchTimerRef.current = setTimeout(() => handleSearch(inputValue), 500);
-    }
-    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
-  }, [inputValue, handleSearch]);
+  /* ── Search with shared hook ── */
+  const {
+    inputValue,
+    setInputValue,
+    inputRef,
+    clearSearch,
+  } = useSearch({
+    debounceMs: 400,
+    onSearchViewOpened: () => setMobileOpen(false),
+  });
 
   /* ── Active state logic ── */
   const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv', 'asian', 'profile', 'showreels', 'showreel-detail', 'read', 'manga-detail', 'manga-reader', 'people', 'people-detail'].includes(view);
@@ -161,7 +148,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
 
   const handleNavClick = (item: NavItem) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setInputValue('');
+    clearSearch();
     item.action();
     setMobileOpen(false);
   };
@@ -213,7 +200,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                   className="pl-8 pr-8 h-8 bg-white/[0.06] border-white/[0.06] text-[13px] text-white placeholder:text-white/20 focus:border-red-500/40 rounded-lg"
                 />
                 {inputValue && (
-                  <button onClick={() => { setInputValue(''); goHome(); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                  <button onClick={() => { clearSearch(); goHome(); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
                     <X className="w-3 h-3" />
                   </button>
                 )}
@@ -349,7 +336,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                   className="pl-9 pr-9 h-9 bg-white/[0.06] border-white/[0.06] text-[13px] text-white placeholder:text-white/20 focus:border-red-500/40 rounded-lg"
                 />
                 {inputValue && (
-                  <button onClick={() => { setInputValue(''); goHome(); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                  <button onClick={() => { clearSearch(); goHome(); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}

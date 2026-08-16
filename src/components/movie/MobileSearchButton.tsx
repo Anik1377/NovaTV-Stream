@@ -1,61 +1,43 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
-import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearch } from '@/hooks/use-search';
 
 export function MobileSearchButton() {
-  const { setSearchResults, setView, setSearchQuery, view, goHome } = useAppStore();
+  const { view, goHome } = useAppStore();
   const [expanded, setExpanded] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    inputValue,
+    setInputValue,
+    inputRef,
+    clearSearch,
+  } = useSearch({
+    debounceMs: 350,
+    onSearchViewOpened: () => setExpanded(false),
+  });
 
   const isSearchView = view === 'search';
 
-  const handleSearch = useCallback(async (query: string) => {
-    setInputValue(query);
-    if (!query.trim()) return;
-    try {
-      const res = await fetch(`/api/tmdb/search?query=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      setSearchResults(data.results || []);
-      setView('search');
-      setSearchQuery(query);
-    } catch { /* ignore */ }
-  }, [setSearchResults, setView, setSearchQuery]);
-
-  useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    if (inputValue.trim()) {
-      searchTimerRef.current = setTimeout(() => handleSearch(inputValue), 400);
-    }
-    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
-  }, [inputValue, handleSearch]);
-
+  // Auto-focus when expanded
   useEffect(() => {
     if (expanded) {
       const timer = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(timer);
     }
-  }, [expanded]);
+  }, [expanded, inputRef]);
 
   const handleToggle = () => {
     if (expanded) {
       setExpanded(false);
-      setInputValue('');
+      clearSearch();
       if (view === 'search') goHome();
     } else {
       setExpanded(true);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputValue.trim()) {
-      handleSearch(inputValue);
     }
   };
 
@@ -86,7 +68,7 @@ export function MobileSearchButton() {
             animate={{ opacity: 1, scale: 1, width: 'calc(100% - 80px)' }}
             exit={{ opacity: 0, scale: 0.85, width: 0 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            onSubmit={handleSubmit}
+            onSubmit={(e) => e.preventDefault()}
             className="pointer-events-auto flex items-center bg-black/70 backdrop-blur-2xl border border-white/[0.12] rounded-full overflow-hidden shadow-lg shadow-black/30"
           >
             <Search className="w-4 h-4 text-white/40 ml-3.5 shrink-0" />
