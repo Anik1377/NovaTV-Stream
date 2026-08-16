@@ -8,16 +8,17 @@ datasource db {
 }
 
 model User {
-  id           String   @id
-  email        String   @unique
-  passwordHash String?  
-  name         String?
-  avatar       String?
-  bio          String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  sessions     Session[]
-  watchHistory WatchHistory[]
+  id             String          @id
+  email          String          @unique
+  passwordHash   String?  
+  name           String?
+  avatar         String?
+  bio            String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sessions       Session[]
+  watchHistory   WatchHistory[]
+  browseHistory  BrowseHistory[]
 }
 
 model Session {
@@ -42,4 +43,19 @@ model WatchHistory {
   watchedAt  DateTime @default(now())
 
   @@index([userId, watchedAt])
+}
+
+model BrowseHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tmdbId     Int
+  title      String
+  posterPath String?
+  mediaType  String   // "movie" | "tv" | "person"
+  subtitle   String?  // e.g. department for people, release year for movies
+  visitedAt  DateTime @default(now())
+
+  @@index([userId, visitedAt])
+  @@unique([userId, tmdbId, mediaType])
 }

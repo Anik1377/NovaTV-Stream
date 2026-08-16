@@ -11,9 +11,11 @@ import { MovieCard } from './MovieCard';
 import { ProviderSelector } from './ProviderSelector';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { MovieDetails } from '@/lib/types';
+import { useRecordHistory } from '@/lib/useRecordHistory';
 
 export function MovieDetail() {
   const { selectedMovie, goBack, selectedProvider, toggleWatchlist, isInWatchlist } = useAppStore();
+  const { record } = useRecordHistory();
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPlayer, setShowPlayer] = useState(false);
@@ -29,11 +31,18 @@ export function MovieDetail() {
         const res = await fetch(`/api/tmdb/movie/${selectedMovie.id}`);
         const data = await res.json();
         setDetails(data);
+        record({
+          tmdbId: selectedMovie.id,
+          title: selectedMovie.title || 'Movie',
+          posterPath: selectedMovie.poster_path,
+          mediaType: 'movie',
+          subtitle: (selectedMovie.release_date || '').split('-')[0] || undefined,
+        });
       } catch (e) {
         console.error(e);
       }
     });
-  }, [selectedMovie, startTransition]);
+  }, [selectedMovie, startTransition, record]);
 
   if (!selectedMovie) return null;
 

@@ -9,6 +9,7 @@ import {
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
 import type { PersonDetails as PersonDetailsType, PersonCastCredit, PersonCrewCredit, Movie } from '@/lib/types';
+import { useRecordHistory } from '@/lib/useRecordHistory';
 
 /* ── Placeholder SVG ── */
 const PLACEHOLDER = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%23181a1f"><rect width="300" height="450"/><text x="150" y="225" text-anchor="middle" fill="%23333" font-family="system-ui" font-size="64">👤</text></svg>')}`;
@@ -142,6 +143,7 @@ function ImageGallery({ images }: { images: { file_path: string; aspect_ratio: n
 
 export function PeopleDetailPage() {
   const { selectedPerson, goBack, selectMovie, selectTv } = useAppStore();
+  const { record } = useRecordHistory();
   const [details, setDetails] = useState<PersonDetailsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -155,12 +157,19 @@ export function PeopleDetailPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setDetails(data);
+      record({
+        tmdbId: selectedPerson!.id,
+        title: selectedPerson!.name,
+        posterPath: selectedPerson!.profilePath,
+        mediaType: 'person',
+        subtitle: data.known_for_department || undefined,
+      });
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [selectedPerson?.id]);
+  }, [selectedPerson?.id, record]);
 
   useEffect(() => { fetchDetails(); }, [fetchDetails]);
 

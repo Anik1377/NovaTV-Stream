@@ -29,6 +29,7 @@ import { MangaDetail } from '@/components/read/MangaDetail';
 import { MangaReader } from '@/components/read/MangaReader';
 import { PeoplePage } from '@/components/people/PeoplePage';
 import { PeopleDetailPage } from '@/components/people/PeopleDetailPage';
+import { HistoryPage } from '@/components/history/HistoryPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
@@ -417,6 +418,7 @@ export default function App() {
           {view === 'manga-reader' && <MangaReader />}
           {view === 'people' && <PeoplePage />}
           {view === 'people-detail' && <PeopleDetailPage />}
+          {view === 'history' && <HistoryPage />}
           {view === 'games' && <GamesPage key={navCounter} />}
           {view === 'profile' && <ProfilePage />}
         </motion.div>
@@ -426,7 +428,7 @@ export default function App() {
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <MobileSearchButton key={view} />
       <MobileTabBar />
-      {(view === 'anime' || view === 'asian' || view === 'showreels' || view === 'read' || view === 'people') && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian' || view === 'showreels' || view === 'read' || view === 'people' || view === 'history') && <MobileBackHome />}
     </div>
   );
 }

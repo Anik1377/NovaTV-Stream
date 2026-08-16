@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Film, ArrowRight, Sparkles, Users, Clapperboard, TrendingUp } from 'lucide-react';
+import { Star, Film, ArrowRight, Sparkles, Users, Clapperboard, TrendingUp, ChevronDown, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
 import type { Person } from '@/lib/types';
@@ -86,16 +86,6 @@ function HeroGridSkeleton() {
   );
 }
 
-function GridCardSkeleton() {
-  return (
-    <div className="w-full">
-      <div className="aspect-[3/4] rounded-xl bg-white/[0.06] animate-pulse mb-2.5"></div>
-      <div className="h-4 w-3/4 rounded bg-white/[0.06] animate-pulse"></div>
-      <div className="h-3 w-1/2 rounded bg-white/[0.04] animate-pulse mt-1.5"></div>
-    </div>
-  );
-}
-
 export function PeoplePage() {
   const { selectPerson } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<Category>('popular');
@@ -103,26 +93,25 @@ export function PeoplePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<Record<Category, number>>({ popular: 1, trending: 1 });
   const hasMoreRef = useRef<Record<Category, boolean>>({ popular: true, trending: true });
-  const initialFetched = useRef<Record<Category, boolean>>({ popular: false, trending: false });
 
   const fetchPeople = useCallback(async (category: Category, page: number, append: boolean) => {
     if (append) {
       setLoadMoreLoading(true);
     } else {
-      setLoading(category === 'popular' && !initialFetched.current.popular);
+      setLoading(true);
     }
 
     try {
       const res = await fetch(`/api/tmdb/people?category=${category}&page=${page}&limit=50`);
       const data = await res.json();
-      const newResults: Person[] = (data.results || []).filter((p: Person) => p.profile_path);
+      // Sort by popularity descending, then dedupe
+      let newResults: Person[] = (data.results || []).filter((p: Person) => p.profile_path);
+      newResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
       const totalPages = data.total_pages || 1;
 
       setPeopleMap((prev) => {
-        // Dedupe within new results first, then against existing
         const seenIds = new Set<number>();
         const dedupedNew = newResults.filter((p) => {
           if (seenIds.has(p.id)) return false;
@@ -139,7 +128,6 @@ export function PeoplePage() {
 
       pageRef.current[category] = page;
       hasMoreRef.current[category] = page < totalPages;
-      initialFetched.current[category] = true;
     } catch {
       if (!append) setError(true);
     } finally {
@@ -156,24 +144,6 @@ export function PeoplePage() {
 
   const currentPeople = peopleMap[activeCategory];
 
-  // Infinite scroll observer
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !loadMoreLoading && hasMoreRef.current[activeCategory]) {
-          const nextPage = pageRef.current[activeCategory] + 1;
-          fetchPeople(activeCategory, nextPage, true);
-        }
-      },
-      { rootMargin: '600px' },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadMoreLoading, activeCategory, fetchPeople]);
-
   const handlePersonClick = (person: Person) => {
     selectPerson({ id: person.id, name: person.name, profilePath: person.profile_path });
   };
@@ -181,6 +151,12 @@ export function PeoplePage() {
   const switchCategory = (cat: Category) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
+  };
+
+  const handleSeeMore = () => {
+    if (loadMoreLoading) return;
+    const nextPage = pageRef.current[activeCategory] + 1;
+    fetchPeople(activeCategory, nextPage, true);
   };
 
   const heroPeople = currentPeople.slice(0, 9);
@@ -223,6 +199,8 @@ export function PeoplePage() {
       </div>
     );
   }
+
+  const hasMore = hasMoreRef.current[activeCategory];
 
   return (
     <div className="min-h-screen">
@@ -383,16 +361,23 @@ export function PeoplePage() {
           ))}
         </div>
 
-        {/* Load more trigger */}
-        <div ref={loadMoreRef} className="py-10 flex justify-center">
-          {loadMoreLoading && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 md:gap-4 w-full">
-              {Array.from({ length: 16 }, (_, i) => (
-                <GridCardSkeleton key={`skeleton-${i}`} />
-              ))}
-            </div>
+        {/* See More button */}
+        <div className="mt-10 flex justify-center">
+          {hasMore && (
+            <button
+              onClick={handleSeeMore}
+              disabled={loadMoreLoading}
+              className="flex items-center gap-2.5 px-8 py-3 rounded-full bg-white/[0.06] hover:bg-white/10 text-white/70 hover:text-white text-sm font-medium transition-all border border-white/[0.08] hover:border-white/15 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadMoreLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+              {loadMoreLoading ? 'Loading...' : 'See More'}
+            </button>
           )}
-          {!hasMoreRef.current[activeCategory] && currentPeople.length > 0 && !loadMoreLoading && (
+          {!hasMore && currentPeople.length > 0 && (
             <p className="text-white/25 text-sm">You have seen all the people</p>
           )}
         </div>

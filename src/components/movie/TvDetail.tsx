@@ -11,9 +11,11 @@ import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
+import { useRecordHistory } from '@/lib/useRecordHistory';
 
 export function TvDetail() {
   const { selectedTv, goBack, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, toggleWatchlist, isInWatchlist, selectedProvider } = useAppStore();
+  const { record } = useRecordHistory();
   const [details, setDetails] = useState<TvShowDetails | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,15 @@ export function TvDetail() {
       .then((data) => { if (!cancelled) setDetails(data); })
       .catch(console.error)
       .finally(() => { if (!cancelled) setLoading(false); });
+    record({
+      tmdbId: selectedTv.id,
+      title: selectedTv.name || 'TV Show',
+      posterPath: selectedTv.poster_path,
+      mediaType: 'tv',
+      subtitle: (selectedTv.first_air_date || '').split('-')[0] || undefined,
+    });
     return () => { cancelled = true; };
-  }, [selectedTv]);
+  }, [selectedTv, record]);
 
   useEffect(() => {
     if (!selectedTv) return;
