@@ -96,9 +96,9 @@ export function PeoplePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<Record<Category, number>>({ popular: 1, trending: 1 });
+  const hasMoreRef = useRef<Record<Category, boolean>>({ popular: true, trending: true });
 
   const currentPeople = activeCategory === 'popular' ? popularPeople : trendingPeople;
   const setCurrentPeople = activeCategory === 'popular' ? setPopularPeople : setTrendingPeople;
@@ -115,10 +115,11 @@ export function PeoplePage() {
       const trendingData = await trendingRes.json();
       setPopularPeople(popularData.results || []);
       setTrendingPeople(trendingData.results || []);
-      setHasMore(activeCategory === 'popular'
-        ? (popularData.total_pages || 0) > 1
-        : (trendingData.total_pages || 0) > 1
-      );
+      pageRef.current = { popular: 1, trending: 1 };
+      hasMoreRef.current = {
+        popular: (popularData.total_pages || 0) > 1,
+        trending: (trendingData.total_pages || 0) > 1,
+      };
     } catch {
       setError(true);
     } finally {
@@ -130,18 +131,26 @@ export function PeoplePage() {
 
   useEffect(() => {
     const el = loadMoreRef.current;
-    if (!el || !hasMore || loadMoreLoading) return;
+    if (!el || loadMoreLoading) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !loadMoreLoading) {
+          const cat = activeCategory;
+          if (!hasMoreRef.current[cat]) return;
           setLoadMoreLoading(true);
-          const nextPage = page + 1;
-          fetch(`/api/tmdb/people?category=${activeCategory}&page=${nextPage}`)
+          const nextPage = pageRef.current[cat] + 1;
+          fetch(`/api/tmdb/people?category=${cat}&page=${nextPage}`)
             .then(r => r.json())
             .then(data => {
-              setCurrentPeople(prev => [...prev, ...(data.results || [])]);
-              setPage(nextPage);
-              setHasMore(nextPage < (data.total_pages || 1));
+              const newResults = data.results || [];
+              const totalPages = data.total_pages || 1;
+              setCurrentPeople(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const deduped = newResults.filter((p: Person) => !existingIds.has(p.id));
+                return [...prev, ...deduped];
+              });
+              pageRef.current[cat] = nextPage;
+              hasMoreRef.current[cat] = nextPage < totalPages;
             })
             .catch(() => {})
             .finally(() => setLoadMoreLoading(false));
@@ -151,7 +160,7 @@ export function PeoplePage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, loadMoreLoading, page, activeCategory, setCurrentPeople]);
+  }, [loadMoreLoading, activeCategory, setCurrentPeople]);
 
   const handlePersonClick = (person: Person) => {
     selectPerson({ id: person.id, name: person.name, profilePath: person.profile_path });
@@ -160,8 +169,6 @@ export function PeoplePage() {
   const switchCategory = (cat: Category) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
-    setPage(1);
-    setHasMore(true);
     if (cat === 'popular' && popularPeople.length > 0) return;
     if (cat === 'trending' && trendingPeople.length > 0) return;
   };
@@ -372,7 +379,7 @@ export function PeoplePage() {
               <span className="text-sm">Loading more...</span>
             </div>
           )}
-          {!hasMore && currentPeople.length > 0 && (
+          {!hasMoreRef.current[activeCategory] && currentPeople.length > 0 && (
             <p className="text-white/25 text-sm">You have seen all the people</p>
           )}
         </div>
