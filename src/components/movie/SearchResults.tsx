@@ -2,23 +2,25 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
-  Search, ArrowLeft, Film, Tv, Clock, X, Loader2,
-  TrendingUp, History, AlertCircle, ChevronDown, Sparkles,
+  Search, ArrowLeft, Film, Tv, X, Loader2,
+  TrendingUp, History, AlertCircle, ChevronDown, Sparkles, Users,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { MovieCard } from './MovieCard';
 import { useSearch } from '@/hooks/use-search';
 import type { Movie } from '@/lib/types';
+import type { SearchPerson } from '@/store/app-store';
+import { getImageUrl } from '@/lib/tmdb';
 
 /* ── Media type filter ── */
-type MediaFilter = 'all' | 'movie' | 'tv';
+type MediaFilter = 'all' | 'movie' | 'tv' | 'people';
 const FILTER_TABS: { key: MediaFilter; label: string; icon: React.ReactNode }[] = [
   { key: 'all', label: 'All', icon: <Search className="w-3.5 h-3.5" /> },
   { key: 'movie', label: 'Movies', icon: <Film className="w-3.5 h-3.5" /> },
   { key: 'tv', label: 'TV Shows', icon: <Tv className="w-3.5 h-3.5" /> },
+  { key: 'people', label: 'People', icon: <Users className="w-3.5 h-3.5" /> },
 ];
 
 /* ── Trending search suggestions ── */
@@ -40,6 +42,57 @@ function SkeletonGrid() {
         </div>
       ))}
     </div>
+  );
+}
+
+function PeopleSkeletonGrid() {
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4">
+      {Array.from({ length: 16 }, (_, i) => (
+        <div key={i}>
+          <div className="aspect-[3/4] rounded-xl bg-white/[0.06] animate-pulse" />
+          <div className="h-3.5 w-3/4 rounded bg-white/[0.06] mt-2 animate-pulse" />
+          <div className="h-2.5 w-1/2 rounded bg-white/[0.04] mt-1.5 animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Person result card ── */
+function PersonResultCard({ person, onClick }: { person: SearchPerson; onClick: () => void }) {
+  const imgUrl = getImageUrl(person.profile_path, 'w342');
+  const knownForTitles = person.known_for?.slice(0, 2).map(kf => kf.title).filter(Boolean) || [];
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 rounded-xl text-left"
+      aria-label={person.name}
+    >
+      <div className="aspect-[3/4] rounded-xl overflow-hidden mb-2.5 border border-white/[0.06] relative">
+        <img
+          src={imgUrl}
+          alt={person.name}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
+        {/* Department badge */}
+        <div className="absolute top-2 left-2">
+          <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[10px] font-medium text-lime-300 border border-lime-400/20">
+            {person.known_for_department}
+          </span>
+        </div>
+      </div>
+      <p className="text-white/90 text-sm font-medium leading-tight truncate group-hover:text-white transition-colors">
+        {person.name}
+      </p>
+      {knownForTitles.length > 0 && (
+        <p className="text-white/35 text-xs mt-0.5 truncate">
+          {knownForTitles.join(', ')}
+        </p>
+      )}
+    </button>
   );
 }
 
@@ -66,7 +119,7 @@ function EmptySearchState({
       </div>
       <h3 className="text-white/90 text-xl md:text-2xl font-bold mb-2">Search StreamVault</h3>
       <p className="text-white/40 text-sm md:text-base mb-10">
-        Find movies, TV shows, and anime instantly.
+        Find movies, TV shows, people, and anime instantly.
       </p>
 
       {/* Trending suggestions */}
@@ -183,8 +236,9 @@ function NoResultsState({ query, onGoHome }: { query: string; onGoHome: () => vo
 
 /* ── Main SearchResults Component ── */
 export function SearchResults() {
-  const { goHome } = useAppStore();
+  const { goHome, selectPerson } = useAppStore();
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>('all');
+  const [filterForQuery, setFilterForQuery] = useState('');
   const loadMoreRef = useRef<HTMLButtonElement>(null);
 
   const {
@@ -198,6 +252,7 @@ export function SearchResults() {
     inputRef,
     searchQuery,
     searchResults,
+    searchPeople,
     loadMore,
     retry,
     clearHistory,
@@ -205,13 +260,19 @@ export function SearchResults() {
     submitHistoryItem,
   } = useSearch({ navigateToSearch: false });
 
-  // Sync input from store when view first opens
+  // Reset filter when a new query is submitted (derived state, no effect needed)
+  const activeFilter = searchQuery !== filterForQuery ? 'all' : mediaFilter;
+  const handleSetFilter = (f: MediaFilter) => {
+    setMediaFilter(f);
+    setFilterForQuery(searchQuery);
+  };
+
+  // Sync input from store when view first opens & scroll to top
   useEffect(() => {
     if (searchQuery && !inputValue) {
       setInputValue(searchQuery);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-focus on mount
@@ -220,23 +281,26 @@ export function SearchResults() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Reset media filter when query changes
-  useEffect(() => {
-    setMediaFilter('all');
-  }, [searchQuery]);
-
   // Filter results by media type
   const filteredResults = useMemo(() => {
-    if (mediaFilter === 'all') return searchResults;
-    return searchResults.filter((m: Movie) => m.media_type === mediaFilter);
-  }, [searchResults, mediaFilter]);
+    if (activeFilter === 'all' || activeFilter === 'people') return searchResults;
+    return searchResults.filter((m: Movie) => m.media_type === activeFilter);
+  }, [searchResults, activeFilter]);
 
   // Count by type
   const counts = useMemo(() => ({
-    all: searchResults.length,
+    all: searchResults.length + searchPeople.length,
     movie: searchResults.filter((m: Movie) => m.media_type === 'movie').length,
     tv: searchResults.filter((m: Movie) => m.media_type === 'tv').length,
-  }), [searchResults]);
+    people: searchPeople.length,
+  }), [searchResults, searchPeople]);
+
+  const handlePersonClick = useCallback((person: SearchPerson) => {
+    selectPerson({ id: person.id, name: person.name, profilePath: person.profile_path });
+  }, [selectPerson]);
+
+  // Determine if there's nothing at all to show
+  const hasAnyResults = searchResults.length > 0 || searchPeople.length > 0;
 
   return (
     <div className="pt-20 pb-10 px-4 md:px-12 lg:px-16">
@@ -248,7 +312,7 @@ export function SearchResults() {
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search movies, TV shows, anime..."
+            placeholder="Search movies, TV shows, people..."
             className="pl-10 pr-10 bg-white/[0.08] border-white/10 text-white placeholder:text-white/30 focus:border-red-500/50 h-12 rounded-xl text-base"
           />
           {inputValue && (
@@ -287,21 +351,21 @@ export function SearchResults() {
           </p>
 
           {/* Media type filter tabs */}
-          {searchResults.length > 0 && (
-            <div className="flex gap-1.5 mt-4 ml-0">
+          {hasAnyResults && (
+            <div className="flex gap-1.5 mt-4 ml-0 flex-wrap">
               {FILTER_TABS.map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setMediaFilter(tab.key)}
+                  onClick={() => handleSetFilter(tab.key)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                    mediaFilter === tab.key
+                    activeFilter === tab.key
                       ? 'bg-white/15 text-white border border-white/10'
                       : 'text-white/50 hover:text-white/80 hover:bg-white/[0.06] border border-transparent'
                   }`}
                 >
                   {tab.icon}
                   <span>{tab.label}</span>
-                  <span className={`text-xs ${mediaFilter === tab.key ? 'text-white/60' : 'text-white/30'}`}>
+                  <span className={`text-xs ${activeFilter === tab.key ? 'text-white/60' : 'text-white/30'}`}>
                     {counts[tab.key]}
                   </span>
                 </button>
@@ -315,46 +379,92 @@ export function SearchResults() {
       {error && <ErrorState message={error} onRetry={retry} />}
 
       {/* Loading state (skeleton) */}
-      {isLoading && !searchResults.length && <SkeletonGrid />}
+      {isLoading && !searchResults.length && !searchPeople.length && (
+        activeFilter === 'people' ? <PeopleSkeletonGrid /> : <SkeletonGrid />
+      )}
 
       {/* No results state */}
-      {!isLoading && !error && searchQuery && searchResults.length === 0 && (
+      {!isLoading && !error && searchQuery && !hasAnyResults && (
         <NoResultsState query={searchQuery} onGoHome={goHome} />
       )}
 
-      {/* Results Grid */}
-      {!isLoading && !error && filteredResults.length > 0 && (
+      {/* People tab */}
+      {!isLoading && !error && (activeFilter === 'people' || activeFilter === 'all') && searchPeople.length > 0 && (
         <>
+          {activeFilter === 'all' && (
+            <div className="mb-6 mt-8">
+              <h2 className="text-lg font-semibold text-white/80 flex items-center gap-2">
+                <Users className="w-5 h-5 text-lime-400" />
+                People
+                <span className="text-white/30 text-sm font-normal">({searchPeople.length})</span>
+              </h2>
+            </div>
+          )}
+          <div className={activeFilter === 'all' ? 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4 mb-8' : 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 md:gap-4'}>
+            {searchPeople.map((person) => (
+              <PersonResultCard
+                key={`person-${person.id}`}
+                person={person}
+                onClick={() => handlePersonClick(person)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Media results grid (when not on people-only tab) */}
+      {!isLoading && !error && activeFilter !== 'people' && filteredResults.length > 0 && (
+        <>
+          {activeFilter === 'all' && searchPeople.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-white/80 flex items-center gap-2">
+                <Film className="w-5 h-5 text-red-400" />
+                Movies & TV Shows
+                <span className="text-white/30 text-sm font-normal">({searchResults.length})</span>
+              </h2>
+            </div>
+          )}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
             {filteredResults.map((movie, i) => (
               <MovieCard key={`${movie.id}-${movie.media_type}-${i}`} movie={movie} index={i} fluid />
             ))}
           </div>
-
-          {/* Load More button */}
-          {hasMore && (
-            <div className="flex justify-center mt-10">
-              <Button
-                ref={loadMoreRef}
-                onClick={loadMore}
-                disabled={isLoading}
-                className="px-8 py-5 rounded-xl bg-white/[0.08] hover:bg-white/12 text-white border border-white/[0.08] hover:border-white/15 font-medium text-sm transition-all gap-2 disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-4 h-4" />
-                    Load More
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
         </>
+      )}
+
+      {/* People-only tab: show person count message if also filtering media */}
+      {!isLoading && !error && activeFilter === 'people' && searchPeople.length === 0 && searchQuery && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center mb-4">
+            <Users className="w-7 h-7 text-white/10" />
+          </div>
+          <h3 className="text-white/50 text-base font-medium mb-1">No people found</h3>
+          <p className="text-white/30 text-sm">Try searching for an actor or director name.</p>
+        </div>
+      )}
+
+      {/* Load More button */}
+      {hasMore && !error && (activeFilter !== 'people' || activeFilter === 'all') && (
+        <div className="flex justify-center mt-10">
+          <Button
+            ref={loadMoreRef}
+            onClick={loadMore}
+            disabled={isLoading}
+            className="px-8 py-5 rounded-xl bg-white/[0.08] hover:bg-white/12 text-white border border-white/[0.08] hover:border-white/15 font-medium text-sm transition-all gap-2 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4" />
+                Load More
+              </>
+            )}
+          </Button>
+        </div>
       )}
 
       {/* Empty state - no query yet */}

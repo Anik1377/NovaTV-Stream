@@ -3,6 +3,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAppStore } from '@/store/app-store';
 import type { Movie } from '@/lib/types';
+import type { SearchPerson } from '@/store/app-store';
+
+// Re-export for convenience
+export type { SearchPerson } from '@/store/app-store';
 
 /* ── Search History (localStorage) ── */
 const HISTORY_KEY = 'streamvault-search-history';
@@ -77,7 +81,7 @@ export function useSearch(options: UseSearchOptions = {}) {
     onSearchViewOpened,
   } = options;
 
-  const { setSearchResults, setView, setSearchQuery, searchQuery, searchResults, goHome } = useAppStore();
+  const { setSearchResults, setSearchPeople, setView, setSearchQuery, searchQuery, searchResults, searchPeople, goHome } = useAppStore();
 
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +94,7 @@ export function useSearch(options: UseSearchOptions = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const peopleRef = useRef<SearchPerson[]>([]);
 
   // Load history on mount
   useEffect(() => {
@@ -101,11 +106,13 @@ export function useSearch(options: UseSearchOptions = {}) {
     if (!query.trim()) {
       if (!append) {
         setSearchResults([]);
+        setSearchPeople([]);
         setSearchQuery('');
         setError(null);
         setCurrentPage(1);
         setTotalPages(1);
         setTotalResults(0);
+        peopleRef.current = [];
       }
       return;
     }
@@ -130,7 +137,22 @@ export function useSearch(options: UseSearchOptions = {}) {
       if (controller.signal.aborted) return;
 
       const results = (data.results || []) as Movie[];
+      const people = (data.people || []) as SearchPerson[];
+
       setSearchResults(append ? [...searchResults, ...results] : results);
+
+      // People — dedupe by id, store in Zustand
+      if (append) {
+        const existingIds = new Set(peopleRef.current.map(p => p.id));
+        const newPeople = people.filter(p => !existingIds.has(p.id));
+        const merged = [...peopleRef.current, ...newPeople];
+        peopleRef.current = merged;
+        setSearchPeople(merged);
+      } else {
+        peopleRef.current = people;
+        setSearchPeople(people);
+      }
+
       setSearchQuery(query);
       setCurrentPage(data.page || page);
       setTotalPages(data.total_pages || 1);
@@ -154,7 +176,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         setIsLoading(false);
       }
     }
-  }, [searchResults, setSearchResults, setSearchQuery, setView, navigateToSearch, onSearchViewOpened]);
+  }, [searchResults, setSearchResults, setSearchPeople, setSearchQuery, setView, navigateToSearch, onSearchViewOpened]);
 
   // Debounced search on input change
   useEffect(() => {
@@ -181,13 +203,15 @@ export function useSearch(options: UseSearchOptions = {}) {
   const clearSearch = useCallback(() => {
     setInputValue('');
     setSearchResults([]);
+    setSearchPeople([]);
     setSearchQuery('');
     setError(null);
     setCurrentPage(1);
     setTotalPages(1);
     setTotalResults(0);
+    peopleRef.current = [];
     if (abortRef.current) abortRef.current.abort();
-  }, [setSearchResults, setSearchQuery]);
+  }, [setSearchResults, setSearchPeople, setSearchQuery]);
 
   // Load more (pagination)
   const loadMore = useCallback(() => {
@@ -233,6 +257,7 @@ export function useSearch(options: UseSearchOptions = {}) {
     totalResults,
     hasMore,
     searchHistory,
+    searchPeople,
     inputRef,
 
     // Actions

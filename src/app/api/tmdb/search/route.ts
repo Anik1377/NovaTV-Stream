@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached.data);
     }
 
-    const [movies, tv] = await Promise.all([
+    // Search movies, TV shows, and people in parallel
+    const [movies, tv, people] = await Promise.all([
       tmdbFetch<{ page: number; results: any[]; total_results: number; total_pages: number }>(
         '/search/movie',
         { query, page }
@@ -35,18 +36,46 @@ export async function GET(req: NextRequest) {
         '/search/tv',
         { query, page }
       ),
+      tmdbFetch<{ page: number; results: any[]; total_results: number; total_pages: number }>(
+        '/search/person',
+        { query, page }
+      ),
     ]);
 
-    const combined = [
+    const mediaResults = [
       ...movies.results.map((m) => ({ ...m, media_type: 'movie' as const })),
       ...tv.results.map((t) => ({ ...t, media_type: 'tv' as const, title: t.name, name: t.name })),
     ].sort((a, b) => b.popularity - a.popularity);
 
+    // People results — filter out those without a profile photo
+    const personResults = people.results
+      .filter((p) => p.profile_path)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        profile_path: p.profile_path,
+        popularity: p.popularity,
+        known_for_department: p.known_for_department,
+        known_for: (p.known_for || []).map((kf: any) => ({
+          id: kf.id,
+          title: kf.title || kf.name,
+          poster_path: kf.poster_path,
+          media_type: kf.media_type || (kf.first_air_date ? 'tv' : 'movie'),
+          release_date: kf.release_date,
+          first_air_date: kf.first_air_date,
+          vote_average: kf.vote_average,
+        })),
+      }))
+      .sort((a, b) => b.popularity - a.popularity);
+
     const responseData = {
       page: parseInt(page),
-      results: combined,
-      total_results: movies.total_results + tv.total_results,
-      total_pages: Math.max(movies.total_pages, tv.total_pages),
+      results: mediaResults,
+      people: personResults,
+      total_results: movies.total_results + tv.total_results + people.total_results,
+      total_pages: Math.max(movies.total_pages, tv.total_pages, people.total_pages),
+      media_total: movies.total_results + tv.total_results,
+      people_total: people.total_results,
     };
 
     // Store in cache

@@ -1,6 +1,24 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
+/* ── Person result from search ── */
+export interface SearchPerson {
+  id: number;
+  name: string;
+  profile_path: string;
+  popularity: number;
+  known_for_department: string;
+  known_for: {
+    id: number;
+    title: string;
+    poster_path: string | null;
+    media_type: string;
+    release_date?: string;
+    first_air_date?: string;
+    vote_average: number;
+  }[];
+}
+
 type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail' | 'warning' | 'privacy' | 'dmca';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
@@ -11,6 +29,7 @@ interface AppState {
   selectedTv: Movie | null;
   searchQuery: string;
   searchResults: Movie[];
+  searchPeople: SearchPerson[];
   selectedSeason: number;
   selectedEpisode: Episode | null;
   selectedGenreId: number | null;
@@ -31,6 +50,7 @@ interface AppState {
   selectTv: (tv: Movie) => void;
   setSearchQuery: (query: string) => void;
   setSearchResults: (results: Movie[]) => void;
+  setSearchPeople: (people: SearchPerson[]) => void;
   setSelectedSeason: (season: number) => void;
   setSelectedEpisode: (episode: Episode | null) => void;
   selectGenre: (id: number, name: string) => void;
@@ -81,6 +101,7 @@ const resetState = {
   selectedCategory: null,
   searchQuery: '',
   searchResults: [],
+  searchPeople: [],
   selectedEpisode: null,
   selectedGenreId: null,
   selectedGenreName: '',
@@ -128,6 +149,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedTv: null,
   searchQuery: '',
   searchResults: [],
+  searchPeople: [],
   selectedSeason: 1,
   selectedEpisode: null,
   selectedGenreId: null,
@@ -157,6 +179,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSearchResults: (results) => set({ searchResults: results }),
+  setSearchPeople: (people) => set({ searchPeople: people }),
   setSelectedSeason: (season) => set({ selectedSeason: season, selectedEpisode: null }),
   setSelectedEpisode: (episode) => set({ selectedEpisode: episode }),
 
