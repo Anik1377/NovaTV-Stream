@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ytFetch, fetchVideoDetails, mergeSearchResults, type SnippetItem } from '@/lib/youtube';
+import { geminiGenerate, isGeminiConfigured, type GeminiSource } from '@/lib/gemini';
 
 // ── Types ──
 interface BuzzResponse {
@@ -11,20 +12,6 @@ interface BuzzResponse {
 // ── In-memory cache (30 min TTL) ──
 const cache = new Map<string, { data: BuzzResponse; expiry: number }>();
 const CACHE_TTL = 30 * 60 * 1000;
-
-// ── Cached ZAI instance ──
-let zaiInstance: Awaited<ReturnType<typeof import('z-ai-web-dev-sdk').default.create>> | null = null;
-let zaiInitPromise: Promise<Awaited<ReturnType<typeof import('z-ai-web-dev-sdk').default.create>>> | null = null;
-
-async function getZAI() {
-  if (zaiInstance) return zaiInstance;
-  if (!zaiInitPromise) {
-    const ZAI = (await import('z-ai-web-dev-sdk')).default;
-    zaiInitPromise = ZAI.create();
-    zaiInitPromise.then((instance) => { zaiInstance = instance; }).catch(() => { zaiInitPromise = null; });
-  }
-  return zaiInitPromise;
-}
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,28 +28,35 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached.data);
     }
 
-    // ── Run web_search + YouTube in PARALLEL ──
+    // ── Run web search (Gemini grounding) + YouTube in PARALLEL ──
     const [searchResults, youtubeBuzz] = await Promise.all([
-      // Web search via ZAI
+      // Web search via Gemini with Google Search grounding
       (async () => {
         try {
-          const zai = await getZAI();
-          const results = await zai.functions.invoke('web_search', {
-            query: `${title} movie 2025 2026 trailer reaction hype review`,
-            num: 8,
-          });
-          return results.map((r: { name: string; url: string; snippet: string; host_name: string }) => ({
-            title: r.name,
-            url: r.url,
-            snippet: r.snippet,
-            host_name: r.host_name,
-          }));
+          if (!isGeminiConfigured()) return [] as GeminiSource[];
+
+          const result = await geminiGenerate(
+            `Find the latest news, reviews, reactions, and hype about the movie "${title}". What are people saying about it online?`,
+            { useSearch: true },
+          );
+
+          // If grounding returned sources, use those
+          if (result.sources.length > 0) {
+            // Enrich sources with snippets from the generated text
+            return result.sources.map((s) => ({
+              ...s,
+              snippet: '', // Grounding doesn't always include snippets
+            }));
+          }
+
+          // Otherwise return empty — YouTube data is the primary source
+          return [] as GeminiSource[];
         } catch {
-          return [] as { title: string; url: string; snippet: string; host_name: string }[];
+          return [] as GeminiSource[];
         }
       })(),
 
-      // YouTube search + details (no ZAI needed)
+      // YouTube search + details (no external AI needed)
       (async () => {
         try {
           const ytData = await ytFetch<{ items: SnippetItem[] }>('search', {
