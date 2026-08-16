@@ -335,3 +335,27 @@ Stage Summary:
 - history view type and route completely removed from app
 - Profile History tab upgraded to professional browsing history with filters, pagination, individual delete, person support
 - Clean lint, zero console errors, dev server stable
+
+---
+Task ID: 9
+Agent: Main
+Task: Set StreamVault SVG as the main logo across the entire website + fix history recording
+
+Work Log:
+- Copied uploaded StreamVault.svg to /public/logo.svg
+- Replaced logo in Sidebar.tsx desktop (line 190): Film icon in red square → <img src="/logo.svg">
+- Replaced logo in Sidebar.tsx mobile drawer (line 332): same replacement
+- Replaced logo in Header.tsx (line 133): Film icon in red square → <img src="/logo.svg">
+- Replaced logo in SiteFooter.tsx (line 10): Clapperboard icon in red square → <img src="/logo.svg">
+- Replaced app icon in InstallAppModal.tsx modal header (line 193): Download icon → <img src="/logo.svg">
+- Replaced app icon in InstallAppModal.tsx install banner (line 395): Download icon → <img src="/logo.svg">
+- Generated PWA icons (icon-192.png, icon-512.png) from the SVG using @resvg/resvg-js
+- Fixed history recording: verified all 3 detail pages (MovieDetail, TvDetail, PeopleDetailPage) already use useRecordHistory hook correctly
+- Fixed ProfilePage history tab useEffect dependency: added user, fetchHistory, fetchProfile to deps so history refreshes on login
+- Verified via agent-browser: desktop sidebar shows red StreamVault logo, install banner shows logo, footer has logo, mobile shows logo in install banner
+
+Stage Summary:
+- 6 logo placements updated: Sidebar (2), Header (1), Footer (1), InstallAppModal (2)
+- PWA icons regenerated from the custom SVG logo
+- History recording was already working — fixed a stale data issue in ProfilePage useEffect deps
+- All changes confirmed via VLM analysis of browser screenshots
