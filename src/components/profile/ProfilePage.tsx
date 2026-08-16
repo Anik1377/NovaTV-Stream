@@ -16,6 +16,8 @@ import {
   getAvatarDef, type AvatarDef,
 } from '@/lib/avatars';
 import { getImageUrl } from '@/lib/tmdb';
+import { getLocalBrowseHistory, deleteLocalHistoryItem, clearLocalHistory } from '@/lib/useRecordHistory';
+import type { BrowseHistoryEntry } from '@/lib/useRecordHistory';
 import type { Movie } from '@/lib/types';
 
 interface BrowseHistoryItem {
@@ -81,7 +83,17 @@ export function ProfilePage() {
   }, [user]);
 
   const fetchHistory = useCallback(async (filter: HistoryFilter, page: number, append: boolean) => {
-    if (!user) return;
+    // Non-authenticated users: use localStorage
+    if (!user) {
+      setHistoryLoading(true);
+      let local = getLocalBrowseHistory();
+      if (filter !== 'all') local = local.filter((i) => i.mediaType === filter);
+      setHistory(local);
+      setHistoryTotal(local.length);
+      setHistoryLoading(false);
+      return;
+    }
+    // Authenticated: use server API
     if (append) { setHistoryLoadMore(true); } else { setHistoryLoading(true); }
     try {
       const params = new URLSearchParams({ limit: '50', offset: String((page - 1) * 50) });
@@ -144,7 +156,11 @@ export function ProfilePage() {
 
   const clearHistory = async () => {
     if (!confirm('Clear all browsing history? This cannot be undone.')) return;
-    await fetch('/api/history', { method: 'DELETE' });
+    if (user) {
+      await fetch('/api/history', { method: 'DELETE' });
+    } else {
+      clearLocalHistory();
+    }
     setHistory([]);
     setHistoryTotal(0);
   };
@@ -152,7 +168,11 @@ export function ProfilePage() {
   const handleDeleteHistoryItem = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDeletingId(id);
-    await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
+    if (user) {
+      await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
+    } else {
+      deleteLocalHistoryItem(id);
+    }
     setHistory(prev => prev.filter(item => item.id !== id));
     setHistoryTotal(prev => prev - 1);
     setDeletingId(null);
@@ -193,34 +213,20 @@ export function ProfilePage() {
     if (mediaType === 'tv') selectTv(item); else selectMovie(item);
   };
 
-  // Not logged in
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-sm">
-          <div className="w-24 h-24 rounded-full bg-white/[0.06] flex items-center justify-center mx-auto mb-6">
-            <User className="w-10 h-10 text-white/20" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Sign in to your Profile</h2>
-          <p className="text-white/40 text-sm mb-6">Track your watchlist and history across devices.</p>
-          <button onClick={() => setAuthModalOpen(true)} className="px-6 py-3 hover:brightness-110 text-white font-semibold rounded-xl transition-all shadow-lg" style={{ backgroundColor: accentColor, boxShadow: `0 10px 30px ${accentColor}33` }}>
-            Sign In
-          </button>
-          <button onClick={goHome} className="flex items-center gap-2 text-white/40 hover:text-white mx-auto mt-8 transition-colors">
-            <ArrowLeft className="w-4 h-4" /><span className="text-sm">Back to Home</span>
-          </button>
-        </div>
-        <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-      </div>
-    );
-  }
+  // Not logged in — but still show the page with limited tabs
+  const isLoggedIn = !!user && !authLoading;
 
   const memberSince = user ? new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
   const avatarDef = getAvatarDef(user?.avatar);
 
+  // Default to history tab when not logged in
+  useEffect(() => {
+    if (!isLoggedIn && tab === 'profile') setTab('history');
+  }, [isLoggedIn]);
+
   const tabsList: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
-    { key: 'watchlist', label: `Watchlist (${watchlist.length})`, icon: <Bookmark className="w-4 h-4" /> },
+    ...(isLoggedIn ? [{ key: 'profile' as Tab, label: 'Profile', icon: <User className="w-4 h-4" /> }] : []),
+    ...(isLoggedIn ? [{ key: 'watchlist' as Tab, label: `Watchlist (${watchlist.length})`, icon: <Bookmark className="w-4 h-4" /> }] : []),
     { key: 'history', label: `History${historyTotal > 0 ? ` (${historyTotal})` : ''}`, icon: <Clock className="w-4 h-4" /> },
   ];
 
@@ -235,7 +241,8 @@ export function ProfilePage() {
           <span className="text-sm font-medium">Back</span>
         </button>
 
-        {/* ── Profile Header ── */}
+        {/* ── Profile Header (logged in only) ── */}
+        {isLoggedIn && (
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
           {/* Avatar */}
           <motion.div className="relative" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
@@ -284,6 +291,13 @@ export function ProfilePage() {
             </button>
           </div>
         </div>
+        )}
+        {!isLoggedIn && (
+          <div className="mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Browsing History</h1>
+            <p className="text-white/40 text-sm mt-1">Your recently viewed content is saved locally. <button onClick={() => setAuthModalOpen(true)} className="text-white/60 hover:text-white underline underline-offset-2 transition-colors">Sign in</button> to sync across devices.</p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-white/[0.06]">
