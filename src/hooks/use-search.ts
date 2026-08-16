@@ -96,6 +96,10 @@ export function useSearch(options: UseSearchOptions = {}) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const peopleRef = useRef<SearchPerson[]>([]);
+  // Monotonically increasing counter — every performSearch call bumps this.
+  // Before setting any state after an async fetch, we check that the requestId
+  // still matches so that stale (slower) responses never overwrite newer ones.
+  const requestIdRef = useRef(0);
 
   // Use refs for options to keep performSearch stable
   const optionsRef = useRef({ navigateToSearch, onSearchViewOpened });
@@ -127,6 +131,9 @@ export function useSearch(options: UseSearchOptions = {}) {
       return;
     }
 
+    // Increment request ID to invalidate any in-flight responses from this instance
+    const requestId = ++requestIdRef.current;
+
     // Cancel any in-flight request for THIS instance
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
@@ -144,7 +151,8 @@ export function useSearch(options: UseSearchOptions = {}) {
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
 
-      if (controller.signal.aborted) return;
+      // CRITICAL: reject stale responses (abort OR superseded by a newer search)
+      if (controller.signal.aborted || requestId !== requestIdRef.current) return;
 
       const results = (data.results || []) as Movie[];
       const people = (data.people || []) as SearchPerson[];
@@ -183,9 +191,12 @@ export function useSearch(options: UseSearchOptions = {}) {
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
+      // Don't set error state if this request has been superseded
+      if (requestId !== requestIdRef.current) return;
       setError('Something went wrong. Please try again.');
     } finally {
-      if (!controller.signal.aborted) {
+      // Only clear loading state if this is still the active request
+      if (!controller.signal.aborted && requestId === requestIdRef.current) {
         setIsLoading(false);
       }
     }
@@ -261,6 +272,20 @@ export function useSearch(options: UseSearchOptions = {}) {
     performSearch(query);
   }, [performSearch]);
 
+  /**
+   * Sync the input field and lastSearchedQueryRef from the Zustand store.
+   * Used by SearchResults (navigateToSearch: false) on mount so the
+   * debounce effect won't fire a redundant search for a query that was
+   * already fetched by another hook instance (e.g. Header).
+   */
+  const syncFromStore = useCallback(() => {
+    const storeQuery = useAppStore.getState().searchQuery;
+    if (storeQuery) {
+      setInputValue(storeQuery);
+      lastSearchedQueryRef.current = storeQuery;
+    }
+  }, []);
+
   const hasMore = currentPage < totalPages;
 
   return {
@@ -290,6 +315,9 @@ export function useSearch(options: UseSearchOptions = {}) {
     searchQuery: store.searchQuery,
     searchResults: store.searchResults,
     goHome,
+
+    // Utilities
+    syncFromStore,
   };
 }
 

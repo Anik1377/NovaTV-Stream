@@ -258,6 +258,7 @@ export function SearchResults() {
     clearHistory,
     removeHistoryItem,
     submitHistoryItem,
+    syncFromStore,
   } = useSearch({ navigateToSearch: false });
 
   // Reset filter when a new query is submitted (derived state, no effect needed)
@@ -267,13 +268,14 @@ export function SearchResults() {
     setFilterForQuery(searchQuery);
   };
 
-  // Sync input from store when view first opens & scroll to top
+  // Sync input from store when view first opens & scroll to top.
+  // Uses syncFromStore which sets both inputValue AND lastSearchedQueryRef,
+  // preventing the debounce effect from firing a redundant search that
+  // would race with the instance that originally performed the query.
   useEffect(() => {
-    if (searchQuery && !inputValue) {
-      setInputValue(searchQuery);
-    }
+    syncFromStore();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [syncFromStore]);
 
   // Auto-focus on mount
   useEffect(() => {

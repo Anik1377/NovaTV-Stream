@@ -19,7 +19,7 @@ export interface SearchPerson {
   }[];
 }
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail' | 'warning' | 'privacy' | 'dmca';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'desi' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail' | 'music' | 'warning' | 'privacy' | 'dmca';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -67,6 +67,8 @@ interface AppState {
   showProfile: () => void;
   showRead: () => void;
   showPeople: () => void;
+  showMusic: () => void;
+  showDesi: () => void;
   // ShowReel detail
   selectedShowreel: Movie | null;
   selectShowreel: (movie: Movie) => void;
@@ -205,6 +207,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
   showRead: () => set({ view: 'read', ...resetState, navHistory: [] }),
   showPeople: () => set({ view: 'people', ...resetState, navHistory: [] }),
+  showMusic: () => set({ view: 'music', ...resetState, navHistory: [] }),
+  showDesi: () => set({ view: 'desi', ...resetState, navHistory: [] }),
   showWarning: () => set({ view: 'warning', ...resetState, navHistory: [] }),
   showPrivacy: () => set({ view: 'privacy', ...resetState, navHistory: [] }),
   showDmca: () => set({ view: 'dmca', ...resetState, navHistory: [] }),

@@ -22,6 +22,7 @@ import { LiveTV } from '@/components/live-tv/LiveTV';
 import { AnimePage } from '@/components/anime/AnimePage';
 import { GamesPage } from '@/components/game/GamesPage';
 import { AsianPage } from '@/components/asian/AsianPage';
+import { DesiPage } from '@/components/desi/DesiPage';
 import { ShowReelsPage } from '@/components/showreel/ShowReelsPage';
 import { ShowReelDetail } from '@/components/showreel/ShowReelDetail';
 import { ReadPage } from '@/components/read/ReadPage';
@@ -29,6 +30,7 @@ import { MangaDetail } from '@/components/read/MangaDetail';
 import { MangaReader } from '@/components/read/MangaReader';
 import { PeoplePage } from '@/components/people/PeoplePage';
 import { PeopleDetailPage } from '@/components/people/PeopleDetailPage';
+import { MusicPage } from '@/components/music/MusicPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
@@ -412,6 +414,7 @@ export default function App() {
           {view === 'livetv' && <LiveTV />}
           {view === 'anime' && <AnimePage />}
           {view === 'asian' && <AsianPage />}
+          {view === 'desi' && <DesiPage />}
           {view === 'showreels' && <ShowReelsPage />}
           {view === 'showreel-detail' && <ShowReelDetail />}
           {view === 'read' && <ReadPage />}
@@ -419,6 +422,7 @@ export default function App() {
           {view === 'manga-reader' && <MangaReader />}
           {view === 'people' && <PeoplePage />}
           {view === 'people-detail' && <PeopleDetailPage />}
+          {view === 'music' && <MusicPage />}
           {view === 'games' && <GamesPage key={navCounter} />}
           {view === 'profile' && <ProfilePage />}
           {view === 'warning' && <WarningPage />}
@@ -432,7 +436,7 @@ export default function App() {
       <MobileSearchButton key={view} />
       <MobileTabBar />
       <VisitDisclaimer />
-      {(view === 'anime' || view === 'asian' || view === 'showreels' || view === 'read' || view === 'people') && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people' || view === 'music') && <MobileBackHome />}
     </div>
   );
 }

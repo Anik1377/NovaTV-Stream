@@ -359,3 +359,88 @@ Stage Summary:
 - PWA icons regenerated from the custom SVG logo
 - History recording was already working — fixed a stale data issue in ProfilePage useEffect deps
 - All changes confirmed via VLM analysis of browser screenshots
+---
+Task ID: 1
+Agent: Main
+Task: Explore 5 BD/IN streaming sites and integrate working APIs
+
+Work Log:
+- Searched web for Bangladeshi/Indian streaming content APIs (12+ searches)
+- Tested TMDB Discover API for Hindi (608 results), Bengali-BD (2029 movies, 134 TV), Tamil (5886), Telugu (3830)
+- Tested JioSaavn internal API (api.php endpoint) - WORKS for music search
+- Tested Bongo BD API - BLOCKED (Cloudflare Forbidden)
+- Tested Hoichoi API - BLOCKED (Cloudflare challenge)
+- Tested YouTube oEmbed - Works but limited
+- Tested Watchmode API - Requires API key registration
+- Tested Streaming Availability API - Domain unresolvable
+
+Stage Summary:
+- 5 sites explored: TMDB ✅, JioSaavn ✅, Bongo BD ❌, Hoichoi ❌, YouTube (limited)
+- Two working APIs integrated: TMDB for movies/TV, JioSaavn for music
+
+---
+Task ID: 2
+Agent: Sub-agent (full-stack-developer)
+Task: Create Desi Cinema page with Indian regional languages
+
+Work Log:
+- Created /src/app/api/tmdb/desi/route.ts - batched TMDB discover for 10 languages
+- Created /src/components/desi/DesiPage.tsx - full Desi Cinema page
+- 10 languages: Hindi, Bangladeshi, Tamil, Telugu, Malayalam, Kannada, Punjabi, Marathi, Urdu, Bengali (India)
+- Lazy loading: first 3 languages on mount, rest via IntersectionObserver
+- Horizontal rows + grid view when language selected
+
+Stage Summary:
+- Desi Cinema page created with warm saffron/orange accents
+- API route with 5-min in-memory cache
+- Verified working: Hindi, Bangladeshi, Tamil, Telugu, Malayalam, Kannada rows showing
+
+---
+Task ID: 3
+Agent: Sub-agent (full-stack-developer)
+Task: Add JioSaavn music API + Music page
+
+Work Log:
+- Created /src/app/api/music/search/route.ts - proxy to JioSaavn API
+- Created /src/components/music/MusicPage.tsx - full music discovery page
+- Features: search, language filters, genre quick-start cards, song list, bottom audio player
+- Bottom player: play/pause, skip, seek, auto-next, spacebar shortcut
+- Fixed TS18047 error in audio event listeners
+
+Stage Summary:
+- Music page with JioSaavn API integration working
+- Audio player with preview playback functional
+- Bengali/Hindi/Tamil/Telugu/Punjabi/Malayalam language filters
+
+---
+Task ID: 4
+Agent: Sub-agent (general-purpose)
+Task: Fix search flickering bug
+
+Work Log:
+- Added requestIdRef counter to use-search.ts for stale request detection
+- Added post-fetch guard: controller.signal.aborted || requestId !== requestIdRef.current
+- Added syncFromStore() method for cross-instance coordination
+- Updated SearchResults.tsx to use syncFromStore() on mount
+
+Stage Summary:
+- Search flickering fixed with request ID deduplication
+- Cross-instance race condition eliminated via syncFromStore
+
+---
+Task ID: 5
+Agent: Main
+Task: Wire up new pages in store, sidebar, and routing
+
+Work Log:
+- Added 'desi' to ViewType union in app-store.ts
+- Added showDesi() action in app-store.ts
+- Added DesiPage import and view routing in page.tsx
+- Added MobileBackHome for desi view
+- Added Desi Cinema nav item to Sidebar (Flame icon, orange accent)
+- Updated isSpecialView and showHamburger arrays
+
+Stage Summary:
+- Desi Cinema and Music pages fully wired into app
+- Sidebar shows both with proper colored accents
+- Mobile back button works for both pages

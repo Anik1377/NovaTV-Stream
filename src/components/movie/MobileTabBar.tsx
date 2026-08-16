@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen, Users } from 'lucide-react';
+import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen, Users, Music } from 'lucide-react';
 import { ProfileAvatar } from '@/lib/avatars';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -46,7 +46,7 @@ export function MobileTabBar() {
     view, mediaFilter,
     goHome, showMovies, showTvShows, showAnime,
     showAsian, showGames, showShowreels, showRead,
-    showLiveTV, showProfile, showPeople,
+    showLiveTV, showProfile, showPeople, showMusic,
   } = useAppStore();
   const authUser = useAuthStore((s) => s.user);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -69,7 +69,8 @@ export function MobileTabBar() {
     { key: 'showreels', label: 'ShowReels', icon: Clapperboard, action: showShowreels, color: 'text-amber-400' },
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead, color: 'text-sky-400' },
     { key: 'people', label: 'People', icon: Users, action: showPeople, color: 'text-lime-400' },
-  ], [showGames, showLiveTV, showAsian, showShowreels, showRead, showPeople]);
+    { key: 'music', label: 'Music', icon: Music, action: showMusic, color: 'text-purple-400' },
+  ], [showGames, showLiveTV, showAsian, showShowreels, showRead, showPeople, showMusic]);
 
   /* ── Active state ── */
   const isActive = useCallback((key: string) => {
@@ -78,7 +79,7 @@ export function MobileTabBar() {
       case 'movies': return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
       case 'tvshows': return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
       case 'anime': return view === 'anime';
-      case 'more': return ['games','livetv','asian','showreels','showreel-detail','read','manga-detail','manga-reader','people','people-detail'].includes(view);
+      case 'more': return ['games','livetv','asian','showreels','showreel-detail','read','manga-detail','manga-reader','people','people-detail','music'].includes(view);
       case 'profile': return view === 'profile';
       default: return false;
     }
@@ -197,6 +198,7 @@ export function MobileTabBar() {
                     item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail') :
                     item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader') :
                     item.key === 'people' ? (view === 'people' || view === 'people-detail') :
+                    item.key === 'music' ? view === 'music' :
                     false;
                   const IconComp = item.icon;
                   return (
