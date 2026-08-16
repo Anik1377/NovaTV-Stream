@@ -34,6 +34,7 @@ import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
 import { WarningPage, PrivacyPage, DmcaPage } from '@/components/legal/LegalPages';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
+import { VisitDisclaimer } from '@/components/movie/VisitDisclaimer';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
@@ -430,6 +431,7 @@ export default function App() {
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <MobileSearchButton key={view} />
       <MobileTabBar />
+      <VisitDisclaimer />
       {(view === 'anime' || view === 'asian' || view === 'showreels' || view === 'read' || view === 'people') && <MobileBackHome />}
     </div>
   );
