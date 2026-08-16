@@ -337,12 +337,15 @@ export function TvDetail() {
 
           {/* Similar */}
           {similar.length > 0 && (
-            <section className="mt-4 mb-10">
+            <section className="mt-4 mb-10 relative">
               <h2 className="text-lg md:text-xl font-bold text-white mb-4">Similar Shows</h2>
-              <div className="flex gap-2 md:gap-3 overflow-x-auto content-scroll pb-4">
-                {similar.map((m, i) => (
-                  <MovieCard key={m.id} movie={{ ...m, media_type: 'tv' }} index={i} />
-                ))}
+              <div className="relative">
+                <div className="flex gap-2 md:gap-3 overflow-x-auto content-scroll pb-4">
+                  {similar.map((m, i) => (
+                    <MovieCard key={m.id} movie={{ ...m, media_type: 'tv' }} index={i} />
+                  ))}
+                </div>
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#141414] to-transparent" />
               </div>
             </section>
           )}

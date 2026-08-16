@@ -176,7 +176,7 @@ export function InstallAppModal({
             className="fixed inset-0 z-[301] flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
             <div
-              className="bg-zinc-950 border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-zinc-950 border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto content-scroll"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header with gradient */}
@@ -380,7 +380,10 @@ export function InstallBanner({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-[250]"
+          className="fixed left-4 right-4 md:left-auto md:right-6 md:max-w-sm z-[250] md:bottom-6"
+          style={{
+            bottom: 'max(calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem), 1.5rem)',
+          }}
         >
           <div className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/40">
             <button

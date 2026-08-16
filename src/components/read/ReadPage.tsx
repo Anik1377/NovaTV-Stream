@@ -217,7 +217,7 @@ export function ReadPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-1 overflow-x-auto pb-3 -mx-1 px-1">
+        <div className="flex gap-1 overflow-x-auto scrollbar-none pb-3 -mx-1 px-1">
           {TABS.map((tab) => (
             <button
               key={tab.key}

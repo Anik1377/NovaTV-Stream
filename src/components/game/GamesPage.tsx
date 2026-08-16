@@ -334,7 +334,7 @@ export function GamesPage() {
       </div>
 
       {/* Games Footer */}
-      <footer className="mt-8 border-t border-emerald-500/10 px-4 md:px-8 py-8">
+      <footer className="mt-8 border-t border-emerald-500/10 px-4 md:px-8 py-8 pb-28 md:pb-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">

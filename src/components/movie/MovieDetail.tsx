@@ -295,15 +295,18 @@ export function MovieDetail() {
 
           {/* More Like This */}
           {similar.length > 0 && (
-            <section className="mt-8 mb-10">
+            <section className="mt-8 mb-10 relative">
               <div className="flex items-center gap-3 mb-5">
                 <span className="w-1 h-7 bg-[#e50914] rounded-full" />
                 <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">More Like This</h2>
               </div>
-              <div className="flex gap-3 md:gap-4 overflow-x-auto content-scroll no-scrollbar pb-4">
-                {similar.map((m, i) => (
-                  <MovieCard key={m.id} movie={{ ...m, media_type: 'movie' }} index={i} />
-                ))}
+              <div className="relative">
+                <div className="flex gap-3 md:gap-4 overflow-x-auto content-scroll no-scrollbar pb-4">
+                  {similar.map((m, i) => (
+                    <MovieCard key={m.id} movie={{ ...m, media_type: 'movie' }} index={i} />
+                  ))}
+                </div>
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#141414] to-transparent" />
               </div>
             </section>
           )}

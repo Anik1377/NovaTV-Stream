@@ -139,7 +139,7 @@ export function AsianPage() {
         </div>
 
         {/* Language filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
           <button onClick={() => setSelectedLang(null)}
             className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${!selectedLang ? 'bg-white/15 border-white/20 text-white' : 'bg-white/5 border-white/5 text-white/50 hover:text-white/70'}`}>
             All Languages

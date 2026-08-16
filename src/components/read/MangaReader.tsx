@@ -231,7 +231,7 @@ export function MangaReader() {
         ref={containerRef}
         onScroll={handleScroll}
         onClick={handleTap}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto content-scroll"
       >
         {loading ? (
           <div className="flex items-center justify-center h-full">

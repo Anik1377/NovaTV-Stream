@@ -233,7 +233,7 @@ export function AnimePage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => handleSelect(heroItem)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 active:scale-95"
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 active:scale-95"
                 >
                   <Play className="w-5 h-5 fill-white" />
                   Watch Now
@@ -269,7 +269,7 @@ export function AnimePage() {
       {/* Anime Genre Filter Bar */}
       <div className="relative z-10 -mt-6">
         <div className="px-4 md:px-8">
-          <div className="flex items-center gap-2 overflow-x-auto content-scroll pb-4">
+          <div className="flex items-center gap-2 overflow-x-auto content-scroll pb-4 pr-2">
             {ANIME_GENRES.map((genre) => {
               const IconComp = genre.icon;
               return (

@@ -196,7 +196,12 @@ export function MobileTabBar() {
               </div>
               <div className="space-y-2">
                 {moreItems.map((item) => {
-                  const active = item.key === 'games' ? view === 'games' : item.key === 'asian' ? view === 'asian' : item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail') : view === 'livetv';
+                  const active = item.key === 'games' ? view === 'games'
+                    : item.key === 'asian' ? view === 'asian'
+                    : item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail')
+                    : item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader')
+                    : item.key === 'livetv' ? view === 'livetv'
+                    : false;
                   return (
                     <motion.button
                       key={item.key}

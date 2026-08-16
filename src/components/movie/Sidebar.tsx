@@ -222,7 +222,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-2.5 py-1.5 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-2.5 py-1.5 space-y-0.5 overflow-y-auto content-scroll">
         {navItems.map(item => {
           const active = getActive(item);
           return (
@@ -250,7 +250,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
               onClick={() => { showProfile(); setMobileOpen(false); }}
               title={!expanded ? `Profile (${authUser.email})` : undefined}
               className={`w-full flex items-center gap-2.5 h-10 rounded-lg transition-colors text-white/60 hover:text-white hover:bg-white/[0.06] ${
-                view === 'profile' ? '!text-white !bg-white/10' : ''
+                view === 'profile' ? '!text-red-500 !bg-red-500/10' : ''
               } ${
                 !expanded ? 'justify-center px-2' : 'px-2.5'
               }`}
@@ -357,7 +357,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
             </div>
 
             {/* Nav items */}
-            <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto content-scroll">
               {navItems.map(item => {
                 const active = getActive(item);
                 return (
