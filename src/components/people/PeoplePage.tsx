@@ -122,12 +122,19 @@ export function PeoplePage() {
       const totalPages = data.total_pages || 1;
 
       setPeopleMap((prev) => {
+        // Dedupe within new results first, then against existing
+        const seenIds = new Set<number>();
+        const dedupedNew = newResults.filter((p) => {
+          if (seenIds.has(p.id)) return false;
+          seenIds.add(p.id);
+          return true;
+        });
         if (append) {
           const existingIds = new Set(prev[category].map((p) => p.id));
-          const deduped = newResults.filter((p) => !existingIds.has(p.id));
+          const deduped = dedupedNew.filter((p) => !existingIds.has(p.id));
           return { ...prev, [category]: [...prev[category], ...deduped] };
         }
-        return { ...prev, [category]: newResults };
+        return { ...prev, [category]: dedupedNew };
       });
 
       pageRef.current[category] = page;

@@ -36,8 +36,9 @@ export async function GET(req: NextRequest) {
       totalPages = data.total_pages;
       totalResults = data.total_results;
 
-      // Filter out people without photos on the backend
-      const withPhotos = (data.results || []).filter((p) => p.profile_path);
+      // Filter out people without photos and dedupe within batch
+      const seen = new Set(allResults.map((p) => p.id));
+      const withPhotos = (data.results || []).filter((p) => p.profile_path && !seen.has(p.id));
       allResults.push(...withPhotos);
 
       if (allResults.length >= limit) break;
