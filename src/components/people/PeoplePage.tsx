@@ -14,10 +14,8 @@ const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'trending', label: 'Trending', icon: <TrendingUp className="w-4 h-4" /> },
 ];
 
-const PLACEHOLDER_IMG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%23181a1f"><rect width="300" height="450" rx="9999"/><text x="150" y="200" text-anchor="middle" fill="%23333" font-family="system-ui" font-size="64">ø³</text><text x="150" y="260" text-anchor="middle" fill="%23444" font-family="system-ui" font-size="14">No Photo</text></svg>')}`;
-
 function HeroPersonCard({ person, index, onClick }: { person: Person; index: number; onClick: () => void }) {
-  const imgUrl = person.profile_path ? getImageUrl(person.profile_path, 'w342') : PLACEHOLDER_IMG;
+  const imgUrl = getImageUrl(person.profile_path!, 'w342');
 
   return (
     <motion.button
@@ -49,18 +47,18 @@ function HeroPersonCard({ person, index, onClick }: { person: Person; index: num
   );
 }
 
-function PersonRowCard({ person, onClick }: { person: Person; onClick: () => void }) {
-  const imgUrl = person.profile_path ? getImageUrl(person.profile_path, 'w185') : PLACEHOLDER_IMG;
+function PersonGridCard({ person, onClick }: { person: Person; onClick: () => void }) {
+  const imgUrl = getImageUrl(person.profile_path!, 'w342');
 
   return (
     <motion.button
       whileHover={{ y: -4, scale: 1.03 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="shrink-0 w-[120px] md:w-[140px] group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 rounded-xl"
+      className="w-full group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 rounded-xl"
       aria-label={person.name}
     >
-      <div className="aspect-[3/4] rounded-xl overflow-hidden mb-2 border border-white/[0.06]">
+      <div className="aspect-[3/4] rounded-xl overflow-hidden mb-2.5 border border-white/[0.06]">
         <img
           src={imgUrl}
           alt={person.name}
@@ -68,10 +66,10 @@ function PersonRowCard({ person, onClick }: { person: Person; onClick: () => voi
           loading="lazy"
         />
       </div>
-      <p className="text-white/90 text-xs font-medium leading-tight truncate group-hover:text-white transition-colors">
+      <p className="text-white/90 text-sm font-medium leading-tight truncate group-hover:text-white transition-colors">
         {person.name}
       </p>
-      <p className="text-white/40 text-[10px] capitalize mt-0.5 truncate">
+      <p className="text-white/40 text-xs capitalize mt-0.5 truncate">
         {person.known_for_department}
       </p>
     </motion.button>
@@ -88,79 +86,86 @@ function HeroGridSkeleton() {
   );
 }
 
+function GridCardSkeleton() {
+  return (
+    <div className="w-full">
+      <div className="aspect-[3/4] rounded-xl bg-white/[0.06] animate-pulse mb-2.5"></div>
+      <div className="h-4 w-3/4 rounded bg-white/[0.06] animate-pulse"></div>
+      <div className="h-3 w-1/2 rounded bg-white/[0.04] animate-pulse mt-1.5"></div>
+    </div>
+  );
+}
+
 export function PeoplePage() {
   const { selectPerson } = useAppStore();
   const [activeCategory, setActiveCategory] = useState<Category>('popular');
-  const [popularPeople, setPopularPeople] = useState<Person[]>([]);
-  const [trendingPeople, setTrendingPeople] = useState<Person[]>([]);
+  const [peopleMap, setPeopleMap] = useState<Record<Category, Person[]>>({ popular: [], trending: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<Record<Category, number>>({ popular: 1, trending: 1 });
   const hasMoreRef = useRef<Record<Category, boolean>>({ popular: true, trending: true });
+  const initialFetched = useRef<Record<Category, boolean>>({ popular: false, trending: false });
 
-  const currentPeople = activeCategory === 'popular' ? popularPeople : trendingPeople;
-  const setCurrentPeople = activeCategory === 'popular' ? setPopularPeople : setTrendingPeople;
+  const fetchPeople = useCallback(async (category: Category, page: number, append: boolean) => {
+    if (append) {
+      setLoadMoreLoading(true);
+    } else {
+      setLoading(category === 'popular' && !initialFetched.current.popular);
+    }
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(false);
     try {
-      const [popularRes, trendingRes] = await Promise.all([
-        fetch('/api/tmdb/people?category=popular&page=1'),
-        fetch('/api/tmdb/people?category=trending&page=1'),
-      ]);
-      const popularData = await popularRes.json();
-      const trendingData = await trendingRes.json();
-      setPopularPeople(popularData.results || []);
-      setTrendingPeople(trendingData.results || []);
-      pageRef.current = { popular: 1, trending: 1 };
-      hasMoreRef.current = {
-        popular: (popularData.total_pages || 0) > 1,
-        trending: (trendingData.total_pages || 0) > 1,
-      };
+      const res = await fetch(`/api/tmdb/people?category=${category}&page=${page}&limit=50`);
+      const data = await res.json();
+      const newResults: Person[] = (data.results || []).filter((p: Person) => p.profile_path);
+      const totalPages = data.total_pages || 1;
+
+      setPeopleMap((prev) => {
+        if (append) {
+          const existingIds = new Set(prev[category].map((p) => p.id));
+          const deduped = newResults.filter((p) => !existingIds.has(p.id));
+          return { ...prev, [category]: [...prev[category], ...deduped] };
+        }
+        return { ...prev, [category]: newResults };
+      });
+
+      pageRef.current[category] = page;
+      hasMoreRef.current[category] = page < totalPages;
+      initialFetched.current[category] = true;
     } catch {
-      setError(true);
+      if (!append) setError(true);
     } finally {
+      setLoadMoreLoading(false);
       setLoading(false);
     }
-  }, [activeCategory]);
+  }, []);
 
-  useEffect(() => { fetchData(); }, []);
+  // Initial fetch for both categories
+  useEffect(() => {
+    fetchPeople('popular', 1, false);
+    fetchPeople('trending', 1, false);
+  }, []);
 
+  const currentPeople = peopleMap[activeCategory];
+
+  // Infinite scroll observer
   useEffect(() => {
     const el = loadMoreRef.current;
-    if (!el || loadMoreLoading) return;
+    if (!el) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !loadMoreLoading) {
-          const cat = activeCategory;
-          if (!hasMoreRef.current[cat]) return;
-          setLoadMoreLoading(true);
-          const nextPage = pageRef.current[cat] + 1;
-          fetch(`/api/tmdb/people?category=${cat}&page=${nextPage}`)
-            .then(r => r.json())
-            .then(data => {
-              const newResults = data.results || [];
-              const totalPages = data.total_pages || 1;
-              setCurrentPeople(prev => {
-                const existingIds = new Set(prev.map(p => p.id));
-                const deduped = newResults.filter((p: Person) => !existingIds.has(p.id));
-                return [...prev, ...deduped];
-              });
-              pageRef.current[cat] = nextPage;
-              hasMoreRef.current[cat] = nextPage < totalPages;
-            })
-            .catch(() => {})
-            .finally(() => setLoadMoreLoading(false));
+        if (entry.isIntersecting && !loadMoreLoading && hasMoreRef.current[activeCategory]) {
+          const nextPage = pageRef.current[activeCategory] + 1;
+          fetchPeople(activeCategory, nextPage, true);
         }
       },
-      { rootMargin: '400px' },
+      { rootMargin: '600px' },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loadMoreLoading, activeCategory, setCurrentPeople]);
+  }, [loadMoreLoading, activeCategory, fetchPeople]);
 
   const handlePersonClick = (person: Person) => {
     selectPerson({ id: person.id, name: person.name, profilePath: person.profile_path });
@@ -169,8 +174,6 @@ export function PeoplePage() {
   const switchCategory = (cat: Category) => {
     if (cat === activeCategory) return;
     setActiveCategory(cat);
-    if (cat === 'popular' && popularPeople.length > 0) return;
-    if (cat === 'trending' && trendingPeople.length > 0) return;
   };
 
   const heroPeople = currentPeople.slice(0, 9);
@@ -205,7 +208,7 @@ export function PeoplePage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6">
         <p className="text-white/50 text-sm">Failed to load people. Please try again.</p>
         <button
-          onClick={fetchData}
+          onClick={() => fetchPeople(activeCategory, 1, false)}
           className="px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
         >
           Retry
@@ -325,7 +328,7 @@ export function PeoplePage() {
           <div className="grid grid-cols-3 gap-3 md:gap-4 w-full max-w-md">
             {heroPeople.map((person, i) => (
               <HeroPersonCard
-                key={person.id}
+                key={`hero-${activeCategory}-${person.id}`}
                 person={person}
                 index={i}
                 onClick={() => handlePersonClick(person)}
@@ -335,7 +338,7 @@ export function PeoplePage() {
         </motion.div>
       </section>
 
-      {/* CATEGORY TABS + FULL GRID */}
+      {/* CATEGORY TABS + VERTICAL GRID */}
       <section id="people-grid" className="px-4 md:px-8 py-12">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
@@ -362,24 +365,27 @@ export function PeoplePage() {
           </div>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto content-scroll pb-4">
+        {/* Vertical grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 md:gap-4">
           {currentPeople.map((person) => (
-            <PersonRowCard
-              key={person.id}
+            <PersonGridCard
+              key={`${activeCategory}-${person.id}`}
               person={person}
               onClick={() => handlePersonClick(person)}
             />
           ))}
         </div>
 
-        <div ref={loadMoreRef} className="py-8 flex justify-center">
+        {/* Load more trigger */}
+        <div ref={loadMoreRef} className="py-10 flex justify-center">
           {loadMoreLoading && (
-            <div className="flex items-center gap-3 text-white/40">
-              <div className="w-5 h-5 border-2 border-white/10 border-t-lime-400 rounded-full animate-spin"></div>
-              <span className="text-sm">Loading more...</span>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3 md:gap-4 w-full">
+              {Array.from({ length: 16 }, (_, i) => (
+                <GridCardSkeleton key={`skeleton-${i}`} />
+              ))}
             </div>
           )}
-          {!hasMoreRef.current[activeCategory] && currentPeople.length > 0 && (
+          {!hasMoreRef.current[activeCategory] && currentPeople.length > 0 && !loadMoreLoading && (
             <p className="text-white/25 text-sm">You have seen all the people</p>
           )}
         </div>
