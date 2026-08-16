@@ -187,7 +187,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center h-14 shrink-0 px-3.5">
         <button onClick={goHome} className="flex items-center gap-2.5 shrink-0 group">
-          <img src="/logo.svg" alt="StreamVault" className="w-9 h-9 rounded-[10px] shrink-0" />
+          <img src="/logo.png" alt="StreamVault" className="w-9 h-9 rounded-[10px] shrink-0" />
           <SidebarLabel show={expanded}>Stream<span className="text-red-500">Vault</span></SidebarLabel>
         </button>
       </div>
@@ -329,7 +329,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
             {/* Drawer header */}
             <div className="flex items-center justify-between h-14 px-4 shrink-0 border-b border-white/[0.06]">
               <button onClick={goHome} className="flex items-center gap-2.5">
-                <img src="/logo.svg" alt="StreamVault" className="w-9 h-9 rounded-[10px]" />
+                <img src="/logo.png" alt="StreamVault" className="w-9 h-9 rounded-[10px]" />
                 <span className="text-lg font-bold tracking-tight">Stream<span className="text-red-500">Vault</span></span>
               </button>
               <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">

@@ -130,7 +130,7 @@ export function Header({ onInstallClick }: HeaderProps) {
       <div className="relative px-4 md:px-8 py-3 flex items-center justify-between gap-4">
         {/* Logo */}
         <button onClick={goHome} className="flex items-center gap-2 shrink-0 group">
-          <img src="/logo.svg" alt="StreamVault" className="w-8 h-8 rounded-[9px] shrink-0" />
+          <img src="/logo.png" alt="StreamVault" className="w-8 h-8 rounded-[9px] shrink-0" />
           <span className="text-xl font-bold tracking-tight hidden sm:block">
             Stream<span className="text-red-500">Vault</span>
           </span>
