@@ -56,7 +56,7 @@ function addToHistory(query: string) {
 
 /* ── Shared Search Hook ── */
 interface UseSearchOptions {
-  /** Debounce delay in ms (default 350) */
+  /** Debounce delay in ms (default 400) */
   debounceMs?: number;
   /** Whether to navigate to search view on search (default true) */
   navigateToSearch?: boolean;
@@ -76,12 +76,13 @@ interface SearchState {
 
 export function useSearch(options: UseSearchOptions = {}) {
   const {
-    debounceMs = 350,
+    debounceMs = 400,
     navigateToSearch = true,
     onSearchViewOpened,
   } = options;
 
-  const { setSearchResults, setSearchPeople, setView, setSearchQuery, searchQuery, searchResults, searchPeople, goHome } = useAppStore();
+  const store = useAppStore();
+  const { setSearchResults, setSearchPeople, setView, setSearchQuery, goHome } = store;
 
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -96,12 +97,20 @@ export function useSearch(options: UseSearchOptions = {}) {
   const abortRef = useRef<AbortController | null>(null);
   const peopleRef = useRef<SearchPerson[]>([]);
 
+  // Use refs for options to keep performSearch stable
+  const optionsRef = useRef({ navigateToSearch, onSearchViewOpened });
+  optionsRef.current = { navigateToSearch, onSearchViewOpened };
+
+  // Track the last query we actually searched for, to avoid redundant searches.
+  // Initialize from store so new hook instances (e.g. SearchResults mounting) don't re-search.
+  const lastSearchedQueryRef = useRef(useAppStore.getState().searchQuery);
+
   // Load history on mount
   useEffect(() => {
     setSearchHistory(loadHistory());
   }, []);
 
-  // Core search function
+  // Core search function — STABLE reference, reads store via getState()
   const performSearch = useCallback(async (query: string, page = 1, append = false) => {
     if (!query.trim()) {
       if (!append) {
@@ -113,11 +122,12 @@ export function useSearch(options: UseSearchOptions = {}) {
         setTotalPages(1);
         setTotalResults(0);
         peopleRef.current = [];
+        lastSearchedQueryRef.current = '';
       }
       return;
     }
 
-    // Cancel any in-flight request
+    // Cancel any in-flight request for THIS instance
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -139,7 +149,9 @@ export function useSearch(options: UseSearchOptions = {}) {
       const results = (data.results || []) as Movie[];
       const people = (data.people || []) as SearchPerson[];
 
-      setSearchResults(append ? [...searchResults, ...results] : results);
+      // Read current state from store to avoid stale closure
+      const currentResults = useAppStore.getState().searchResults;
+      setSearchResults(append ? [...currentResults, ...results] : results);
 
       // People — dedupe by id, store in Zustand
       if (append) {
@@ -154,13 +166,14 @@ export function useSearch(options: UseSearchOptions = {}) {
       }
 
       setSearchQuery(query);
+      lastSearchedQueryRef.current = query;
       setCurrentPage(data.page || page);
       setTotalPages(data.total_pages || 1);
       setTotalResults(data.total_results || 0);
 
-      if (navigateToSearch) {
+      if (optionsRef.current.navigateToSearch) {
         setView('search');
-        onSearchViewOpened?.();
+        optionsRef.current.onSearchViewOpened?.();
       }
 
       // Add to history (only on new searches, not pagination)
@@ -176,7 +189,7 @@ export function useSearch(options: UseSearchOptions = {}) {
         setIsLoading(false);
       }
     }
-  }, [searchResults, setSearchResults, setSearchPeople, setSearchQuery, setView, navigateToSearch, onSearchViewOpened]);
+  }, [setSearchResults, setSearchPeople, setSearchQuery, setView]);
 
   // Debounced search on input change
   useEffect(() => {
@@ -188,8 +201,8 @@ export function useSearch(options: UseSearchOptions = {}) {
     }
 
     timerRef.current = setTimeout(() => {
-      // Only search if input differs from current query
-      if (inputValue !== searchQuery) {
+      // Only search if this differs from the last query we searched for
+      if (inputValue !== lastSearchedQueryRef.current) {
         performSearch(inputValue);
       }
     }, debounceMs);
@@ -197,7 +210,7 @@ export function useSearch(options: UseSearchOptions = {}) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [inputValue, searchQuery, debounceMs, performSearch]);
+  }, [inputValue, debounceMs, performSearch]);
 
   // Clear
   const clearSearch = useCallback(() => {
@@ -210,14 +223,18 @@ export function useSearch(options: UseSearchOptions = {}) {
     setTotalPages(1);
     setTotalResults(0);
     peopleRef.current = [];
+    lastSearchedQueryRef.current = '';
     if (abortRef.current) abortRef.current.abort();
   }, [setSearchResults, setSearchPeople, setSearchQuery]);
 
   // Load more (pagination)
   const loadMore = useCallback(() => {
     if (isLoading || currentPage >= totalPages) return;
-    performSearch(searchQuery, currentPage + 1, true);
-  }, [isLoading, currentPage, totalPages, searchQuery, performSearch]);
+    const currentQuery = lastSearchedQueryRef.current;
+    if (currentQuery) {
+      performSearch(currentQuery, currentPage + 1, true);
+    }
+  }, [isLoading, currentPage, totalPages, performSearch]);
 
   // Retry
   const retry = useCallback(() => {
@@ -257,7 +274,7 @@ export function useSearch(options: UseSearchOptions = {}) {
     totalResults,
     hasMore,
     searchHistory,
-    searchPeople,
+    searchPeople: store.searchPeople,
     inputRef,
 
     // Actions
@@ -270,8 +287,8 @@ export function useSearch(options: UseSearchOptions = {}) {
     submitHistoryItem,
 
     // Store shortcuts
-    searchQuery,
-    searchResults,
+    searchQuery: store.searchQuery,
+    searchResults: store.searchResults,
     goHome,
   };
 }
