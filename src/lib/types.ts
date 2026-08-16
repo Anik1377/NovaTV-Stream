@@ -99,6 +99,73 @@ export interface TvShowDetails extends MovieDetails {
   created_by: { id: number; name: string; profile_path: string | null }[];
 }
 
+export interface Person {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  popularity: number;
+  known_for_department: string;
+  known_for?: Movie[];
+  gender?: number;
+  adult?: boolean;
+}
+
+export interface PersonDetails {
+  id: number;
+  name: string;
+  biography: string;
+  profile_path: string | null;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  gender: number;
+  popularity: number;
+  known_for_department: string;
+  homepage: string | null;
+  also_known_as: string[];
+  movie_credits?: {
+    cast: PersonCastCredit[];
+    crew: PersonCrewCredit[];
+  };
+  tv_credits?: {
+    cast: PersonCastCredit[];
+    crew: PersonCrewCredit[];
+  };
+  images?: {
+    profiles: { file_path: string; aspect_ratio: number; vote_average: number }[];
+  };
+}
+
+export interface PersonCastCredit {
+  id: number;
+  title?: string;
+  name?: string;
+  character: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average: number;
+  popularity: number;
+  media_type?: 'movie' | 'tv';
+  episode_count?: number;
+}
+
+export interface PersonCrewCredit {
+  id: number;
+  title?: string;
+  name?: string;
+  job: string;
+  department: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average: number;
+  popularity: number;
+  media_type?: 'movie' | 'tv';
+}
+
 export interface PaginatedResponse<T> {
   page: number;
   results: T[];

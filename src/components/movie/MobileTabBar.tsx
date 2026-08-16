@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen } from 'lucide-react';
+import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen, Users } from 'lucide-react';
 import { ProfileAvatar } from '@/lib/avatars';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -40,7 +40,7 @@ interface TabItem {
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showAsian, showGames, showShowreels, showRead, showLiveTV, showProfile } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showAsian, showGames, showShowreels, showRead, showLiveTV, showProfile, showPeople } = useAppStore();
   const authUser = useAuthStore((s) => s.user);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -57,7 +57,7 @@ export function MobileTabBar() {
       case 'anime':
         return view === 'anime';
       case 'more':
-        return view === 'games' || view === 'livetv' || view === 'asian' || view === 'showreels' || view === 'showreel-detail' || view === 'read' || view === 'manga-detail' || view === 'manga-reader';
+        return view === 'games' || view === 'livetv' || view === 'asian' || view === 'showreels' || view === 'showreel-detail' || view === 'read' || view === 'manga-detail' || view === 'manga-reader' || view === 'people' || view === 'people-detail';
       case 'profile':
         return view === 'profile';
       default:
@@ -97,6 +97,7 @@ export function MobileTabBar() {
     { key: 'asian', label: 'Asian Cinema', icon: Globe, action: showAsian, color: 'text-rose-400' },
     { key: 'showreels', label: 'ShowReels', icon: Clapperboard, action: showShowreels, color: 'text-amber-400' },
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead, color: 'text-sky-400' },
+    { key: 'people', label: 'People', icon: Users, action: showPeople, color: 'text-lime-400' },
   ];
 
   const handleTabClick = (tab: TabItem) => {
@@ -201,6 +202,7 @@ export function MobileTabBar() {
                     : item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail')
                     : item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader')
                     : item.key === 'livetv' ? view === 'livetv'
+                    : item.key === 'people' ? (view === 'people' || view === 'people-detail')
                     : false;
                   return (
                     <motion.button

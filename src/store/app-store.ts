@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -46,6 +46,7 @@ interface AppState {
   showSearch: () => void;
   showProfile: () => void;
   showRead: () => void;
+  showPeople: () => void;
   // ShowReel detail
   selectedShowreel: Movie | null;
   selectShowreel: (movie: Movie) => void;
@@ -54,7 +55,11 @@ interface AppState {
   selectManga: (manga: { id: string; title: string; coverUrl: string }) => void;
   selectedChapterId: string | null;
   selectChapter: (chapterId: string) => void;
+  // People
+  selectedPerson: { id: number; name: string; profilePath: string | null } | null;
+  selectPerson: (person: { id: number; name: string; profilePath: string | null }) => void;
   bumpNav: () => void;
+  showPeople: () => void;
   setSelectedProvider: (providerId: string) => void;
 
   // Navigation history actions
@@ -172,10 +177,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   showSearch: () => set({ view: 'search', ...resetState, navHistory: [] }),
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
   showRead: () => set({ view: 'read', ...resetState, navHistory: [] }),
+  showPeople: () => set({ view: 'people', ...resetState, navHistory: [] }),
   selectedManga: null,
   selectManga: (manga) => { navigate(set, 'manga-detail'); set({ selectedManga: manga }); },
   selectedChapterId: null,
   selectChapter: (chapterId) => { navigate(set, 'manga-reader'); set({ selectedChapterId: chapterId }); },
+  selectedPerson: null,
+  selectPerson: (person) => { navigate(set, 'people-detail'); set({ selectedPerson: person }); },
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
   bumpNav: () => set((s) => ({ navCounter: s.navCounter + 1 })),
   setSelectedProvider: (providerId) => set({ selectedProvider: providerId }),
