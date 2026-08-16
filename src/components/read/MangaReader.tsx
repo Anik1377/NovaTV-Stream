@@ -181,6 +181,16 @@ export function MangaReader() {
 
   return (
     <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col">
+      {/* Persistent back button — always visible */}
+      <button
+        onClick={showRead}
+        className="fixed z-[101] top-3 left-3 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-black/80 transition-colors"
+        style={{ top: 'max(env(safe-area-inset-top, 0px) + 12px, 12px)' }}
+        aria-label="Back to manga detail"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+
       {/* Top bar */}
       <AnimatePresence>
         {showBar && (
@@ -192,7 +202,7 @@ export function MangaReader() {
             className="shrink-0"
           >
             <div
-              className="flex items-center gap-3 px-4 py-3 border-b border-white/10"
+              className="pl-14 pr-4 py-3 border-b border-white/10"
               style={{
                 background:
                   'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.6))',
@@ -200,14 +210,6 @@ export function MangaReader() {
                   'max(env(safe-area-inset-top, 0px) + 12px, 12px)',
               }}
             >
-              <button
-                onClick={showRead}
-                className="shrink-0 p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                aria-label="Back"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
                   {selectedManga.title}
                 </p>
@@ -219,7 +221,6 @@ export function MangaReader() {
                     </span>
                   )}
                 </p>
-              </div>
             </div>
           </motion.div>
         )}
