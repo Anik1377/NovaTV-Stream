@@ -16,7 +16,6 @@ import {
   Clapperboard,
   BookOpen,
   Users,
-  Clock,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -80,7 +79,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showAsian, showGames, showShowreels, showRead, showProfile, showPeople, showHistory, setSearchResults, setView, setSearchQuery } = useAppStore();
+  const { view, mediaFilter, goHome, showMovies, showTvShows, showLiveTV, showAnime, showAsian, showGames, showShowreels, showRead, showProfile, showPeople, setSearchResults, setView, setSearchQuery } = useAppStore();
   const authUser = useAuthStore(s => s.user);
   const authLogout = useAuthStore(s => s.logout);
 
@@ -114,7 +113,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
   }, [inputValue, handleSearch]);
 
   /* ── Active state logic ── */
-  const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv', 'asian', 'profile', 'showreels', 'showreel-detail', 'read', 'manga-detail', 'manga-reader', 'people', 'people-detail', 'history'].includes(view);
+  const isSpecialView = ['search', 'movie', 'tv', 'genre', 'livetv', 'asian', 'profile', 'showreels', 'showreel-detail', 'read', 'manga-detail', 'manga-reader', 'people', 'people-detail'].includes(view);
   const getActive = (item: NavItem): boolean => {
     if (item.key === 'home') return view === 'home' && mediaFilter === 'all' && !isSpecialView;
     if (item.key === 'movies') return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
@@ -130,7 +129,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
       if (item.key === 'showreels') return 'bg-amber-500/15 text-amber-300';
       if (item.key === 'read') return 'bg-sky-500/15 text-sky-300';
       if (item.key === 'people') return 'bg-lime-500/15 text-lime-300';
-      if (item.key === 'history') return 'bg-violet-500/15 text-violet-300';
       return 'bg-white/10 text-white';
     }
     return 'text-white/50 hover:text-white/80 hover:bg-white/[0.04]';
@@ -158,7 +156,6 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead },
     { key: 'people', label: 'People', icon: Users, action: showPeople },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames },
-    { key: 'history', label: 'History', icon: Clock, action: showHistory },
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV },
   ];
 

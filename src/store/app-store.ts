@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail' | 'history';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -179,7 +179,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
   showRead: () => set({ view: 'read', ...resetState, navHistory: [] }),
   showPeople: () => set({ view: 'people', ...resetState, navHistory: [] }),
-  showHistory: () => set({ view: 'history', ...resetState, navHistory: [] }),
   selectedManga: null,
   selectManga: (manga) => { navigate(set, 'manga-detail'); set({ selectedManga: manga }); },
   selectedChapterId: null,

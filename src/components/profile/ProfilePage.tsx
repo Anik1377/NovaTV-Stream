@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, User, Bookmark, Clock, LogOut, Pencil, Check, X, Trash2,
-  Loader2, Film, Tv, Calendar, Shield, Palette, Heart, Sparkles,
+  Loader2, Film, Tv, Users, Calendar, Shield, Palette, Heart, Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/auth-store';
@@ -14,18 +15,20 @@ import {
   ProfileAvatar, AVATAR_DEFS, ACCENT_COLORS, GENRE_OPTIONS,
   getAvatarDef, type AvatarDef,
 } from '@/lib/avatars';
+import { getImageUrl } from '@/lib/tmdb';
 import type { Movie } from '@/lib/types';
 
-interface HistoryEntry {
+interface BrowseHistoryItem {
   id: string;
   tmdbId: number;
   title: string;
   posterPath: string | null;
-  mediaType: string;
-  season: number | null;
-  episode: number | null;
-  watchedAt: string;
+  mediaType: 'movie' | 'tv' | 'person';
+  subtitle: string | null;
+  visitedAt: string;
 }
+
+type HistoryFilter = 'all' | 'movie' | 'tv' | 'person';
 
 type Tab = 'profile' | 'watchlist' | 'history';
 
@@ -33,7 +36,7 @@ type EditStep = 'main' | 'avatar' | 'color' | 'genres';
 
 export function ProfilePage() {
   const { user, loading: authLoading, updateProfile, logout } = useAuthStore();
-  const { goHome, watchlist, selectMovie, selectTv } = useAppStore();
+  const { goHome, watchlist, selectMovie, selectTv, selectPerson } = useAppStore();
 
   const [tab, setTab] = useState<Tab>('profile');
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -49,9 +52,14 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  // Watch history
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // Browse history
+  const [history, setHistory] = useState<BrowseHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyLoadMore, setHistoryLoadMore] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Profile stats from API
   const [profileStats, setProfileStats] = useState<{ watchHistoryCount: number } | null>(null);
@@ -72,21 +80,28 @@ export function ProfilePage() {
     } catch { /* ignore */ }
   }, [user]);
 
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (filter: HistoryFilter, page: number, append: boolean) => {
     if (!user) return;
-    setHistoryLoading(true);
+    if (append) { setHistoryLoadMore(true); } else { setHistoryLoading(true); }
     try {
-      const res = await fetch('/api/profile/history?limit=50');
+      const params = new URLSearchParams({ limit: '50', offset: String((page - 1) * 50) });
+      if (filter !== 'all') params.set('type', filter);
+      const res = await fetch(`/api/history?${params}`);
       const data = await res.json();
-      if (res.ok) setHistory(data);
+      if (res.ok) {
+        setHistory(prev => append ? [...prev, ...data.items] : data.items);
+        setHistoryTotal(data.total);
+        if (!append) setHistoryPage(1);
+      }
     } catch { /* ignore */ }
     setHistoryLoading(false);
+    setHistoryLoadMore(false);
   }, [user]);
 
   useEffect(() => {
     if (tab === 'profile') fetchProfile();
-    if (tab === 'history') fetchHistory();
-  }, [tab, fetchProfile, fetchHistory]);
+    if (tab === 'history') fetchHistory(historyFilter, 1, false);
+  }, [tab, historyFilter]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -128,19 +143,44 @@ export function ProfilePage() {
   };
 
   const clearHistory = async () => {
-    if (!confirm('Clear all watch history?')) return;
-    await fetch('/api/profile/history', { method: 'DELETE' });
+    if (!confirm('Clear all browsing history? This cannot be undone.')) return;
+    await fetch('/api/history', { method: 'DELETE' });
     setHistory([]);
+    setHistoryTotal(0);
   };
 
-  const handleHistoryClick = (entry: HistoryEntry) => {
-    const item: Movie = {
-      id: entry.tmdbId, title: entry.title, name: entry.title,
-      poster_path: entry.posterPath, media_type: entry.mediaType as 'movie' | 'tv',
+  const handleDeleteHistoryItem = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingId(id);
+    await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
+    setHistory(prev => prev.filter(item => item.id !== id));
+    setHistoryTotal(prev => prev - 1);
+    setDeletingId(null);
+  };
+
+  const handleHistoryClick = (item: BrowseHistoryItem) => {
+    if (item.mediaType === 'person') {
+      selectPerson({ id: item.tmdbId, name: item.title, profilePath: item.posterPath });
+      return;
+    }
+    const media: Movie = {
+      id: item.tmdbId, title: item.title, name: item.title,
+      poster_path: item.posterPath, media_type: item.mediaType,
       vote_average: 0, genre_ids: [], overview: '', popularity: 0,
       release_date: '', first_air_date: '', backdrop_path: null, original_language: '',
     };
-    if (entry.mediaType === 'tv') selectTv(item); else selectMovie(item);
+    if (item.mediaType === 'tv') selectTv(media); else selectMovie(media);
+  };
+
+  const handleHistoryFilterChange = (f: HistoryFilter) => {
+    if (f === historyFilter) return;
+    setHistoryFilter(f);
+  };
+
+  const loadMoreHistory = () => {
+    const nextPage = historyPage + 1;
+    setHistoryPage(nextPage);
+    fetchHistory(historyFilter, nextPage, true);
   };
 
   const handleWatchlistClick = (tmdbId: number, mediaType: string) => {
@@ -181,7 +221,7 @@ export function ProfilePage() {
   const tabsList: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
     { key: 'watchlist', label: `Watchlist (${watchlist.length})`, icon: <Bookmark className="w-4 h-4" /> },
-    { key: 'history', label: 'History', icon: <Clock className="w-4 h-4" /> },
+    { key: 'history', label: `History${historyTotal > 0 ? ` (${historyTotal})` : ''}`, icon: <Clock className="w-4 h-4" /> },
   ];
 
   return (
@@ -305,36 +345,111 @@ export function ProfilePage() {
 
           {tab === 'history' && (
             <motion.div key="history-tab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              {/* Filter tabs */}
+              <div className="flex gap-2 mb-5 flex-wrap">
+                {([
+                  { key: 'all' as const, label: 'All', icon: <Clock className="w-3.5 h-3.5" /> },
+                  { key: 'movie' as const, label: 'Movies', icon: <Film className="w-3.5 h-3.5" /> },
+                  { key: 'tv' as const, label: 'TV Shows', icon: <Tv className="w-3.5 h-3.5" /> },
+                  { key: 'person' as const, label: 'People', icon: <Users className="w-3.5 h-3.5" /> },
+                ]).map(f => {
+                  const active = historyFilter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => handleHistoryFilterChange(f.key)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        active
+                          ? 'text-white border'
+                          : 'bg-white/[0.06] text-white/50 hover:text-white/80 border border-transparent hover:border-white/10'
+                      }`}
+                      style={active ? { backgroundColor: `${accentColor}22`, borderColor: `${accentColor}44`, color: accentColor } : undefined}
+                    >
+                      {f.icon}
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+
               {historyLoading ? (
                 <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>
               ) : history.length === 0 ? (
-                <EmptyState icon={<Clock className="w-9 h-9 text-white/10" />} title="No watch history" description="Movies and shows you watch will appear here." />
+                <EmptyState icon={<Clock className="w-9 h-9 text-white/10" />} title="No browsing history" description="Movies, shows, and people you view will appear here." />
               ) : (
-                <div className="space-y-2">
+                <>
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-white/40">{history.length} items</p>
+                    <p className="text-sm text-white/40">{history.length} of {historyTotal} items</p>
                     <button onClick={clearHistory} className="flex items-center gap-1.5 text-sm text-white/30 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" />Clear All</button>
                   </div>
-                  {history.map((entry) => (
-                    <button key={entry.id} onClick={() => handleHistoryClick(entry)} className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.04] transition-colors text-left group">
-                      <div className="w-12 h-16 rounded-lg bg-white/[0.06] overflow-hidden shrink-0">
-                        {entry.posterPath ? (
-                          <img src={`https://image.tmdb.org/t/p/w185${entry.posterPath}`} alt={entry.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">{entry.mediaType === 'tv' ? <Tv className="w-5 h-5 text-white/20" /> : <Film className="w-5 h-5 text-white/20" />}</div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate group-hover:text-red-400 transition-colors">{entry.title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-white/30 px-1.5 py-0.5 rounded bg-white/[0.06]">{entry.mediaType === 'tv' ? 'TV' : 'Movie'}</span>
-                          {entry.season && <span className="text-xs text-white/30">S{String(entry.season).padStart(2, '0')}{entry.episode ? `E${String(entry.episode).padStart(2, '0')}` : ''}</span>}
-                        </div>
-                      </div>
-                      <span className="text-xs text-white/20 shrink-0">{new Date(entry.watchedAt).toLocaleDateString()}</span>
-                    </button>
-                  ))}
-                </div>
+                  <div className="space-y-2">
+                    <AnimatePresence mode="popLayout">
+                      {history.map((item) => {
+                        const isPerson = item.mediaType === 'person';
+                        const imgSize = isPerson ? 'w185' : 'w92';
+                        const aspectClass = isPerson ? 'aspect-[3/4]' : 'aspect-[2/3]';
+                        const imgUrl = item.posterPath ? getImageUrl(item.posterPath, imgSize) : null;
+                        const dateStr = new Date(item.visitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                        return (
+                          <motion.div
+                            key={item.id}
+                            layout
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -40, transition: { duration: 0.2 } }}
+                            transition={{ duration: 0.2 }}
+                            onClick={() => handleHistoryClick(item)}
+                            className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/[0.08] cursor-pointer transition-all group"
+                          >
+                            <div className={`${aspectClass} w-12 md:w-14 rounded-lg overflow-hidden bg-white/[0.06] shrink-0`}>
+                              {imgUrl ? (
+                                <img src={imgUrl} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  {isPerson ? <Users className="w-5 h-5 text-white/15" /> : item.mediaType === 'tv' ? <Tv className="w-5 h-5 text-white/15" /> : <Film className="w-5 h-5 text-white/15" />}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white/90 text-sm font-medium truncate group-hover:text-white transition-colors">{item.title}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.06] text-white/40">{item.mediaType}</span>
+                                {item.subtitle && <span className="text-white/30 text-xs truncate">{item.subtitle}</span>}
+                              </div>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-1.5 text-white/25 text-xs shrink-0">
+                              <Calendar className="w-3 h-3" />
+                              {dateStr}
+                            </div>
+                            <button
+                              onClick={(e) => handleDeleteHistoryItem(item.id, e)}
+                              disabled={deletingId === item.id}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-red-400 transition-all shrink-0"
+                              aria-label="Remove from history"
+                            >
+                              {deletingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                            </button>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Load more */}
+                  {history.length < historyTotal && !historyLoading && (
+                    <div className="flex justify-center mt-6">
+                      <button
+                        onClick={loadMoreHistory}
+                        disabled={historyLoadMore}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/10 text-white/60 hover:text-white text-sm font-medium transition-all border border-white/[0.08] hover:border-white/15 disabled:opacity-50"
+                      >
+                        {historyLoadMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />}
+                        {historyLoadMore ? 'Loading...' : 'Load More'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           )}

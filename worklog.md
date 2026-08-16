@@ -302,3 +302,36 @@ Stage Summary:
 - People page: Landing section with hero text, lime-400 accent, 3x3 pill-shaped person grid, category tabs (Popular/Trending), horizontal scroll, infinite load
 - People detail page: Profile image, name, department, birthday, birthplace, biography, Movie Acting, TV Show Acting, Directing, Writing, Producing sections, image gallery
 - All working in both desktop and mobile viewports
+---
+Task ID: 8
+Agent: Main
+Task: Move History from navbar into Profile tab, upgrade Profile history tab
+
+Work Log:
+- Removed 'history' nav item from Sidebar.tsx (navItems array, active style for history, Clock icon import)
+- Removed 'history' from MobileTabBar.tsx More drawer (moreItems array, isActive 'more' case, Clock import)
+- Removed 'history' from ViewType union in app-store.ts
+- Removed showHistory() action from app-store.ts
+- Removed HistoryPage import and view routing from page.tsx
+- Removed 'history' from MobileBackHome condition in page.tsx
+- Upgraded ProfilePage.tsx history tab:
+  - Changed from /api/profile/history (watch history) to /api/history (browsing history API)
+  - Added BrowseHistoryItem interface matching DB schema (id, tmdbId, title, posterPath, mediaType, subtitle, visitedAt)
+  - Added filter state: historyFilter (all/movie/tv/person)
+  - Added pagination: historyPage, historyTotal, historyLoadMore
+  - Added individual delete: deletingId, handleDeleteHistoryItem
+  - Added filter tabs with accent color styling (All, Movies, TV Shows, People)
+  - Added person support: correct aspect ratio (3/4), person icon fallback, selectPerson on click
+  - Added animated list with AnimatePresence popLayout, slide-out delete animation
+  - Added individual X delete button per item (hover-reveal)
+  - Added Load More button for pagination
+  - Added Clear All with confirmation
+  - History tab label shows total count
+  - Uses getImageUrl from tmdb lib for proper image sizing
+- Verified via agent-browser: sidebar has no History item, People page See More works (100 cards loaded), zero console errors
+
+Stage Summary:
+- History removed from all navigation (sidebar, mobile More drawer)
+- history view type and route completely removed from app
+- Profile History tab upgraded to professional browsing history with filters, pagination, individual delete, person support
+- Clean lint, zero console errors, dev server stable
