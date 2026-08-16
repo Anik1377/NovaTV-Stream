@@ -279,3 +279,26 @@ Stage Summary:
 - Secondary issue: many popular manga (Solo Leveling etc.) have external-only chapters with no pages
 - Fixed by: allowing mangadex.network in proxy, filtering external chapters, using data-saver pages
 - Files changed: proxy/route.ts, trending/route.ts, search/route.ts, detail/route.ts, chapter/route.ts, MangaReader.tsx, MangaDetail.tsx, ReadPage.tsx, new mangadex.ts
+---
+Task ID: 1
+Agent: Main
+Task: Create People page with landing page design, popular/trending people, person detail with filmography
+
+Work Log:
+- Added Person, PersonDetails, PersonCastCredit, PersonCrewCredit types to src/lib/types.ts
+- Added 'people' and 'people-detail' to ViewType union in app-store.ts
+- Added showPeople(), selectPerson() actions to app store
+- Created /api/tmdb/people/route.ts (popular + trending people, paginated)
+- Created /api/tmdb/people/[id]/route.ts (person details + movie/tv credits + images)
+- Created src/components/people/PeoplePage.tsx with reference-inspired landing page design
+- Created src/components/people/PeopleDetailPage.tsx with biography, filmography, gallery
+- Added People to Sidebar nav (with lime-400 accent color)
+- Added People to MobileTabBar More drawer
+- Added People/PeopleDetailPage to page.tsx routing
+- Fixed SWC parser issue with self-closing blur divs (replaced with explicit closing tags + inline style filter)
+- Verified on desktop (1280px) and mobile (375px) via agent-browser
+
+Stage Summary:
+- People page: Landing section with hero text, lime-400 accent, 3x3 pill-shaped person grid, category tabs (Popular/Trending), horizontal scroll, infinite load
+- People detail page: Profile image, name, department, birthday, birthplace, biography, Movie Acting, TV Show Acting, Directing, Writing, Producing sections, image gallery
+- All working in both desktop and mobile viewports

@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Film, Tv, ArrowRight, ChevronDown, Sparkles, Users, Clapperboard, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Star, Film, ArrowRight, Sparkles, Users, Clapperboard, TrendingUp } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
 import type { Person } from '@/lib/types';
 
-/* ── Category definitions ── */
 type Category = 'popular' | 'trending';
 
 const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
@@ -15,10 +14,8 @@ const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'trending', label: 'Trending', icon: <TrendingUp className="w-4 h-4" /> },
 ];
 
-/* ── Person profile placeholder SVG ── */
-const PLACEHOLDER_IMG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%23181a1f"><rect width="300" height="450" rx="9999"/><text x="150" y="200" text-anchor="middle" fill="%23333" font-family="system-ui" font-size="64">👤</text><text x="150" y="260" text-anchor="middle" fill="%23444" font-family="system-ui" font-size="14">No Photo</text></svg>')}`;
+const PLACEHOLDER_IMG = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" fill="%23181a1f"><rect width="300" height="450" rx="9999"/><text x="150" y="200" text-anchor="middle" fill="%23333" font-family="system-ui" font-size="64">ø³</text><text x="150" y="260" text-anchor="middle" fill="%23444" font-family="system-ui" font-size="14">No Photo</text></svg>')}`;
 
-/* ── Hero person card for the landing grid ── */
 function HeroPersonCard({ person, index, onClick }: { person: Person; index: number; onClick: () => void }) {
   const imgUrl = person.profile_path ? getImageUrl(person.profile_path, 'w342') : PLACEHOLDER_IMG;
 
@@ -33,18 +30,13 @@ function HeroPersonCard({ person, index, onClick }: { person: Person; index: num
       className="relative w-full aspect-[3/4] rounded-full overflow-hidden border-2 border-white/[0.06] shadow-2xl shadow-black/40 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-lime-400"
       aria-label={person.name}
     >
-      {/* Image */}
       <img
         src={imgUrl}
         alt={person.name}
         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         loading="lazy"
       />
-
-      {/* Bottom gradient overlay */}
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-
-      {/* Name label */}
+      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
       <div className="absolute inset-x-0 bottom-4 px-4 text-center">
         <p className="text-white font-semibold text-sm md:text-base leading-tight truncate drop-shadow-lg">
           {person.name}
@@ -57,7 +49,6 @@ function HeroPersonCard({ person, index, onClick }: { person: Person; index: num
   );
 }
 
-/* ── Person row card (for below the fold sections) ── */
 function PersonRowCard({ person, onClick }: { person: Person; onClick: () => void }) {
   const imgUrl = person.profile_path ? getImageUrl(person.profile_path, 'w185') : PLACEHOLDER_IMG;
 
@@ -87,12 +78,11 @@ function PersonRowCard({ person, onClick }: { person: Person; onClick: () => voi
   );
 }
 
-/* ── Loading skeleton for hero grid ── */
 function HeroGridSkeleton() {
   return (
     <div className="grid grid-cols-3 gap-3 md:gap-4 w-full max-w-md">
       {Array.from({ length: 9 }, (_, i) => (
-        <div key={i} className="aspect-[3/4] rounded-full bg-white/[0.06] animate-pulse" />
+        <div key={i} className="aspect-[3/4] rounded-full bg-white/[0.06] animate-pulse"></div>
       ))}
     </div>
   );
@@ -113,7 +103,6 @@ export function PeoplePage() {
   const currentPeople = activeCategory === 'popular' ? popularPeople : trendingPeople;
   const setCurrentPeople = activeCategory === 'popular' ? setPopularPeople : setTrendingPeople;
 
-  // Fetch initial data
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(false);
@@ -124,7 +113,6 @@ export function PeoplePage() {
       ]);
       const popularData = await popularRes.json();
       const trendingData = await trendingRes.json();
-
       setPopularPeople(popularData.results || []);
       setTrendingPeople(trendingData.results || []);
       setHasMore(activeCategory === 'popular'
@@ -140,11 +128,9 @@ export function PeoplePage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Load more with IntersectionObserver
   useEffect(() => {
     const el = loadMoreRef.current;
     if (!el || !hasMore || loadMoreLoading) return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !loadMoreLoading) {
@@ -180,28 +166,23 @@ export function PeoplePage() {
     if (cat === 'trending' && trendingPeople.length > 0) return;
   };
 
-  // Hero grid people (first 9 for the landing section)
   const heroPeople = currentPeople.slice(0, 9);
-  // Remaining for the horizontal scroll
-  const remainingPeople = currentPeople.slice(9);
 
-  /* ── Loading state ── */
   if (loading) {
     return (
       <div className="min-h-screen">
-        {/* Hero skeleton */}
         <div className="relative min-h-[85vh] md:min-h-screen flex flex-col md:flex-row items-center justify-center px-6 md:px-12 gap-8 md:gap-16 overflow-hidden">
           <div className="w-full md:w-5/12 space-y-6">
-            <div className="h-10 w-3/4 rounded-2xl bg-white/[0.06] animate-pulse" />
-            <div className="h-10 w-1/2 rounded-2xl bg-white/[0.06] animate-pulse" />
+            <div className="h-10 w-3/4 rounded-2xl bg-white/[0.06] animate-pulse"></div>
+            <div className="h-10 w-1/2 rounded-2xl bg-white/[0.06] animate-pulse"></div>
             <div className="space-y-2 mt-4">
-              <div className="h-4 w-full rounded bg-white/[0.06] animate-pulse" />
-              <div className="h-4 w-5/6 rounded bg-white/[0.06] animate-pulse" />
-              <div className="h-4 w-4/6 rounded bg-white/[0.06] animate-pulse" />
+              <div className="h-4 w-full rounded bg-white/[0.06] animate-pulse"></div>
+              <div className="h-4 w-5/6 rounded bg-white/[0.06] animate-pulse"></div>
+              <div className="h-4 w-4/6 rounded bg-white/[0.06] animate-pulse"></div>
             </div>
             <div className="flex gap-3 mt-6">
-              <div className="h-12 w-36 rounded-full bg-white/[0.06] animate-pulse" />
-              <div className="h-12 w-32 rounded-full bg-white/[0.06] animate-pulse" />
+              <div className="h-12 w-36 rounded-full bg-white/[0.06] animate-pulse"></div>
+              <div className="h-12 w-32 rounded-full bg-white/[0.06] animate-pulse"></div>
             </div>
           </div>
           <div className="w-full md:w-7/12 flex justify-end">
@@ -212,7 +193,6 @@ export function PeoplePage() {
     );
   }
 
-  /* ── Error state ── */
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6">
@@ -231,26 +211,24 @@ export function PeoplePage() {
     <div className="min-h-screen">
       {/* HERO LANDING SECTION */}
       <section className="relative min-h-[85vh] md:min-h-screen flex flex-col md:flex-row items-center justify-center px-6 md:px-12 lg:px-16 gap-8 md:gap-12 lg:gap-16 overflow-hidden">
-        {/* Abstract blur blobs */
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-lime-500/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-56 h-56 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-rose-500/5 rounded-full blur-[60px] pointer-events-none" />
+        {/* Background glow effects */}
+        <div className="pointer-events-none absolute top-1/4 left-1/4 w-72 h-72 rounded-full bg-lime-500/10" style={{ filter: 'blur(100px)' }}></div>
+        <div className="pointer-events-none absolute bottom-1/4 right-1/4 w-56 h-56 rounded-full bg-amber-500/10" style={{ filter: 'blur(80px)' }}></div>
+        <div className="pointer-events-none absolute top-1/2 left-1/2 w-40 h-40 rounded-full bg-rose-400/5" style={{ filter: 'blur(60px)' }}></div>
 
-        {/* Left column: Text + CTA */}
+        {/* Left column */}
         <div className="relative z-10 w-full md:w-5/12 flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight tracking-tight">
               Discover
               <br />
               <span className="relative inline-block">
                 <span className="text-lime-400">Talented</span>
-                <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 12" fill="none">
-                  <path d="M2 8C30 3 60 2 100 5C140 8 170 4 198 6" stroke="#a3e635" strokeWidth="3" strokeLinecap="round" />
-                </svg>
+                <span className="absolute -bottom-1 left-0 right-0 h-1 bg-lime-400/40 rounded-full"></span>
               </span>
               <br />
               People
@@ -267,7 +245,6 @@ export function PeoplePage() {
             Browse their work, discover new favorites, and dive into their filmography.
           </motion.p>
 
-          {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -278,7 +255,7 @@ export function PeoplePage() {
               onClick={() => {
                 document.getElementById('people-grid')?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-semibold text-sm transition-all shadow-lg shadow-lime-500/20 hover:shadow-xl hover:shadow-lime-500/30 hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-semibold text-sm transition-all shadow-lg shadow-lime-500/20 hover:shadow-xl hover:scale-105 active:scale-95"
             >
               <Sparkles className="w-4 h-4" />
               Browse People
@@ -308,7 +285,7 @@ export function PeoplePage() {
                 </div>
                 <span className="text-white text-xs font-bold hidden sm:block">Cast</span>
               </div>
-              <p className="text-white/30 text-[10px] pl-10 hidden sm:block">Explore actors &amp; their roles</p>
+              <p className="text-white/30 text-[10px] pl-10 hidden sm:block">Explore actors and their roles</p>
             </div>
             <div className="group">
               <div className="flex items-center gap-2 mb-1">
@@ -338,10 +315,6 @@ export function PeoplePage() {
           transition={{ delay: 0.15, duration: 0.7, ease: 'easeOut' }}
           className="relative z-10 w-full md:w-7/12 flex justify-end"
         >
-          {/* Floating faded cards for depth */}
-          <div className="absolute -top-3 right-24 w-14 h-20 rounded-full bg-white/[0.04] border-2 border-white/[0.03] z-0 hidden lg:block" />
-          <div className="absolute -top-3 right-52 w-14 h-20 rounded-full bg-white/[0.03] border-2 border-white/[0.02] z-0 hidden lg:block" />
-
           <div className="grid grid-cols-3 gap-3 md:gap-4 w-full max-w-md">
             {heroPeople.map((person, i) => (
               <HeroPersonCard
@@ -357,7 +330,6 @@ export function PeoplePage() {
 
       {/* CATEGORY TABS + FULL GRID */}
       <section id="people-grid" className="px-4 md:px-8 py-12">
-        {/* Section header with category tabs */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
             <Users className="w-5 h-5 text-lime-400" />
@@ -370,11 +342,10 @@ export function PeoplePage() {
                 <button
                   key={cat.key}
                   onClick={() => switchCategory(cat.key)}
-                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    active
-                      ? 'bg-lime-400/15 text-lime-300 border border-lime-400/30'
-                      : 'bg-white/[0.06] text-white/50 hover:text-white/80 border border-transparent hover:border-white/10'
-                  }`}
+                  className={active
+                    ? 'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all bg-lime-400/15 text-lime-300 border border-lime-400/30'
+                    : 'flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all bg-white/[0.06] text-white/50 hover:text-white/80 border border-transparent hover:border-white/10'
+                  }
                 >
                   {cat.icon}
                   {cat.label}
@@ -384,7 +355,6 @@ export function PeoplePage() {
           </div>
         </div>
 
-        {/* Full horizontal scrollable row of people */}
         <div className="flex gap-3 overflow-x-auto content-scroll pb-4">
           {currentPeople.map((person) => (
             <PersonRowCard
@@ -395,16 +365,15 @@ export function PeoplePage() {
           ))}
         </div>
 
-        {/* Load more sentinel */}
         <div ref={loadMoreRef} className="py-8 flex justify-center">
           {loadMoreLoading && (
             <div className="flex items-center gap-3 text-white/40">
-              <div className="w-5 h-5 border-2 border-white/10 border-t-lime-400 rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white/10 border-t-lime-400 rounded-full animate-spin"></div>
               <span className="text-sm">Loading more...</span>
             </div>
           )}
           {!hasMore && currentPeople.length > 0 && (
-            <p className="text-white/25 text-sm">You&apos;ve seen all the people</p>
+            <p className="text-white/25 text-sm">You have seen all the people</p>
           )}
         </div>
       </section>
