@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, Play, ExternalLink, Loader2, Globe, Tv, Flame, Clock, Sparkles, Calendar, Film } from 'lucide-react';
+import { ArrowLeft, Play, Globe, Tv, Flame, Clock, Calendar, Film } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { motion, useScroll, useTransform } from 'framer-motion';
@@ -19,8 +19,6 @@ interface ShowReelItem {
   status: string; tagline?: string;
 }
 interface BuzzData {
-  analysis: string;
-  sources: { title: string; url: string; snippet: string; host_name: string }[];
   youtubeBuzz: { videoId: string; title: string; channelTitle: string; thumbnail: string; viewCount: number }[];
 }
 
@@ -99,30 +97,15 @@ export function ShowReelDetail() {
 
   const [buzz, setBuzz] = useState<BuzzData | null>(null);
   const [buzzLoading, setBuzzLoading] = useState(!!movie);
-  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (!movie) return;
     let cancelled = false;
 
-    // Fast fetch: sources + YouTube (no LLM)
     fetch(`/api/showreels/buzz?id=${movie.id}&title=${encodeURIComponent(movie.title)}`)
       .then((r) => r.json()).then((data) => {
         if (cancelled) return;
-        if (!data.error) {
-          setBuzz(data);
-          // If no analysis yet, lazy-fetch AI separately
-          if (!data.analysis) {
-            setAiLoading(true);
-            fetch(`/api/showreels/buzz/ai?id=${movie.id}&title=${encodeURIComponent(movie.title)}`)
-              .then((r) => r.json()).then((aiData) => {
-                if (cancelled) return;
-                if (!aiData.error && aiData.analysis) {
-                  setBuzz((prev) => prev ? { ...prev, analysis: aiData.analysis } : null);
-                }
-              }).catch(() => {}).finally(() => { if (!cancelled) setAiLoading(false); });
-          }
-        }
+        if (!data.error) setBuzz(data);
       })
       .catch(() => {}).finally(() => { if (!cancelled) setBuzzLoading(false); });
 
@@ -269,51 +252,14 @@ export function ShowReelDetail() {
         <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <Globe className="w-5 h-5 text-emerald-400" />Internet Buzz
-            <Sparkles className="w-4 h-4 text-emerald-400/50" />
           </h2>
 
           {buzzLoading && (
-            <div className="space-y-4"><Skeleton className="h-28 w-full rounded-xl" /><div className="space-y-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div></div>
+            <div className="space-y-3"><div className="space-y-2">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}</div></div>
           )}
 
           {!buzzLoading && buzz && (
             <div className="space-y-6">
-              {/* AI Analysis */}
-              <div className="relative p-5 rounded-2xl bg-gradient-to-br from-emerald-500/[0.06] to-amber-500/[0.06] border border-white/[0.06] backdrop-blur-sm">
-                <div className="absolute top-3 right-3">
-                  {aiLoading ? <Loader2 className="w-4 h-4 text-emerald-400/60 animate-spin" /> : <Sparkles className="w-4 h-4 text-emerald-400/40" />}
-                </div>
-                {buzz.analysis ? (
-                  <p className="text-white/80 text-sm leading-relaxed pr-6">{buzz.analysis}</p>
-                ) : (
-                  <div className="flex items-center gap-3 pr-6">
-                    <Loader2 className="w-4 h-4 text-emerald-400/60 animate-spin shrink-0" />
-                    <p className="text-white/40 text-sm italic">Generating AI buzz analysis...</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Sources */}
-              {buzz.sources.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-white/70 mb-3 uppercase tracking-wider">What People Are Saying</h3>
-                  <div className="space-y-2">
-                    {buzz.sources.map((s, i) => (
-                      <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="block p-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/[0.08] transition-all group">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white/90 group-hover:text-white line-clamp-1 mb-1 transition-colors">{s.title}</p>
-                            <p className="text-xs text-white/40 line-clamp-2 mb-1.5 leading-relaxed">{s.snippet}</p>
-                            <span className="text-[10px] text-amber-400/70 font-semibold uppercase tracking-wider">{s.host_name}</span>
-                          </div>
-                          <ExternalLink className="w-4 h-4 shrink-0 text-white/15 group-hover:text-white/40 mt-0.5 transition-colors" />
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* YouTube Reactions */}
               {buzz.youtubeBuzz.length > 0 && (
                 <div>
