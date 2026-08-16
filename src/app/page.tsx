@@ -142,7 +142,7 @@ function SurpriseMeButton({ movies }: { movies: Movie[] }) {
       onClick={handleSurprise}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 transition-shadow"
+      className="fixed right-4 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 transition-shadow"
     >
       <Sparkles className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
       <span className="hidden sm:inline">Surprise Me</span>
@@ -394,7 +394,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar onInstallClick={() => setInstallModalOpen(true)} onAuthClick={() => setAuthModalOpen(true)} />
-      <main className={`flex-1 min-w-0 relative pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0`}>
+      <main className="flex-1 min-w-0 relative pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
         <motion.div
           key={view}
           initial={{ opacity: 0, y: 8 }}

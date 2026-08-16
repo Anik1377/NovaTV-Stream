@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen, Users } from 'lucide-react';
 import { ProfileAvatar } from '@/lib/avatars';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Drawer,
   DrawerContent,
@@ -14,173 +13,165 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 
+/* ── Lightweight anime icon (simplified) ── */
 function AnimeIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="8 14 58 44"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={3}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M39.584 41.0606C39.6547 41.1842 39.7206 41.3128 39.7817 41.4465C39.832 41.5895 39.8765 41.7368 39.9151 41.8883C39.941 42.0474 39.96 42.2096 39.9723 42.3751C39.9702 42.5458 39.9606 42.7186 39.9435 42.8934C39.9108 43.0709 39.87 43.2492 39.8211 43.4281C39.7559 43.607 39.6823 43.7851 39.6003 43.9625C39.5016 44.1369 39.3945 44.309 39.279 44.479C39.147 44.6428 39.0068 44.803 38.8585 44.9593C38.6943 45.1066 38.5224 45.2487 38.3429 45.3855C38.1488 45.5103 37.9477 45.6284 37.7398 45.7398C37.519 45.8365 37.2923 45.9253 37.0597 46.006C36.8166 46.0695 36.5687 46.1239 36.3163 46.1692C36.0559 46.1952 35.7923 46.211 35.5255 46.2168C35.2539 46.2016 34.9806 46.1756 34.7058 46.1387C34.4296 46.0798 34.1536 46.0095 33.8777 45.928C33.604 45.8237 33.3323 45.708 33.0627 45.5808C32.799 45.4308 32.5392 45.2696 32.2833 45.097C32.0372 44.9022 31.797 44.6966 31.5625 44.4801C31.3415 44.2427 31.1282 43.9952 30.9226 43.7375C30.7341 43.4608 30.5549 43.175 30.3851 42.8803C30.2358 42.5688 30.0974 42.2497 29.9699 41.923C29.8659 41.5825 29.7741 41.2361 29.6947 40.8836C29.6412 40.521 29.6011 40.1542 29.5745 39.7833C29.5757 39.4062 29.5912 39.0269 29.621 38.6456C29.6799 38.2624 29.7537 37.8793 29.8422 37.4963C29.9606 37.116 30.094 36.7381 30.2423 36.3626C30.4205 35.9944 30.6133 35.6311 30.821 35.2726C31.0577 34.9261 31.3085 34.5867 31.5736 34.2546C31.8661 33.9391 32.1719 33.633 32.4909 33.3364C32.8351 33.0609 33.1913 32.7969 33.5593 32.5446C33.9496 32.3175 34.3502 32.1039 34.761 31.9038C35.1904 31.7327 35.628 31.5768 36.074 31.4362C36.5343 31.3277 37.0005 31.2358 37.4729 31.1605C37.9547 31.1199 38.4401 31.0969 38.929 31.0918C39.4223 31.1229 39.9165 31.1725 40.4114 31.2406C40.9053 31.3459 41.3972 31.47 41.8871 31.6129C42.3702 31.7932 42.8485 31.9921 43.3219 32.2096C43.7828 32.4638 44.236 32.736 44.6815 33.0263C45.1088 33.3517 45.5256 33.694 45.9319 34.0534C46.3145 34.4454 46.684 34.8529 47.0403 35.2759C47.3679 35.7283 47.6799 36.1942 47.9763 36.6739C48.2394 37.1787 48.4846 37.6948 48.7122 38.2224C48.9023 38.7703 49.0728 39.327 49.2238 39.8925C49.334 40.4727 49.4232 41.0589 49.4914 41.651C49.5164 42.2518 49.5194 42.8555 49.5003 43.4619C49.4364 44.0707 49.35 44.6789 49.241 45.2867C49.0865 45.8901 48.9095 46.4896 48.7098 47.0852C48.4652 47.6696 48.1983 48.2467 47.9093 48.8166C47.5767 49.3684 47.223 49.9096 46.848 50.4402C46.432 50.9461 45.9963 51.4382 45.5408 51.9165C45.0478 52.3639 44.537 52.7944 44.0084 53.208C43.4467 53.5851 42.8697 53.9426 42.2774 54.2805C41.6573 54.5767 41.0246 54.8509 40.3796 55.1032C39.7127 55.3095 39.0366 55.4919 38.3513 55.6504C37.651 55.7594 36.9449 55.8431 36.2332 55.9014C35.5137 55.9079 34.7922 55.8881 34.0688 55.8419C33.3453 55.7426 32.6237 55.6166 31.9041 55.4639C31.1923 55.2578 30.4864 55.0253 29.7864 54.7662C29.1021 54.4547 28.4277 54.1176 27.7632 53.7547C27.1222 53.3417 26.4949 52.9043 25.8812 52.4425C25.2987 51.934 24.7335 51.403 24.1855 50.8497C23.6757 50.254 23.1866 49.6384 22.7181 49.003C22.2941 48.3307 21.8937 47.6415 21.5171 46.9355C21.1904 46.1991 20.8899 45.4493 20.6157 44.6861C20.396 43.8999 20.2046 43.104 20.0415 42.2986C19.9364 41.4782 19.8611 40.6524 19.8155 39.8211C19.8303 38.9833 19.8758 38.1445 19.9518 37.3046C20.0893 36.4672 20.2576 35.6332 20.4566 34.8026C20.717 33.9836 21.0076 33.1725 21.3286 32.3694C21.7092 31.5869 22.119 30.8168 22.558 30.0592C23.0538 29.3309 23.5769 28.6195 24.1274 27.9248C24.7304 27.2678 25.3583 26.6316 26.0112 26.0163C26.7111 25.4465 27.4329 24.9012 28.1766 24.3804C28.9607 23.912 29.7631 23.4714 30.5838 23.0586C31.4373 22.7042 32.3049 22.3803 33.1869 22.0868C34.093 21.8566 35.0088 21.659 35.9345 21.494C36.875 21.3959 37.8206 21.3318 38.7711 21.3017C39.7267 21.3407 40.6824 21.4145 41.638 21.5231C42.5886 21.7016 43.5341 21.9148 44.4746 22.1629C45.3997 22.4801 46.3146 22.8314 47.2193 23.2167C48.0986 23.6689 48.9627 24.1537 49.8116 24.6711C50.6253 25.2517 51.419 25.8626 52.1927 26.5038L62.6965 16" />
-      <path d="M21.094 33.0483L10 56.1608L37.1187 55.8527" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 3c-1.2 3-4 5.5-4 8.5a4 4 0 0 0 8 0c0-3-2.8-5.5-4-8.5Z" />
+      <path d="M12 21v-3" />
     </svg>
   );
 }
 
-interface TabItem {
+/* ── Types ── */
+interface TabDef {
   key: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   action: () => void;
-  activeColor: string;
+}
+
+interface MoreDef {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  action: () => void;
+  color: string;
 }
 
 export function MobileTabBar() {
-  const { view, mediaFilter, goHome, showMovies, showTvShows, showAnime, showAsian, showGames, showShowreels, showRead, showLiveTV, showProfile, showPeople } = useAppStore();
+  const {
+    view, mediaFilter,
+    goHome, showMovies, showTvShows, showAnime,
+    showAsian, showGames, showShowreels, showRead,
+    showLiveTV, showProfile, showPeople,
+  } = useAppStore();
   const authUser = useAuthStore((s) => s.user);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isSpecialView = view === 'movie' || view === 'tv' || view === 'genre' || view === 'livetv' || view === 'category';
 
-  const isActive = (key: string) => {
-    switch (key) {
-      case 'home':
-        return view === 'home' && mediaFilter === 'all' && !isSpecialView;
-      case 'movies':
-        return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
-      case 'tvshows':
-        return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
-      case 'anime':
-        return view === 'anime';
-      case 'more':
-        return view === 'games' || view === 'livetv' || view === 'asian' || view === 'showreels' || view === 'showreel-detail' || view === 'read' || view === 'manga-detail' || view === 'manga-reader' || view === 'people' || view === 'people-detail';
-      case 'profile':
-        return view === 'profile';
-      default:
-        return false;
-    }
-  };
+  /* ── Tab definitions (memoized) ── */
+  const tabs: TabDef[] = useMemo(() => [
+    { key: 'home', label: 'Home', icon: Home, action: goHome },
+    { key: 'movies', label: 'Movies', icon: Film, action: showMovies },
+    { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows },
+    { key: 'anime', label: 'Anime', icon: AnimeIcon, action: showAnime },
+    { key: 'profile', label: 'Profile', icon: User, action: showProfile },
+  ], [goHome, showMovies, showTvShows, showAnime, showProfile]);
 
-  const getIconColor = (key: string, active: boolean) => {
-    if (!active) return 'text-white/40';
-    if (key === 'anime') return 'text-purple-400';
-    if (key === 'more') return 'text-orange-400';
-    return 'text-red-500';
-  };
-
-  const getTextColor = (key: string, active: boolean) => {
-    if (!active) return 'text-white/40';
-    return 'text-white';
-  };
-
-  const getIndicatorColor = (key: string) => {
-    if (key === 'anime') return 'bg-purple-400';
-    if (key === 'more') return 'bg-orange-400';
-    return 'bg-red-500';
-  };
-
-  const tabs: TabItem[] = [
-    { key: 'home', label: 'Home', icon: Home, action: goHome, activeColor: 'text-red-500' },
-    { key: 'movies', label: 'Movies', icon: Film, action: showMovies, activeColor: 'text-red-500' },
-    { key: 'tvshows', label: 'TV', icon: Tv, action: showTvShows, activeColor: 'text-red-500' },
-    { key: 'anime', label: 'Anime', icon: AnimeIcon, action: showAnime, activeColor: 'text-purple-400' },
-    { key: 'profile', label: 'Profile', icon: User, action: showProfile, activeColor: 'text-red-500' },
-  ];
-
-  const moreItems = [
+  const moreItems: MoreDef[] = useMemo(() => [
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, color: 'text-emerald-400' },
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV, color: 'text-blue-400' },
     { key: 'asian', label: 'Asian Cinema', icon: Globe, action: showAsian, color: 'text-rose-400' },
     { key: 'showreels', label: 'ShowReels', icon: Clapperboard, action: showShowreels, color: 'text-amber-400' },
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead, color: 'text-sky-400' },
     { key: 'people', label: 'People', icon: Users, action: showPeople, color: 'text-lime-400' },
-  ];
+  ], [showGames, showLiveTV, showAsian, showShowreels, showRead, showPeople]);
 
-  const handleTabClick = (tab: TabItem) => {
+  /* ── Active state ── */
+  const isActive = useCallback((key: string) => {
+    switch (key) {
+      case 'home': return view === 'home' && mediaFilter === 'all' && !isSpecialView;
+      case 'movies': return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
+      case 'tvshows': return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
+      case 'anime': return view === 'anime';
+      case 'more': return ['games','livetv','asian','showreels','showreel-detail','read','manga-detail','manga-reader','people','people-detail'].includes(view);
+      case 'profile': return view === 'profile';
+      default: return false;
+    }
+  }, [view, mediaFilter, isSpecialView]);
+
+  /* Find active index for indicator position */
+  const activeIndex = useMemo(() => {
+    const idx = tabs.findIndex(t => isActive(t.key));
+    if (idx >= 0) return idx;
+    return isActive('more') ? tabs.length : -1;
+  }, [tabs, isActive]);
+
+  const getIconColor = (key: string, active: boolean): string => {
+    if (!active) return 'text-white/40';
+    if (key === 'anime') return 'text-purple-400';
+    if (key === 'more') return 'text-orange-400';
+    return 'text-red-500';
+  };
+
+  const handleTabClick = (tab: TabDef) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     tab.action();
   };
 
-  const handleMoreItemClick = (item: (typeof moreItems)[number]) => {
+  const handleMoreItemClick = (item: MoreDef) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setMoreOpen(false);
     item.action();
   };
 
+  const isMoreActive = isActive('more');
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/10 pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="h-16 flex items-center justify-around px-1">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/[0.08]">
+      <div
+        className="relative flex items-center justify-around px-1"
+        style={{ height: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        {/* Sliding indicator — pure CSS transform, no Framer Motion */}
+        {activeIndex >= 0 && (
+          <div
+            className="absolute top-0 h-[2px] w-6 rounded-full bg-red-500 pointer-events-none"
+            style={{
+              left: `${(activeIndex + 0.5) * (100 / (tabs.length + 1))}%`,
+              transform: 'translateX(-50%)',
+              transition: 'left 0.2s ease',
+              ...(activeIndex === 3 ? { backgroundColor: '#a855f7' } : {}),
+            }}
+          />
+        )}
+        {isMoreActive && (
+          <div
+            className="absolute top-0 h-[2px] w-6 rounded-full bg-orange-400 pointer-events-none"
+            style={{
+              left: `${(tabs.length + 0.5) * (100 / (tabs.length + 1))}%`,
+              transform: 'translateX(-50%)',
+            }}
+          />
+        )}
+
+        {/* Tab buttons */}
         {tabs.map((tab) => {
           const active = isActive(tab.key);
+          const IconComp = tab.icon;
           return (
-            <motion.button
+            <button
               key={tab.key}
               onClick={() => handleTabClick(tab)}
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.05 }}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 relative"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative select-none active:scale-95 transition-transform duration-100"
             >
-              {/* Active indicator dot */}
-              {active && (
-                <motion.div
-                  layoutId="mobileTabIndicator"
-                  className={`absolute -top-1 w-6 h-0.5 rounded-full ${getIndicatorColor(tab.key)}`}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
+              {tab.key === 'profile' && authUser ? (
+                <span className={`block w-5 h-5 rounded-full overflow-hidden ${active ? '' : 'opacity-50'}`}>
+                  <ProfileAvatar slug={authUser.avatar} size={20} />
+                </span>
+              ) : (
+                <IconComp className={`w-5 h-5 transition-colors duration-150 ${getIconColor(tab.key, active)}`} />
               )}
-              <motion.div
-                animate={{ scale: active ? 1.1 : 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              >
-                {/* Profile tab: show avatar circle when logged in */}
-                {tab.key === 'profile' && authUser ? (
-                  <span
-                    className={`block w-5 h-5 rounded-full overflow-hidden ${
-                      active ? '' : 'opacity-60'
-                    }`}
-                  >
-                    <ProfileAvatar slug={authUser.avatar} size={20} />
-                  </span>
-                ) : (
-                  <tab.icon className={`w-5 h-5 ${getIconColor(tab.key, active)}`} />
-                )}
-              </motion.div>
-              <span className={`text-[10px] font-medium leading-tight ${getTextColor(tab.key, active)}`}>
+              <span className={`text-[10px] font-medium leading-tight transition-colors duration-150 ${active ? 'text-white' : 'text-white/40'}`}>
                 {tab.label}
               </span>
-            </motion.button>
+            </button>
           );
         })}
 
-        {/* More button with Drawer */}
+        {/* More button */}
         <Drawer open={moreOpen} onOpenChange={setMoreOpen}>
           <DrawerTrigger asChild>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.05 }}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 relative"
+            <button
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative select-none active:scale-95 transition-transform duration-100`}
             >
-              {isActive('more') && (
-                <motion.div
-                  layoutId="mobileTabIndicator"
-                  className="absolute -top-1 w-6 h-0.5 rounded-full bg-orange-400"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <motion.div
-                animate={{ scale: isActive('more') ? 1.1 : 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              >
-                <MoreHorizontal className={`w-5 h-5 ${getIconColor('more', isActive('more'))}`} />
-              </motion.div>
-              <span className={`text-[10px] font-medium leading-tight ${getTextColor('more', isActive('more'))}`}>
+              <MoreHorizontal className={`w-5 h-5 transition-colors duration-150 ${getIconColor('more', isMoreActive)}`} />
+              <span className={`text-[10px] font-medium leading-tight transition-colors duration-150 ${isMoreActive ? 'text-white' : 'text-white/40'}`}>
                 More
               </span>
-            </motion.button>
+            </button>
           </DrawerTrigger>
           <DrawerContent>
             <DrawerTitle className="sr-only">More</DrawerTitle>
@@ -188,43 +179,40 @@ export function MobileTabBar() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-lg">More</h3>
                 <DrawerClose asChild>
-                  <button className="text-white/50 hover:text-white/80 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                  <button className="text-white/50 hover:text-white/80 transition-colors p-1">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                     </svg>
                   </button>
                 </DrawerClose>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {moreItems.map((item) => {
-                  const active = item.key === 'games' ? view === 'games'
-                    : item.key === 'asian' ? view === 'asian'
-                    : item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail')
-                    : item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader')
-                    : item.key === 'livetv' ? view === 'livetv'
-                    : item.key === 'people' ? (view === 'people' || view === 'people-detail')
-                    : false;
+                  const active =
+                    item.key === 'games' ? view === 'games' :
+                    item.key === 'livetv' ? view === 'livetv' :
+                    item.key === 'asian' ? view === 'asian' :
+                    item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail') :
+                    item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader') :
+                    item.key === 'people' ? (view === 'people' || view === 'people-detail') :
+                    false;
+                  const IconComp = item.icon;
                   return (
-                    <motion.button
+                    <button
                       key={item.key}
                       onClick={() => handleMoreItemClick(item)}
-                      whileTap={{ scale: 0.97 }}
-                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors ${
-                        active
-                          ? 'bg-white/10'
-                          : 'hover:bg-white/5 active:bg-white/10'
+                      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors active:scale-[0.98] ${
+                        active ? 'bg-white/10' : 'hover:bg-white/5 active:bg-white/10'
                       }`}
                     >
                       <div className={`p-2 rounded-lg ${active ? 'bg-white/10' : 'bg-white/5'}`}>
-                        <item.icon className={`w-5 h-5 ${item.color}`} />
+                        <IconComp className={`w-5 h-5 ${item.color}`} />
                       </div>
                       <span className={`text-[15px] font-medium ${active ? 'text-white' : 'text-white/70'}`}>
                         {item.label}
                       </span>
-                      {active && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
-                      )}
-                    </motion.button>
+                      {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />}
+                    </button>
                   );
                 })}
               </div>
