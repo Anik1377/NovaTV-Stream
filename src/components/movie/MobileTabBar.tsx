@@ -11,6 +11,7 @@ import {
   DrawerContent,
   DrawerTrigger,
   DrawerClose,
+  DrawerTitle,
 } from '@/components/ui/drawer';
 
 function AnimeIcon({ className }: { className?: string }) {
@@ -181,6 +182,7 @@ export function MobileTabBar() {
             </motion.button>
           </DrawerTrigger>
           <DrawerContent>
+            <DrawerTitle className="sr-only">More</DrawerTitle>
             <div className="px-4 pt-2 pb-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-lg">More</h3>
