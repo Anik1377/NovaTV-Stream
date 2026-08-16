@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail' | 'warning' | 'privacy' | 'dmca';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -61,6 +61,9 @@ interface AppState {
   bumpNav: () => void;
   showPeople: () => void;
   showHistory: () => void;
+  showWarning: () => void;
+  showPrivacy: () => void;
+  showDmca: () => void;
   setSelectedProvider: (providerId: string) => void;
 
   // Navigation history actions
@@ -179,6 +182,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   showProfile: () => set({ view: 'profile', ...resetState, navHistory: [] }),
   showRead: () => set({ view: 'read', ...resetState, navHistory: [] }),
   showPeople: () => set({ view: 'people', ...resetState, navHistory: [] }),
+  showWarning: () => set({ view: 'warning', ...resetState, navHistory: [] }),
+  showPrivacy: () => set({ view: 'privacy', ...resetState, navHistory: [] }),
+  showDmca: () => set({ view: 'dmca', ...resetState, navHistory: [] }),
   selectedManga: null,
   selectManga: (manga) => { navigate(set, 'manga-detail'); set({ selectedManga: manga }); },
   selectedChapterId: null,

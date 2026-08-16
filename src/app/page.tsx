@@ -32,6 +32,7 @@ import { PeopleDetailPage } from '@/components/people/PeopleDetailPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
+import { WarningPage, PrivacyPage, DmcaPage } from '@/components/legal/LegalPages';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuthStore } from '@/store/auth-store';
@@ -419,6 +420,9 @@ export default function App() {
           {view === 'people-detail' && <PeopleDetailPage />}
           {view === 'games' && <GamesPage key={navCounter} />}
           {view === 'profile' && <ProfilePage />}
+          {view === 'warning' && <WarningPage />}
+          {view === 'privacy' && <PrivacyPage />}
+          {view === 'dmca' && <DmcaPage />}
         </motion.div>
       </main>
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
