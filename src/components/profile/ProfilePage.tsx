@@ -113,7 +113,7 @@ export function ProfilePage() {
   useEffect(() => {
     if (tab === 'profile') fetchProfile();
     if (tab === 'history') fetchHistory(historyFilter, 1, false);
-  }, [tab, historyFilter]);
+  }, [tab, historyFilter, user, fetchHistory, fetchProfile]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

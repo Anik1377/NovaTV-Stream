@@ -190,9 +190,7 @@ export function InstallAppModal({
 
                 {/* Icon + title */}
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/20 shrink-0">
-                    <Download className="w-8 h-8 text-white" />
-                  </div>
+                  <img src="/logo.svg" alt="StreamVault" className="w-16 h-16 rounded-[18px] shadow-lg shadow-red-500/20 shrink-0" />
                   <div>
                     <h2 className="text-xl font-bold text-white">Install StreamVault</h2>
                     <p className="text-sm text-white/50 mt-0.5">
@@ -394,9 +392,7 @@ export function InstallBanner({
             </button>
             <div className="flex items-center gap-3.5">
               {/* App icon */}
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shrink-0 shadow-lg shadow-red-500/20">
-                <Download className="w-6 h-6 text-white" />
-              </div>
+              <img src="/logo.svg" alt="StreamVault" className="w-12 h-12 rounded-[14px] shrink-0 shadow-lg shadow-red-500/20" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">Install StreamVault</p>
                 <p className="text-xs text-white/40 mt-0.5 truncate">
