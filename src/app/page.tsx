@@ -30,6 +30,7 @@ import { MangaDetail } from '@/components/read/MangaDetail';
 import { MangaReader } from '@/components/read/MangaReader';
 import { PeoplePage } from '@/components/people/PeoplePage';
 import { PeopleDetailPage } from '@/components/people/PeopleDetailPage';
+import { AdultPage } from '@/components/adult/AdultPage';
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
 import { ProfilePage } from '@/components/profile/ProfilePage';
@@ -421,6 +422,7 @@ export default function App() {
           {view === 'manga-reader' && <MangaReader />}
           {view === 'people' && <PeoplePage />}
           {view === 'people-detail' && <PeopleDetailPage />}
+          {view === 'adult' && <AdultPage />}
           {view === 'games' && <GamesPage key={navCounter} />}
           {view === 'profile' && <ProfilePage />}
           {view === 'warning' && <WarningPage />}
@@ -434,7 +436,7 @@ export default function App() {
       <MobileSearchButton key={view} />
       <MobileTabBar />
       <VisitDisclaimer />
-      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people') && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people' || view === 'adult') && <MobileBackHome />}
     </div>
   );
 }

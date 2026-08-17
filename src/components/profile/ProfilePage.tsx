@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, User, Bookmark, Clock, LogOut, Pencil, Check, X, Trash2,
   Loader2, Film, Tv, Users, Calendar, Shield, Palette, Heart, Camera,
-  ChevronDown,
+  ChevronDown, ShieldOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/auth-store';
@@ -338,6 +338,26 @@ export function ProfilePage() {
                       <InfoRow label="Theme" value={user?.accentColor ? `Custom (${ACCENT_COLORS.find(c => c.value === user.accentColor)?.name || 'Custom'})` : `Avatar-matched (${avatarDef.name})`} />
                       <InfoRow label="Favorite Genres" value={user?.favoriteGenres?.length ? user.favoriteGenres.join(', ') : '\u2014'} />
                       <InfoRow label="Member Since" value={memberSince} />
+                    </div>
+                  </div>
+
+                  {/* Content Settings */}
+                  <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5 space-y-4">
+                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><ShieldOff className="w-4 h-4 text-white/30" />Content Settings</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-white/80 font-medium">Adult Content</p>
+                        <p className="text-xs text-white/35 mt-0.5">Show 18+ rated titles in a dedicated section</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newVal = !user?.adultEnabled;
+                          await updateProfile({ adultEnabled: newVal });
+                        }}
+                        className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${user?.adultEnabled ? 'bg-red-600' : 'bg-white/15'}`}
+                      >
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${user?.adultEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </button>
                     </div>
                   </div>
                 </div>

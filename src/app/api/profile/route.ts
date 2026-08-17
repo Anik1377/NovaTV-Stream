@@ -26,6 +26,7 @@ export async function GET() {
       bio: user!.bio,
       accentColor: (user as Record<string, unknown>).accentColor as string | null ?? null,
       favoriteGenres: (user as Record<string, unknown>).favoriteGenres as string[] ?? [],
+      adultEnabled: (user as Record<string, unknown>).adultEnabled as boolean ?? false,
       createdAt: user!.createdAt,
       stats: { watchHistoryCount: count || 0 },
     });
@@ -40,7 +41,7 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, bio, avatar, accentColor, favoriteGenres } = body;
+    const { name, bio, avatar, accentColor, favoriteGenres, adultEnabled } = body;
 
     if (bio && bio.length > 200) {
       return badRequest('Bio must be 200 characters or less');
@@ -58,6 +59,7 @@ export async function PUT(req: Request) {
     if (avatar !== undefined) updates.avatar = avatar || 'hero';
     if (accentColor !== undefined) updates.accent_color = accentColor || null;
     if (favoriteGenres !== undefined) updates.favorite_genres = favoriteGenres;
+    if (adultEnabled !== undefined) updates.adult_enabled = adultEnabled;
 
     if (supabase) {
       // Try updating the profiles table first
@@ -74,6 +76,7 @@ export async function PUT(req: Request) {
         if (avatar !== undefined) metaUpdates.avatar = avatar || 'hero';
         if (accentColor !== undefined) metaUpdates.accentColor = accentColor || null;
         if (favoriteGenres !== undefined) metaUpdates.favoriteGenres = favoriteGenres;
+        if (adultEnabled !== undefined) metaUpdates.adultEnabled = adultEnabled;
         await supabase.auth.updateUser({ data: metaUpdates });
       }
     }
@@ -86,6 +89,7 @@ export async function PUT(req: Request) {
       if (avatar !== undefined) metaUpdates.avatar = avatar || 'hero';
       if (accentColor !== undefined) metaUpdates.accentColor = accentColor || null;
       if (favoriteGenres !== undefined) metaUpdates.favoriteGenres = favoriteGenres;
+      if (adultEnabled !== undefined) metaUpdates.adultEnabled = adultEnabled;
       await supabase.auth.updateUser({ data: metaUpdates });
     }
 
@@ -97,6 +101,7 @@ export async function PUT(req: Request) {
       bio: bio !== undefined ? (bio || null) : user!.bio,
       accentColor: accentColor !== undefined ? (accentColor || null) : ((user as Record<string, unknown>).accentColor as string | null ?? null),
       favoriteGenres: favoriteGenres !== undefined ? favoriteGenres : ((user as Record<string, unknown>).favoriteGenres as string[] ?? []),
+      adultEnabled: adultEnabled !== undefined ? adultEnabled : ((user as Record<string, unknown>).adultEnabled as boolean ?? false),
       createdAt: user!.createdAt,
     });
   } catch {

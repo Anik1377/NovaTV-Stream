@@ -10,6 +10,7 @@ export interface UserProfile {
   bio: string | null;
   accentColor: string | null;
   favoriteGenres: string[];
+  adultEnabled: boolean;
   createdAt?: string;
 }
 
@@ -51,6 +52,7 @@ export async function getSessionUser() {
           bio: profile.bio || meta.bio || null,
           accentColor: profile.accent_color || meta.accentColor || null,
           favoriteGenres: profile.favorite_genres || meta.favoriteGenres || [],
+          adultEnabled: profile.adult_enabled ?? meta.adultEnabled ?? false,
           createdAt: profile.created_at,
         },
         res: null,
@@ -70,6 +72,7 @@ export async function getSessionUser() {
       bio: meta.bio || null,
       accentColor: meta.accentColor || null,
       favoriteGenres: meta.favoriteGenres || [],
+      adultEnabled: meta.adultEnabled ?? false,
     },
     res: null,
   };

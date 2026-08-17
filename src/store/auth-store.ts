@@ -8,6 +8,7 @@ export interface AuthUser {
   bio: string | null;
   accentColor: string | null;
   favoriteGenres: string[];
+  adultEnabled: boolean;
   createdAt?: string;
 }
 
@@ -28,6 +29,7 @@ interface AuthState {
     avatar?: string;
     accentColor?: string;
     favoriteGenres?: string[];
+    adultEnabled?: boolean;
   }) => Promise<{ error?: string }>;
 }
 
