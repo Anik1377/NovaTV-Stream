@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Film, ArrowRight, Sparkles, Users, Clapperboard, TrendingUp, ChevronDown, Loader2 } from 'lucide-react';
+import { Star, Film, ArrowRight, Users, Clapperboard, TrendingUp, ChevronDown, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
 import type { Person } from '@/lib/types';
@@ -252,7 +252,6 @@ export function PeoplePage() {
               }}
               className="flex items-center gap-2 px-6 py-3 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-semibold text-sm transition-all shadow-lg shadow-lime-500/20 hover:shadow-xl hover:scale-105 active:scale-95"
             >
-              <Sparkles className="w-4 h-4" />
               Browse People
               <ArrowRight className="w-4 h-4" />
             </button>

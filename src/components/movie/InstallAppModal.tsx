@@ -10,7 +10,6 @@ import {
   WifiOff,
   Maximize,
   Share2,
-  Sparkles,
   ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -321,10 +320,7 @@ export function InstallAppModal({
                     <span>Secure</span>
                   </div>
                   <div className="w-1 h-1 rounded-full bg-white/15" />
-                  <div className="flex items-center gap-1.5 text-white/30 text-xs">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Free Forever</span>
-                  </div>
+                  <span className="text-white/30 text-xs">Free Forever</span>
                   <div className="w-1 h-1 rounded-full bg-white/15" />
                   <div className="flex items-center gap-1.5 text-white/30 text-xs">
                     <Zap className="w-3.5 h-3.5" />

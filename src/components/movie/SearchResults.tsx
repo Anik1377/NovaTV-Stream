@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   Search, ArrowLeft, Film, Tv, X, Loader2,
-  TrendingUp, History, AlertCircle, ChevronDown, Sparkles, Users,
+  TrendingUp, History, AlertCircle, ChevronDown, RotateCw, Users,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { Button } from '@/components/ui/button';
@@ -206,7 +206,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         onClick={onRetry}
         className="bg-white/[0.08] hover:bg-white/15 text-white border border-white/[0.08] rounded-xl gap-2"
       >
-        <Sparkles className="w-4 h-4" />
+        <RotateCw className="w-4 h-4" />
         Try Again
       </Button>
     </div>

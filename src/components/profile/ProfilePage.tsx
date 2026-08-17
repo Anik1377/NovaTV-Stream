@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, User, Bookmark, Clock, LogOut, Pencil, Check, X, Trash2,
-  Loader2, Film, Tv, Users, Calendar, Shield, Palette, Heart, Sparkles,
+  Loader2, Film, Tv, Users, Calendar, Shield, Palette, Heart, Camera,
   ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -491,7 +491,7 @@ function EditPanel({
 }) {
   const steps: { key: EditStep; label: string; icon: React.ReactNode }[] = [
     { key: 'main', label: 'Info', icon: <User className="w-3.5 h-3.5" /> },
-    { key: 'avatar', label: 'Avatar', icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { key: 'avatar', label: 'Avatar', icon: <Camera className="w-3.5 h-3.5" /> },
     { key: 'color', label: 'Theme', icon: <Palette className="w-3.5 h-3.5" /> },
     { key: 'genres', label: 'Genres', icon: <Heart className="w-3.5 h-3.5" /> },
   ];

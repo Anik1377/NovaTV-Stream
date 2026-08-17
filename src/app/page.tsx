@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Film, Star, Clock, Tv, Home, Swords, Heart, Ghost, Zap,
-  Shield, Globe, Baby, Clapperboard, Popcorn, Sparkles,
+  Shield, Globe, Baby, Clapperboard, Popcorn, Shuffle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -147,7 +147,7 @@ function SurpriseMeButton({ movies }: { movies: Movie[] }) {
       whileTap={{ scale: 0.95 }}
       className="fixed right-4 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 transition-shadow"
     >
-      <Sparkles className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
+      <Shuffle className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
       <span className="hidden sm:inline">Surprise Me</span>
     </motion.button>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Home, Clapperboard, Loader2, Film, Play, Flame, Sparkles, Clock, TrendingUp } from 'lucide-react';
+import { Home, Clapperboard, Loader2, Film, Play, Flame, Clock, TrendingUp } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
@@ -406,10 +406,7 @@ export function ShowReelsPage() {
       {loading && (
         <div className="relative z-10 px-4 md:px-8">
           <div className="flex items-center justify-center gap-3 py-20">
-            <div className="relative">
-              <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
-              <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
-            </div>
+            <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
             <span className="text-white/50 text-sm">Scoring the hype...</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
