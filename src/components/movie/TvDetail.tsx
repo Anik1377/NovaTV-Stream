@@ -30,7 +30,7 @@ export function TvDetail() {
     fetch(`/api/tmdb/tv/${selectedTv.id}`)
       .then((res) => res.json())
       .then((data) => { if (!cancelled) setDetails(data); })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     record({
       tmdbId: selectedTv.id,
@@ -49,7 +49,7 @@ export function TvDetail() {
     fetch(`/api/tmdb/tv/${selectedTv.id}/season/${selectedSeason}`)
       .then((res) => res.json())
       .then((data) => { if (!cancelled) setSeasonDetails(data); })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => { if (!cancelled) setSeasonLoading(false); });
     return () => { cancelled = true; };
   }, [selectedTv, selectedSeason]);
