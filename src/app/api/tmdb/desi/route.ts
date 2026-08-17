@@ -51,23 +51,33 @@ function toMovie(r: DiscoverResult, mediaType: 'movie' | 'tv'): Movie {
 
 async function fetchLanguage(key: string, lang: string, country: string): Promise<Movie[]> {
   const minVotes = LOW_VOTE_LANGS.has(key) ? '0' : '10';
-  const baseParams: Record<string, string> = {
-    with_original_language: lang,
-    with_origin_country: country,
-    sort_by: 'popularity.desc',
-    'vote_count.gte': minVotes,
-  };
 
   const [mRes, tRes] = await Promise.all([
-    tmdbFetch<{ results: DiscoverResult[] }>('/discover/movie', baseParams).catch(() => ({ results: [] })),
-    tmdbFetch<{ results: DiscoverResult[] }>('/discover/tv', baseParams).catch(() => ({ results: [] })),
+    tmdbFetch<{ results: DiscoverResult[] }>('/discover/movie', {
+      with_original_language: lang,
+      with_origin_country: country,
+      sort_by: 'primary_release_date.desc',
+      'vote_count.gte': minVotes,
+    }).catch(() => ({ results: [] })),
+    tmdbFetch<{ results: DiscoverResult[] }>('/discover/tv', {
+      with_original_language: lang,
+      with_origin_country: country,
+      sort_by: 'first_air_date.desc',
+      'vote_count.gte': minVotes,
+    }).catch(() => ({ results: [] })),
   ]);
 
   const movies = (mRes.results || []).map(r => toMovie(r, 'movie'));
   const tv = (tRes.results || []).map(r => toMovie(r, 'tv'));
 
+  const sortByDate = (a: Movie, b: Movie) => {
+    const da = a.release_date || '';
+    const db = b.release_date || '';
+    return db.localeCompare(da);
+  };
+
   return [...movies, ...tv]
-    .sort((a, b) => b.popularity - a.popularity)
+    .sort(sortByDate)
     .slice(0, 20);
 }
 
