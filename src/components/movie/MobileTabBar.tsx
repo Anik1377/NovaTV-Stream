@@ -69,8 +69,8 @@ export function MobileTabBar() {
     { key: 'showreels', label: 'ShowReels', icon: Clapperboard, action: showShowreels, color: 'text-amber-400' },
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead, color: 'text-sky-400' },
     { key: 'people', label: 'People', icon: Users, action: showPeople, color: 'text-lime-400' },
-    { key: 'adult', label: '18+', icon: ShieldOff, action: showAdult, color: 'text-red-400' },
-  ], [showGames, showLiveTV, showAsian, showShowreels, showRead, showPeople, showAdult]);
+    ...(authUser?.adultEnabled ? [{ key: 'adult', label: '18+', icon: ShieldOff, action: showAdult, color: 'text-red-400' }] : []),
+  ], [showGames, showLiveTV, showAsian, showShowreels, showRead, showPeople, showAdult, authUser?.adultEnabled]);
 
   /* ── Active state ── */
   const isActive = useCallback((key: string) => {

@@ -138,7 +138,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     return 'text-red-500';
   };
 
-  /* ── Nav items ── */
+  const adultEnabled = authUser?.adultEnabled ?? false;
   const navItems: NavItem[] = [
     { key: 'home', label: 'Home', icon: Home, action: goHome },
     { key: 'movies', label: 'Movies', icon: Film, action: showMovies },
@@ -150,7 +150,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead },
     { key: 'people', label: 'People', icon: Users, action: showPeople },
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames },
-    { key: 'adult', label: '18+', icon: ShieldOff, action: showAdult },
+    ...(adultEnabled ? [{ key: 'adult', label: '18+', icon: ShieldOff, action: showAdult }] : []),
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV },
   ];
 
