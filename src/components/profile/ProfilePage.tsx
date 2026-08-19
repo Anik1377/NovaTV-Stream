@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, User, Bookmark, Clock, LogOut, Pencil, Check, X, Trash2,
   Loader2, Film, Tv, Users, Calendar, Shield, Palette, Heart, Camera,
-  ChevronDown, ShieldOff,
+  ChevronDown, ShieldOff, Play,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/auth-store';
@@ -18,6 +18,7 @@ import {
 import { getImageUrl } from '@/lib/tmdb';
 import { getLocalBrowseHistory, deleteLocalHistoryItem, clearLocalHistory } from '@/lib/useRecordHistory';
 import type { BrowseHistoryEntry } from '@/lib/useRecordHistory';
+import { getWatchHistory, removeWatchHistory, type WatchHistoryEntry } from '@/lib/watch-history';
 import type { Movie } from '@/lib/types';
 
 interface BrowseHistoryItem {
@@ -86,18 +87,26 @@ export function ProfilePage() {
     } catch { /* ignore */ }
   }, [user]);
 
+  // Watch history from localStorage
+  const [watchItems, setWatchItems] = useState<WatchHistoryEntry[]>([]);
+
   const fetchHistory = useCallback(async (filter: HistoryFilter, page: number, append: boolean) => {
-    // Non-authenticated users: use localStorage
+    // Always load watch history from localStorage
+    let wh = getWatchHistory();
+    if (filter !== 'all') wh = wh.filter((i) => i.mediaType === filter);
+    setWatchItems(wh);
+
+    // Non-authenticated users: use localStorage for browse history
     if (!user) {
       setHistoryLoading(true);
       let local = getLocalBrowseHistory();
       if (filter !== 'all') local = local.filter((i) => i.mediaType === filter);
       setHistory(local);
-      setHistoryTotal(local.length);
+      setHistoryTotal(local.length + wh.length);
       setHistoryLoading(false);
       return;
     }
-    // Authenticated: use server API
+    // Authenticated: use server API for browse history
     if (append) { setHistoryLoadMore(true); } else { setHistoryLoading(true); }
     try {
       const params = new URLSearchParams({ limit: '50', offset: String((page - 1) * 50) });
@@ -106,7 +115,7 @@ export function ProfilePage() {
       const data = await res.json();
       if (res.ok) {
         setHistory(prev => append ? [...prev, ...data.items] : data.items);
-        setHistoryTotal(data.total);
+        setHistoryTotal(data.total + wh.length);
         if (!append) setHistoryPage(1);
       }
     } catch { /* ignore */ }
@@ -159,13 +168,15 @@ export function ProfilePage() {
   };
 
   const clearHistory = async () => {
-    if (!confirm('Clear all browsing history? This cannot be undone.')) return;
+    if (!confirm('Clear all history? This cannot be undone.')) return;
     if (user) {
       await fetch('/api/history', { method: 'DELETE' });
     } else {
       clearLocalHistory();
     }
+    clearWatchHistory();
     setHistory([]);
+    setWatchItems([]);
     setHistoryTotal(0);
   };
 
@@ -182,6 +193,13 @@ export function ProfilePage() {
     setDeletingId(null);
   };
 
+  const handleDeleteWatchItem = (tmdbId: number, mediaType: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    removeWatchHistory(tmdbId, mediaType);
+    setWatchItems(prev => prev.filter(item => !(item.tmdbId === tmdbId && item.mediaType === mediaType)));
+    setHistoryTotal(prev => prev - 1);
+  };
+
   const handleHistoryClick = (item: BrowseHistoryItem) => {
     if (item.mediaType === 'person') {
       selectPerson({ id: item.tmdbId, name: item.title, profilePath: item.posterPath });
@@ -192,6 +210,16 @@ export function ProfilePage() {
       poster_path: item.posterPath, media_type: item.mediaType,
       vote_average: 0, genre_ids: [], overview: '', popularity: 0,
       release_date: '', first_air_date: '', backdrop_path: null, original_language: '',
+    };
+    if (item.mediaType === 'tv') selectTv(media); else selectMovie(media);
+  };
+
+  const handleWatchItemClick = (item: WatchHistoryEntry) => {
+    const media: Movie = {
+      id: item.tmdbId, title: item.title, name: item.title,
+      poster_path: item.posterPath, media_type: item.mediaType,
+      vote_average: 0, genre_ids: [], overview: '', popularity: 0,
+      release_date: '', first_air_date: '', backdrop_path: item.backdropPath, original_language: '',
     };
     if (item.mediaType === 'tv') selectTv(media); else selectMovie(media);
   };
@@ -410,18 +438,74 @@ export function ProfilePage() {
                 })}
               </div>
 
-              {historyLoading ? (
+              {historyLoading && history.length === 0 && watchItems.length === 0 ? (
                 <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-white/50 animate-spin" /></div>
-              ) : history.length === 0 ? (
-                <EmptyState icon={<Clock className="w-9 h-9 text-white/10" />} title="No browsing history" description="Movies, shows, and people you view will appear here." />
+              ) : history.length === 0 && watchItems.length === 0 ? (
+                <EmptyState icon={<Clock className="w-9 h-9 text-white/10" />} title="No history yet" description="Movies and shows you watch will appear here." />
               ) : (
                 <>
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-white/40">{history.length} of {historyTotal} items</p>
+                    <p className="text-sm text-white/40">{history.length + watchItems.length} items</p>
                     <button onClick={clearHistory} className="flex items-center gap-1.5 text-sm text-white/50 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" />Clear All</button>
                   </div>
                   <div className="space-y-2">
                     <AnimatePresence mode="popLayout">
+                      {/* Watch History Items */}
+                      {watchItems.map((item) => {
+                        const imgUrl = item.posterPath ? getImageUrl(item.posterPath, 'w92') : null;
+                        const dateStr = new Date(item.watchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const episodeLabel = item.season && item.episode
+                          ? `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')}`
+                          : null;
+
+                        return (
+                          <motion.div
+                            key={`watch-${item.tmdbId}-${item.mediaType}`}
+                            layout
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -40, transition: { duration: 0.2 } }}
+                            transition={{ duration: 0.2 }}
+                            onClick={() => handleWatchItemClick(item)}
+                            className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/[0.08] cursor-pointer transition-all group"
+                          >
+                            <div className="aspect-[2/3] w-12 md:w-14 rounded-lg overflow-hidden bg-white/[0.06] shrink-0 relative">
+                              {imgUrl ? (
+                                <img src={imgUrl} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  {item.mediaType === 'tv' ? <Tv className="w-5 h-5 text-white/15" /> : <Film className="w-5 h-5 text-white/15" />}
+                                </div>
+                              )}
+                              {/* Play indicator badge */}
+                              <div className="absolute bottom-0.5 left-0.5 w-4 h-4 rounded-full bg-[#e50914]/90 flex items-center justify-center">
+                                <Play className="w-2 h-2 text-white fill-white ml-px" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white/90 text-sm font-medium truncate group-hover:text-white transition-colors">{item.title}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#e50914]/15 text-[#e50914]">watched</span>
+                                <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.06] text-white/40">{item.mediaType}</span>
+                                {episodeLabel && <span className="text-white/50 text-xs truncate">{episodeLabel}</span>}
+                                {item.episodeName && <span className="text-white/35 text-xs truncate">{item.episodeName}</span>}
+                              </div>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-1.5 text-white/25 text-xs shrink-0">
+                              <Calendar className="w-3 h-3" />
+                              {dateStr}
+                            </div>
+                            <button
+                              onClick={(e) => handleDeleteWatchItem(item.tmdbId, item.mediaType, e)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-red-400 transition-all shrink-0"
+                              aria-label="Remove from history"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </motion.div>
+                        );
+                      })}
+                      {/* Browse History Items */}
                       {history.map((item) => {
                         const isPerson = item.mediaType === 'person';
                         const imgSize = isPerson ? 'w185' : 'w92';

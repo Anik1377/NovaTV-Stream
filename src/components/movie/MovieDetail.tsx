@@ -13,6 +13,7 @@ import { BackButton } from '@/components/shared/BackButton';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { MovieDetails } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
+import { recordWatchHistory } from '@/lib/watch-history';
 
 export function MovieDetail() {
   const selectedMovie = useAppStore(s => s.selectedMovie);
@@ -66,6 +67,14 @@ export function MovieDetail() {
     }
     setShowProviderSelector(false);
     setShowPlayer(true);
+    // Record watch history
+    recordWatchHistory({
+      tmdbId: movie.id,
+      title: title,
+      posterPath: movie.poster_path,
+      backdropPath: movie.backdrop_path,
+      mediaType: 'movie',
+    });
   };
 
   const renderStars = (avg: number) => {

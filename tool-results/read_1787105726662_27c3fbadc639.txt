@@ -1,0 +1,705 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState, useEffect, useCallback, useMemo } from 'react';
+     4→     4→import {
+     5→     5→  ArrowLeft, User, Bookmark, Clock, LogOut, Pencil, Check, X, Trash2,
+     6→     6→  Loader2, Film, Tv, Users, Calendar, Shield, Palette, Heart, Camera,
+     7→     7→  ChevronDown, ShieldOff,
+     8→     8→} from 'lucide-react';
+     9→     9→import { motion, AnimatePresence } from 'framer-motion';
+    10→    10→import { useAuthStore } from '@/store/auth-store';
+    11→    11→import { useAppStore } from '@/store/app-store';
+    12→    12→import { Input } from '@/components/ui/input';
+    13→    13→import { AuthModal } from '@/components/auth/AuthModal';
+    14→    14→import {
+    15→    15→  ProfileAvatar, AVATAR_DEFS, ACCENT_COLORS, GENRE_OPTIONS,
+    16→    16→  getAvatarDef, type AvatarDef,
+    17→    17→} from '@/lib/avatars';
+    18→    18→import { getImageUrl } from '@/lib/tmdb';
+    19→    19→import { getLocalBrowseHistory, deleteLocalHistoryItem, clearLocalHistory } from '@/lib/useRecordHistory';
+    20→    20→import type { BrowseHistoryEntry } from '@/lib/useRecordHistory';
+    21→    21→import type { Movie } from '@/lib/types';
+    22→    22→
+    23→    23→interface BrowseHistoryItem {
+    24→    24→  id: string;
+    25→    25→  tmdbId: number;
+    26→    26→  title: string;
+    27→    27→  posterPath: string | null;
+    28→    28→  mediaType: 'movie' | 'tv' | 'person';
+    29→    29→  subtitle: string | null;
+    30→    30→  visitedAt: string;
+    31→    31→}
+    32→    32→
+    33→    33→type HistoryFilter = 'all' | 'movie' | 'tv' | 'person';
+    34→    34→
+    35→    35→type Tab = 'profile' | 'watchlist' | 'history';
+    36→    36→
+    37→    37→type EditStep = 'main' | 'avatar' | 'color' | 'genres';
+    38→    38→
+    39→    39→export function ProfilePage() {
+    40→    40→  const { user, loading: authLoading, updateProfile, logout } = useAuthStore();
+    41→    41→  const goHome = useAppStore(s => s.goHome);
+    42→    42→  const watchlist = useAppStore(s => s.watchlist);
+    43→    43→  const selectMovie = useAppStore(s => s.selectMovie);
+    44→    44→  const selectTv = useAppStore(s => s.selectTv);
+    45→    45→  const selectPerson = useAppStore(s => s.selectPerson);
+    46→    46→
+    47→    47→  const [tab, setTab] = useState<Tab>('profile');
+    48→    48→  const [authModalOpen, setAuthModalOpen] = useState(false);
+    49→    49→
+    50→    50→  // Profile editing
+    51→    51→  const [editing, setEditing] = useState(false);
+    52→    52→  const [editStep, setEditStep] = useState<EditStep>('main');
+    53→    53→  const [editName, setEditName] = useState('');
+    54→    54→  const [editBio, setEditBio] = useState('');
+    55→    55→  const [selectedAvatar, setSelectedAvatar] = useState('hero');
+    56→    56→  const [selectedColor, setSelectedColor] = useState('#e11d48');
+    57→    57→  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+    58→    58→  const [saving, setSaving] = useState(false);
+    59→    59→  const [saveError, setSaveError] = useState('');
+    60→    60→
+    61→    61→  // Browse history
+    62→    62→  const [history, setHistory] = useState<BrowseHistoryItem[]>([]);
+    63→    63→  const [historyLoading, setHistoryLoading] = useState(false);
+    64→    64→  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+    65→    65→  const [historyPage, setHistoryPage] = useState(1);
+    66→    66→  const [historyTotal, setHistoryTotal] = useState(0);
+    67→    67→  const [historyLoadMore, setHistoryLoadMore] = useState(false);
+    68→    68→  const [deletingId, setDeletingId] = useState<string | null>(null);
+    69→    69→
+    70→    70→  // Profile stats from API
+    71→    71→  const [profileStats, setProfileStats] = useState<{ watchHistoryCount: number } | null>(null);
+    72→    72→
+    73→    73→  // Computed accent color for UI
+    74→    74→  const accentColor = useMemo(() => {
+    75→    75→    if (user?.accentColor) return user.accentColor;
+    76→    76→    const def = getAvatarDef(user?.avatar);
+    77→    77→    return def.color;
+    78→    78→  }, [user?.avatar, user?.accentColor]);
+    79→    79→
+    80→    80→  const fetchProfile = useCallback(async () => {
+    81→    81→    if (!user) return;
+    82→    82→    try {
+    83→    83→      const res = await fetch('/api/profile');
+    84→    84→      const data = await res.json();
+    85→    85→      if (res.ok) setProfileStats(data.stats);
+    86→    86→    } catch { /* ignore */ }
+    87→    87→  }, [user]);
+    88→    88→
+    89→    89→  const fetchHistory = useCallback(async (filter: HistoryFilter, page: number, append: boolean) => {
+    90→    90→    // Non-authenticated users: use localStorage
+    91→    91→    if (!user) {
+    92→    92→      setHistoryLoading(true);
+    93→    93→      let local = getLocalBrowseHistory();
+    94→    94→      if (filter !== 'all') local = local.filter((i) => i.mediaType === filter);
+    95→    95→      setHistory(local);
+    96→    96→      setHistoryTotal(local.length);
+    97→    97→      setHistoryLoading(false);
+    98→    98→      return;
+    99→    99→    }
+   100→   100→    // Authenticated: use server API
+   101→   101→    if (append) { setHistoryLoadMore(true); } else { setHistoryLoading(true); }
+   102→   102→    try {
+   103→   103→      const params = new URLSearchParams({ limit: '50', offset: String((page - 1) * 50) });
+   104→   104→      if (filter !== 'all') params.set('type', filter);
+   105→   105→      const res = await fetch(`/api/history?${params}`);
+   106→   106→      const data = await res.json();
+   107→   107→      if (res.ok) {
+   108→   108→        setHistory(prev => append ? [...prev, ...data.items] : data.items);
+   109→   109→        setHistoryTotal(data.total);
+   110→   110→        if (!append) setHistoryPage(1);
+   111→   111→      }
+   112→   112→    } catch { /* ignore */ }
+   113→   113→    setHistoryLoading(false);
+   114→   114→    setHistoryLoadMore(false);
+   115→   115→  }, [user]);
+   116→   116→
+   117→   117→  useEffect(() => {
+   118→   118→    if (tab === 'profile') fetchProfile();
+   119→   119→    if (tab === 'history') fetchHistory(historyFilter, 1, false);
+   120→   120→  }, [tab, historyFilter, user, fetchHistory, fetchProfile]);
+   121→   121→
+   122→   122→  useEffect(() => {
+   123→   123→    window.scrollTo({ top: 0, behavior: 'smooth' });
+   124→   124→  }, []);
+   125→   125→
+   126→   126→  const startEdit = () => {
+   127→   127→    setEditName(user?.name || '');
+   128→   128→    setEditBio(user?.bio || '');
+   129→   129→    setSelectedAvatar(user?.avatar || 'hero');
+   130→   130→    setSelectedColor(user?.accentColor || getAvatarDef(user?.avatar).color);
+   131→   131→    setSelectedGenres(user?.favoriteGenres || []);
+   132→   132→    setEditStep('main');
+   133→   133→    setEditing(true);
+   134→   134→    setSaveError('');
+   135→   135→  };
+   136→   136→
+   137→   137→  const saveProfile = async () => {
+   138→   138→    setSaving(true);
+   139→   139→    setSaveError('');
+   140→   140→    const result = await updateProfile({
+   141→   141→      name: editName,
+   142→   142→      bio: editBio,
+   143→   143→      avatar: selectedAvatar,
+   144→   144→      accentColor: selectedColor,
+   145→   145→      favoriteGenres: selectedGenres,
+   146→   146→    });
+   147→   147→    setSaving(false);
+   148→   148→    if (result.error) {
+   149→   149→      setSaveError(result.error);
+   150→   150→    } else {
+   151→   151→      setEditing(false);
+   152→   152→    }
+   153→   153→  };
+   154→   154→
+   155→   155→  const toggleGenre = (genre: string) => {
+   156→   156→    setSelectedGenres(prev =>
+   157→   157→      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
+   158→   158→    );
+   159→   159→  };
+   160→   160→
+   161→   161→  const clearHistory = async () => {
+   162→   162→    if (!confirm('Clear all browsing history? This cannot be undone.')) return;
+   163→   163→    if (user) {
+   164→   164→      await fetch('/api/history', { method: 'DELETE' });
+   165→   165→    } else {
+   166→   166→      clearLocalHistory();
+   167→   167→    }
+   168→   168→    setHistory([]);
+   169→   169→    setHistoryTotal(0);
+   170→   170→  };
+   171→   171→
+   172→   172→  const handleDeleteHistoryItem = async (id: string, e: React.MouseEvent) => {
+   173→   173→    e.stopPropagation();
+   174→   174→    setDeletingId(id);
+   175→   175→    if (user) {
+   176→   176→      await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
+   177→   177→    } else {
+   178→   178→      deleteLocalHistoryItem(id);
+   179→   179→    }
+   180→   180→    setHistory(prev => prev.filter(item => item.id !== id));
+   181→   181→    setHistoryTotal(prev => prev - 1);
+   182→   182→    setDeletingId(null);
+   183→   183→  };
+   184→   184→
+   185→   185→  const handleHistoryClick = (item: BrowseHistoryItem) => {
+   186→   186→    if (item.mediaType === 'person') {
+   187→   187→      selectPerson({ id: item.tmdbId, name: item.title, profilePath: item.posterPath });
+   188→   188→      return;
+   189→   189→    }
+   190→   190→    const media: Movie = {
+   191→   191→      id: item.tmdbId, title: item.title, name: item.title,
+   192→   192→      poster_path: item.posterPath, media_type: item.mediaType,
+   193→   193→      vote_average: 0, genre_ids: [], overview: '', popularity: 0,
+   194→   194→      release_date: '', first_air_date: '', backdrop_path: null, original_language: '',
+   195→   195→    };
+   196→   196→    if (item.mediaType === 'tv') selectTv(media); else selectMovie(media);
+   197→   197→  };
+   198→   198→
+   199→   199→  const handleHistoryFilterChange = (f: HistoryFilter) => {
+   200→   200→    if (f === historyFilter) return;
+   201→   201→    setHistoryFilter(f);
+   202→   202→  };
+   203→   203→
+   204→   204→  const loadMoreHistory = () => {
+   205→   205→    const nextPage = historyPage + 1;
+   206→   206→    setHistoryPage(nextPage);
+   207→   207→    fetchHistory(historyFilter, nextPage, true);
+   208→   208→  };
+   209→   209→
+   210→   210→  const handleWatchlistClick = (tmdbId: number, mediaType: string) => {
+   211→   211→    const item: Movie = {
+   212→   212→      id: tmdbId, title: '', name: '', poster_path: null,
+   213→   213→      media_type: mediaType as 'movie' | 'tv', vote_average: 0, genre_ids: [],
+   214→   214→      overview: '', popularity: 0, release_date: '', first_air_date: '',
+   215→   215→      backdrop_path: null, original_language: '',
+   216→   216→    };
+   217→   217→    if (mediaType === 'tv') selectTv(item); else selectMovie(item);
+   218→   218→  };
+   219→   219→
+   220→   220→  // Not logged in — but still show the page with limited tabs
+   221→   221→  const isLoggedIn = !!user && !authLoading;
+   222→   222→
+   223→   223→  const memberSince = user ? new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '';
+   224→   224→  const avatarDef = getAvatarDef(user?.avatar);
+   225→   225→
+   226→   226→  // Default to history tab when not logged in
+   227→   227→  useEffect(() => {
+   228→   228→    if (!isLoggedIn && tab === 'profile') setTab('history');
+   229→   229→  }, [isLoggedIn]);
+   230→   230→
+   231→   231→  const tabsList: { key: Tab; label: string; icon: React.ReactNode }[] = [
+   232→   232→    ...(isLoggedIn ? [{ key: 'profile' as Tab, label: 'Profile', icon: <User className="w-4 h-4" /> }] : []),
+   233→   233→    ...(isLoggedIn ? [{ key: 'watchlist' as Tab, label: `Watchlist (${watchlist.length})`, icon: <Bookmark className="w-4 h-4" /> }] : []),
+   234→   234→    { key: 'history', label: `History${historyTotal > 0 ? ` (${historyTotal})` : ''}`, icon: <Clock className="w-4 h-4" /> },
+   235→   235→  ];
+   236→   236→
+   237→   237→  return (
+   238→   238→    <div className="min-h-screen pb-10">
+   239→   239→      {/* Back button */}
+   240→   240→      <div className="pt-20 px-4 md:px-8">
+   241→   241→        <button onClick={goHome} className="flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors group">
+   242→   242→          <div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
+   243→   243→            <ArrowLeft className="w-4 h-4" />
+   244→   244→          </div>
+   245→   245→          <span className="text-sm font-medium">Back</span>
+   246→   246→        </button>
+   247→   247→
+   248→   248→        {/* ── Profile Header (logged in only) ── */}
+   249→   249→        {isLoggedIn && (
+   250→   250→        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
+   251→   251→          {/* Avatar */}
+   252→   252→          <motion.div className="relative" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+   253→   253→            <div className="w-28 h-28 rounded-2xl overflow-hidden shadow-2xl" style={{ boxShadow: `0 12px 40px ${accentColor}44` }}>
+   254→   254→              <ProfileAvatar slug={user?.avatar} size={112} />
+   255→   255→            </div>
+   256→   256→            {!editing && (
+   257→   257→              <button onClick={startEdit} className="absolute -bottom-1 -right-1 w-9 h-9 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors" style={{ boxShadow: `0 4px 12px ${accentColor}22` }}>
+   258→   258→                <Pencil className="w-3.5 h-3.5 text-white" />
+   259→   259→              </button>
+   260→   260→            )}
+   261→   261→            {/* Online indicator */}
+   262→   262→            <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 rounded-full border-2 border-zinc-950" style={{ backgroundColor: '#22c55e' }} />
+   263→   263→          </motion.div>
+   264→   264→
+   265→   265→          {/* Info */}
+   266→   266→          <div className="text-center sm:text-left flex-1">
+   267→   267→            <h1 className="text-2xl md:text-3xl font-bold text-white">{user?.name || 'StreamVault User'}</h1>
+   268→   268→            <p className="text-white/40 text-sm mt-1">{user?.email}</p>
+   269→   269→            {user?.bio && !editing && <p className="text-white/60 text-sm mt-2 max-w-md">{user.bio}</p>}
+   270→   270→            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3 text-xs text-white/50">
+   271→   271→              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Joined {memberSince}</span>
+   272→   272→              <span className="flex items-center gap-1.5"><Bookmark className="w-3.5 h-3.5" />{watchlist.length} saved</span>
+   273→   273→              {profileStats && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{profileStats.watchHistoryCount} watched</span>}
+   274→   274→            </div>
+   275→   275→            {/* Favorite genres badges */}
+   276→   276→            {user?.favoriteGenres && user.favoriteGenres.length > 0 && !editing && (
+   277→   277→              <div className="flex flex-wrap gap-1.5 mt-3 justify-center sm:justify-start">
+   278→   278→                {user.favoriteGenres.slice(0, 5).map(g => (
+   279→   279→                  <span key={g} className="px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-white/80" style={{ backgroundColor: `${accentColor}22`, border: `1px solid ${accentColor}33` }}>{g}</span>
+   280→   280→                ))}
+   281→   281→                {user.favoriteGenres.length > 5 && (
+   282→   282→                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-semibold text-white/40 bg-white/[0.06]">+{user.favoriteGenres.length - 5}</span>
+   283→   283→                )}
+   284→   284→              </div>
+   285→   285→            )}
+   286→   286→          </div>
+   287→   287→
+   288→   288→          {/* Actions */}
+   289→   289→          <div className="sm:ml-auto flex gap-2">
+   290→   290→            <button onClick={startEdit} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white/80 text-sm font-medium transition-all hover:brightness-110" style={{ backgroundColor: `${accentColor}22`, border: `1px solid ${accentColor}33` }}>
+   291→   291→              <Pencil className="w-4 h-4" /><span className="hidden sm:inline">Edit Profile</span>
+   292→   292→            </button>
+   293→   293→            <button onClick={async () => { await logout(); goHome(); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/10 text-white/60 hover:text-white text-sm transition-all border border-white/[0.06]">
+   294→   294→              <LogOut className="w-4 h-4" /><span className="hidden sm:inline">Sign Out</span>
+   295→   295→            </button>
+   296→   296→          </div>
+   297→   297→        </div>
+   298→   298→        )}
+   299→   299→        {!isLoggedIn && (
+   300→   300→          <div className="mb-8">
+   301→   301→            <h1 className="text-2xl md:text-3xl font-bold text-white">Browsing History</h1>
+   302→   302→            <p className="text-white/40 text-sm mt-1">Your recently viewed content is saved locally. <button onClick={() => setAuthModalOpen(true)} className="text-white/60 hover:text-white underline underline-offset-2 transition-colors">Sign in</button> to sync across devices.</p>
+   303→   303→          </div>
+   304→   304→        )}
+   305→   305→
+   306→   306→        {/* Tabs */}
+   307→   307→        <div className="flex gap-1 mb-6 border-b border-white/[0.06]">
+   308→   308→          {tabsList.map((t) => (
+   309→   309→            <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all relative border-b-2 -mb-px ${tab === t.key ? 'text-white' : 'text-white/40 border-transparent hover:text-white/70'}`} style={tab === t.key ? { borderColor: accentColor } : undefined}>
+   310→   310→              {t.icon}
+   311→   311→              <span className="hidden sm:inline">{t.label}</span>
+   312→   312→              <span className="sm:hidden">{t.key === 'watchlist' ? watchlist.length : ''}</span>
+   313→   313→            </button>
+   314→   314→          ))}
+   315→   315→        </div>
+   316→   316→
+   317→   317→        {/* Tab Content */}
+   318→   318→        <AnimatePresence mode="wait">
+   319→   319→          {tab === 'profile' && (
+   320→   320→            <motion.div key="profile-tab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="max-w-2xl">
+   321→   321→              {editing ? (
+   322→   322→                <EditPanel
+   323→   323→                  editStep={editStep} setEditStep={setEditStep}
+   324→   324→                  editName={editName} setEditName={setEditName}
+   325→   325→                  editBio={editBio} setEditBio={setEditBio}
+   326→   326→                  selectedAvatar={selectedAvatar} setSelectedAvatar={setSelectedAvatar}
+   327→   327→                  selectedColor={selectedColor} setSelectedColor={setSelectedColor}
+   328→   328→                  selectedGenres={selectedGenres} toggleGenre={toggleGenre}
+   329→   329→                  accentColor={accentColor}
+   330→   330→                  saving={saving} saveError={saveError}
+   331→   331→                  onSave={saveProfile} onCancel={() => setEditing(false)}
+   332→   332→                />
+   333→   333→              ) : (
+   334→   334→                <div className="space-y-4">
+   335→   335→                  <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5 space-y-4">
+   336→   336→                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><Shield className="w-4 h-4 text-white/50" />Account Info</h3>
+   337→   337→                    <div className="space-y-3">
+   338→   338→                      <InfoRow label="Name" value={user?.name || '\u2014'} />
+   339→   339→                      <InfoRow label="Email" value={user?.email} />
+   340→   340→                      <InfoRow label="Avatar" value={avatarDef.name} />
+   341→   341→                      <InfoRow label="Bio" value={user?.bio || '\u2014'} truncate />
+   342→   342→                      <InfoRow label="Theme" value={user?.accentColor ? `Custom (${ACCENT_COLORS.find(c => c.value === user.accentColor)?.name || 'Custom'})` : `Avatar-matched (${avatarDef.name})`} />
+   343→   343→                      <InfoRow label="Favorite Genres" value={user?.favoriteGenres?.length ? user.favoriteGenres.join(', ') : '\u2014'} />
+   344→   344→                      <InfoRow label="Member Since" value={memberSince} />
+   345→   345→                    </div>
+   346→   346→                  </div>
+   347→   347→
+   348→   348→                  {/* Content Settings */}
+   349→   349→                  <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5 space-y-4">
+   350→   350→                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><ShieldOff className="w-4 h-4 text-white/50" />Content Settings</h3>
+   351→   351→                    <div className="flex items-center justify-between">
+   352→   352→                      <div>
+   353→   353→                        <p className="text-sm text-white/80 font-medium">Adult Content</p>
+   354→   354→                        <p className="text-xs text-white/35 mt-0.5">Show 18+ rated titles in a dedicated section</p>
+   355→   355→                      </div>
+   356→   356→                      <button
+   357→   357→                        onClick={async () => {
+   358→   358→                          const newVal = !user?.adultEnabled;
+   359→   359→                          await updateProfile({ adultEnabled: newVal });
+   360→   360→                        }}
+   361→   361→                        className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${user?.adultEnabled ? 'bg-red-600' : 'bg-white/15'}`}
+   362→   362→                      >
+   363→   363→                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${user?.adultEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+   364→   364→                      </button>
+   365→   365→                    </div>
+   366→   366→                  </div>
+   367→   367→                </div>
+   368→   368→              )}
+   369→   369→            </motion.div>
+   370→   370→          )}
+   371→   371→
+   372→   372→          {tab === 'watchlist' && (
+   373→   373→            <motion.div key="watchlist-tab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+   374→   374→              {watchlist.length === 0 ? (
+   375→   375→                <EmptyState icon={<Bookmark className="w-9 h-9 text-white/10" />} title="No items in watchlist" description="Browse movies and shows, and tap the heart icon to save them here." actionLabel="Browse Content" onAction={goHome} />
+   376→   376→              ) : (
+   377→   377→                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+   378→   378→                  {watchlist.map((id) => (<WatchlistCard key={id} tmdbId={id} onClick={handleWatchlistClick} />))}
+   379→   379→                </div>
+   380→   380→              )}
+   381→   381→            </motion.div>
+   382→   382→          )}
+   383→   383→
+   384→   384→          {tab === 'history' && (
+   385→   385→            <motion.div key="history-tab" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+   386→   386→              {/* Filter tabs */}
+   387→   387→              <div className="flex gap-2 mb-5 flex-wrap">
+   388→   388→                {([
+   389→   389→                  { key: 'all' as const, label: 'All', icon: <Clock className="w-3.5 h-3.5" /> },
+   390→   390→                  { key: 'movie' as const, label: 'Movies', icon: <Film className="w-3.5 h-3.5" /> },
+   391→   391→                  { key: 'tv' as const, label: 'TV Shows', icon: <Tv className="w-3.5 h-3.5" /> },
+   392→   392→                  { key: 'person' as const, label: 'People', icon: <Users className="w-3.5 h-3.5" /> },
+   393→   393→                ]).map(f => {
+   394→   394→                  const active = historyFilter === f.key;
+   395→   395→                  return (
+   396→   396→                    <button
+   397→   397→                      key={f.key}
+   398→   398→                      onClick={() => handleHistoryFilterChange(f.key)}
+   399→   399→                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+   400→   400→                        active
+   401→   401→                          ? 'text-white border'
+   402→   402→                          : 'bg-white/[0.06] text-white/50 hover:text-white/80 border border-transparent hover:border-white/10'
+   403→   403→                      }`}
+   404→   404→                      style={active ? { backgroundColor: `${accentColor}22`, borderColor: `${accentColor}44`, color: accentColor } : undefined}
+   405→   405→                    >
+   406→   406→                      {f.icon}
+   407→   407→                      {f.label}
+   408→   408→                    </button>
+   409→   409→                  );
+   410→   410→                })}
+   411→   411→              </div>
+   412→   412→
+   413→   413→              {historyLoading ? (
+   414→   414→                <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-white/50 animate-spin" /></div>
+   415→   415→              ) : history.length === 0 ? (
+   416→   416→                <EmptyState icon={<Clock className="w-9 h-9 text-white/10" />} title="No browsing history" description="Movies, shows, and people you view will appear here." />
+   417→   417→              ) : (
+   418→   418→                <>
+   419→   419→                  <div className="flex items-center justify-between mb-4">
+   420→   420→                    <p className="text-sm text-white/40">{history.length} of {historyTotal} items</p>
+   421→   421→                    <button onClick={clearHistory} className="flex items-center gap-1.5 text-sm text-white/50 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" />Clear All</button>
+   422→   422→                  </div>
+   423→   423→                  <div className="space-y-2">
+   424→   424→                    <AnimatePresence mode="popLayout">
+   425→   425→                      {history.map((item) => {
+   426→   426→                        const isPerson = item.mediaType === 'person';
+   427→   427→                        const imgSize = isPerson ? 'w185' : 'w92';
+   428→   428→                        const aspectClass = isPerson ? 'aspect-[3/4]' : 'aspect-[2/3]';
+   429→   429→                        const imgUrl = item.posterPath ? getImageUrl(item.posterPath, imgSize) : null;
+   430→   430→                        const dateStr = new Date(item.visitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+   431→   431→
+   432→   432→                        return (
+   433→   433→                          <motion.div
+   434→   434→                            key={item.id}
+   435→   435→                            layout
+   436→   436→                            initial={{ opacity: 0, y: 8 }}
+   437→   437→                            animate={{ opacity: 1, y: 0 }}
+   438→   438→                            exit={{ opacity: 0, x: -40, transition: { duration: 0.2 } }}
+   439→   439→                            transition={{ duration: 0.2 }}
+   440→   440→                            onClick={() => handleHistoryClick(item)}
+   441→   441→                            className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] hover:border-white/[0.08] cursor-pointer transition-all group"
+   442→   442→                          >
+   443→   443→                            <div className={`${aspectClass} w-12 md:w-14 rounded-lg overflow-hidden bg-white/[0.06] shrink-0`}>
+   444→   444→                              {imgUrl ? (
+   445→   445→                                <img src={imgUrl} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+   446→   446→                              ) : (
+   447→   447→                                <div className="w-full h-full flex items-center justify-center">
+   448→   448→                                  {isPerson ? <Users className="w-5 h-5 text-white/15" /> : item.mediaType === 'tv' ? <Tv className="w-5 h-5 text-white/15" /> : <Film className="w-5 h-5 text-white/15" />}
+   449→   449→                                </div>
+   450→   450→                              )}
+   451→   451→                            </div>
+   452→   452→                            <div className="flex-1 min-w-0">
+   453→   453→                              <p className="text-white/90 text-sm font-medium truncate group-hover:text-white transition-colors">{item.title}</p>
+   454→   454→                              <div className="flex items-center gap-2 mt-0.5">
+   455→   455→                                <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.06] text-white/40">{item.mediaType}</span>
+   456→   456→                                {item.subtitle && <span className="text-white/50 text-xs truncate">{item.subtitle}</span>}
+   457→   457→                              </div>
+   458→   458→                            </div>
+   459→   459→                            <div className="hidden sm:flex items-center gap-1.5 text-white/25 text-xs shrink-0">
+   460→   460→                              <Calendar className="w-3 h-3" />
+   461→   461→                              {dateStr}
+   462→   462→                            </div>
+   463→   463→                            <button
+   464→   464→                              onClick={(e) => handleDeleteHistoryItem(item.id, e)}
+   465→   465→                              disabled={deletingId === item.id}
+   466→   466→                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-red-400 transition-all shrink-0"
+   467→   467→                              aria-label="Remove from history"
+   468→   468→                            >
+   469→   469→                              {deletingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+   470→   470→                            </button>
+   471→   471→                          </motion.div>
+   472→   472→                        );
+   473→   473→                      })}
+   474→   474→                    </AnimatePresence>
+   475→   475→                  </div>
+   476→   476→
+   477→   477→                  {/* Load more */}
+   478→   478→                  {history.length < historyTotal && !historyLoading && (
+   479→   479→                    <div className="flex justify-center mt-6">
+   480→   480→                      <button
+   481→   481→                        onClick={loadMoreHistory}
+   482→   482→                        disabled={historyLoadMore}
+   483→   483→                        className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.06] hover:bg-white/10 text-white/60 hover:text-white text-sm font-medium transition-all border border-white/[0.08] hover:border-white/15 disabled:opacity-50"
+   484→   484→                      >
+   485→   485→                        {historyLoadMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />}
+   486→   486→                        {historyLoadMore ? 'Loading...' : 'Load More'}
+   487→   487→                      </button>
+   488→   488→                    </div>
+   489→   489→                  )}
+   490→   490→                </>
+   491→   491→              )}
+   492→   492→            </motion.div>
+   493→   493→          )}
+   494→   494→        </AnimatePresence>
+   495→   495→      </div>
+   496→   496→      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+   497→   497→    </div>
+   498→   498→  );
+   499→   499→}
+   500→   500→
+   501→   501→// ── Edit Panel with step navigation ──
+   502→   502→function EditPanel({
+   503→   503→  editStep, setEditStep, editName, setEditName, editBio, setEditBio,
+   504→   504→  selectedAvatar, setSelectedAvatar, selectedColor, setSelectedColor,
+   505→   505→  selectedGenres, toggleGenre, accentColor, saving, saveError, onSave, onCancel,
+   506→   506→}: {
+   507→   507→  editStep: EditStep; setEditStep: (s: EditStep) => void;
+   508→   508→  editName: string; setEditName: (v: string) => void;
+   509→   509→  editBio: string; setEditBio: (v: string) => void;
+   510→   510→  selectedAvatar: string; setSelectedAvatar: (v: string) => void;
+   511→   511→  selectedColor: string; setSelectedColor: (v: string) => void;
+   512→   512→  selectedGenres: string[]; toggleGenre: (g: string) => void;
+   513→   513→  accentColor: string; saving: boolean; saveError: string;
+   514→   514→  onSave: () => void; onCancel: () => void;
+   515→   515→}) {
+   516→   516→  const steps: { key: EditStep; label: string; icon: React.ReactNode }[] = [
+   517→   517→    { key: 'main', label: 'Info', icon: <User className="w-3.5 h-3.5" /> },
+   518→   518→    { key: 'avatar', label: 'Avatar', icon: <Camera className="w-3.5 h-3.5" /> },
+   519→   519→    { key: 'color', label: 'Theme', icon: <Palette className="w-3.5 h-3.5" /> },
+   520→   520→    { key: 'genres', label: 'Genres', icon: <Heart className="w-3.5 h-3.5" /> },
+   521→   521→  ];
+   522→   522→
+   523→   523→  return (
+   524→   524→    <div className="space-y-0 bg-white/[0.03] rounded-2xl border border-white/[0.06] overflow-hidden">
+   525→   525→      {/* Step navigation */}
+   526→   526→      <div className="flex border-b border-white/[0.06]">
+   527→   527→        {steps.map((s) => (
+   528→   528→          <button key={s.key} onClick={() => setEditStep(s.key)} className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-xs font-medium transition-all relative ${editStep === s.key ? 'text-white' : 'text-white/35 hover:text-white/60'}`}>
+   529→   529→            {s.icon}<span className="hidden sm:inline">{s.label}</span>
+   530→   530→            {editStep === s.key && <motion.div layoutId="edit-tab-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full" style={{ backgroundColor: accentColor }} />}
+   531→   531→          </button>
+   532→   532→        ))}
+   533→   533→      </div>
+   534→   534→
+   535→   535→      <div className="p-6 space-y-5">
+   536→   536→        <AnimatePresence mode="wait">
+   537→   537→          {/* ── Main Info ── */}
+   538→   538→          {editStep === 'main' && (
+   539→   539→            <motion.div key="main" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-5">
+   540→   540→              <div className="flex items-center gap-3 mb-2">
+   541→   541→                <div className="w-14 h-14 rounded-xl overflow-hidden"><ProfileAvatar slug={selectedAvatar} size={56} /></div>
+   542→   542→                <div>
+   543→   543→                  <h3 className="text-lg font-semibold text-white">Edit Profile</h3>
+   544→   544→                  <p className="text-xs text-white/40">Change your name and bio</p>
+   545→   545→                </div>
+   546→   546→              </div>
+   547→   547→              <div>
+   548→   548→                <label className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2 block">Display Name</label>
+   549→   549→                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Your name" className="h-11 bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/25 rounded-xl" style={editName ? {} : {}} />
+   550→   550→              </div>
+   551→   551→              <div>
+   552→   552→                <label className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2 block">Bio <span className="text-white/25">({editBio.length}/200)</span></label>
+   553→   553→                <textarea value={editBio} onChange={(e) => { if (e.target.value.length <= 200) setEditBio(e.target.value); }} placeholder="Tell us about yourself..." rows={3} className="w-full bg-white/[0.06] border border-white/[0.08] text-white text-sm placeholder:text-white/25 rounded-xl px-4 py-3 resize-none focus:outline-none transition-colors" />
+   554→   554→              </div>
+   555→   555→            </motion.div>
+   556→   556→          )}
+   557→   557→
+   558→   558→          {/* ── Avatar Picker ── */}
+   559→   559→          {editStep === 'avatar' && (
+   560→   560→            <motion.div key="avatar" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
+   561→   561→              <div>
+   562→   562→                <h3 className="text-lg font-semibold text-white mb-1">Choose Your Avatar</h3>
+   563→   563→                <p className="text-xs text-white/40">Pick a character that represents you</p>
+   564→   564→              </div>
+   565→   565→              {/* Preview */}
+   566→   566→              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+   567→   567→                <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg" style={{ boxShadow: `0 8px 24px ${getAvatarDef(selectedAvatar).color}44` }}><ProfileAvatar slug={selectedAvatar} size={80} /></div>
+   568→   568→                <div>
+   569→   569→                  <p className="text-white font-semibold">{getAvatarDef(selectedAvatar).name}</p>
+   570→   570→                  <p className="text-white/40 text-xs mt-0.5">Your chosen character</p>
+   571→   571→                </div>
+   572→   572→              </div>
+   573→   573→              {/* Grid */}
+   574→   574→              <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+   575→   575→                {AVATAR_DEFS.map((a) => (
+   576→   576→                  <button key={a.slug} onClick={() => setSelectedAvatar(a.slug)} className={`group flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${selectedAvatar === a.slug ? 'bg-white/[0.08] ring-2' : 'hover:bg-white/[0.04]'}`} style={selectedAvatar === a.slug ? { ringColor: a.color, boxShadow: `0 0 20px ${a.color}33` } : {}}>
+   577→   577→                    <div className={`w-12 h-12 rounded-xl overflow-hidden transition-transform group-hover:scale-110 ${selectedAvatar === a.slug ? 'scale-110' : ''}`}><ProfileAvatar slug={a.slug} size={48} /></div>
+   578→   578→                    <span className={`text-[9px] font-medium truncate w-full text-center ${selectedAvatar === a.slug ? 'text-white' : 'text-white/40'}`}>{a.name}</span>
+   579→   579→                  </button>
+   580→   580→                ))}
+   581→   581→              </div>
+   582→   582→            </motion.div>
+   583→   583→          )}
+   584→   584→
+   585→   585→          {/* ── Accent Color ── */}
+   586→   586→          {editStep === 'color' && (
+   587→   587→            <motion.div key="color" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
+   588→   588→              <div>
+   589→   589→                <h3 className="text-lg font-semibold text-white mb-1">Theme Color</h3>
+   590→   590→                <p className="text-xs text-white/40">Customize your profile accent color</p>
+   591→   591→              </div>
+   592→   592→              {/* Preview */}
+   593→   593→              <div className="flex items-center gap-4 p-4 rounded-xl border border-white/[0.04]" style={{ backgroundColor: `${selectedColor}11` }}>
+   594→   594→                <div className="w-16 h-16 rounded-2xl overflow-hidden"><ProfileAvatar slug={selectedAvatar} size={64} /></div>
+   595→   595→                <div className="flex-1 space-y-1.5">
+   596→   596→                  <div className="h-2 rounded-full" style={{ backgroundColor: selectedColor, width: `${Math.random() * 40 + 60}%` }} />
+   597→   597→                  <div className="h-2 rounded-full bg-white/[0.08]" style={{ width: `${Math.random() * 30 + 40}%` }} />
+   598→   598→                  <div className="h-2 rounded-full bg-white/[0.06]" style={{ width: `${Math.random() * 50 + 30}%` }} />
+   599→   599→                </div>
+   600→   600→              </div>
+   601→   601→              {/* Color grid */}
+   602→   602→              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+   603→   603→                {ACCENT_COLORS.map((c) => (
+   604→   604→                  <button key={c.value} onClick={() => setSelectedColor(c.value)} className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${selectedColor === c.value ? 'bg-white/[0.08] ring-2' : 'hover:bg-white/[0.04]'}`} style={selectedColor === c.value ? { ringColor: c.value, boxShadow: `0 0 20px ${c.value}44` } : {}}>
+   605→   605→                    <div className="w-10 h-10 rounded-full transition-transform hover:scale-110" style={{ backgroundColor: c.value, boxShadow: selectedColor === c.value ? `0 4px 16px ${c.value}66` : 'none' }} />
+   606→   606→                    <span className={`text-[10px] font-medium ${selectedColor === c.value ? 'text-white' : 'text-white/40'}`}>{c.name}</span>
+   607→   607→                  </button>
+   608→   608→                ))}
+   609→   609→              </div>
+   610→   610→              {/* Use avatar color option */}
+   611→   611→              <button onClick={() => setSelectedColor(getAvatarDef(selectedAvatar).color)} className="w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white/50 hover:text-white text-xs font-medium transition-all hover:bg-white/[0.06]">
+   612→   612→                Match avatar color ({getAvatarDef(selectedAvatar).name})
+   613→   613→              </button>
+   614→   614→            </motion.div>
+   615→   615→          )}
+   616→   616→
+   617→   617→          {/* ── Favorite Genres ── */}
+   618→   618→          {editStep === 'genres' && (
+   619→   619→            <motion.div key="genres" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
+   620→   620→              <div>
+   621→   621→                <h3 className="text-lg font-semibold text-white mb-1">Favorite Genres</h3>
+   622→   622→                <p className="text-xs text-white/40">Select genres you love ({selectedGenres.length} selected)</p>
+   623→   623→              </div>
+   624→   624→              <div className="flex flex-wrap gap-2">
+   625→   625→                {GENRE_OPTIONS.map((genre) => (
+   626→   626→                  <button key={genre} onClick={() => toggleGenre(genre)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${selectedGenres.includes(genre) ? 'text-white shadow-lg' : 'text-white/50 bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.06]'}`} style={selectedGenres.includes(genre) ? { backgroundColor: `${selectedColor}cc`, boxShadow: `0 4px 16px ${selectedColor}44` } : {}}>
+   627→   627→                    {selectedGenres.includes(genre) && <Check className="w-3.5 h-3.5 inline mr-1.5" />}
+   628→   628→                    {genre}
+   629→   629→                  </button>
+   630→   630→                ))}
+   631→   631→              </div>
+   632→   632→              {selectedGenres.length > 0 && (
+   633→   633→                <p className="text-xs text-white/50">Selected: {selectedGenres.join(', ')}</p>
+   634→   634→              )}
+   635→   635→            </motion.div>
+   636→   636→          )}
+   637→   637→        </AnimatePresence>
+   638→   638→
+   639→   639→        {/* Error */}
+   640→   640→        {saveError && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{saveError}</p>}
+   641→   641→
+   642→   642→        {/* Buttons */}
+   643→   643→        <div className="flex gap-3 pt-2">
+   644→   644→          <button onClick={onSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition-all hover:brightness-110 disabled:opacity-50" style={{ backgroundColor: accentColor, boxShadow: `0 4px 16px ${accentColor}44` }}>
+   645→   645→            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}Save
+   646→   646→          </button>
+   647→   647→          <button onClick={onCancel} className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.06] hover:bg-white/10 text-white/60 text-sm font-medium rounded-xl transition-all">
+   648→   648→            <X className="w-4 h-4" />Cancel
+   649→   649→          </button>
+   650→   650→        </div>
+   651→   651→      </div>
+   652→   652→    </div>
+   653→   653→  );
+   654→   654→}
+   655→   655→
+   656→   656→function InfoRow({ label, value, truncate }: { label: string; value: string; truncate?: boolean }) {
+   657→   657→  return (
+   658→   658→    <div className="flex items-center justify-between">
+   659→   659→      <span className="text-sm text-white/40">{label}</span>
+   660→   660→      <span className={`text-sm text-white font-medium ${truncate ? 'max-w-[200px] truncate' : ''}`}>{value}</span>
+   661→   661→    </div>
+   662→   662→  );
+   663→   663→}
+   664→   664→
+   665→   665→function EmptyState({ icon, title, description, actionLabel, onAction }: {
+   666→   666→  icon: React.ReactNode; title: string; description: string; actionLabel?: string; onAction?: () => void;
+   667→   667→}) {
+   668→   668→  return (
+   669→   669→    <div className="flex flex-col items-center justify-center py-20 text-center">
+   670→   670→      <div className="w-20 h-20 rounded-full bg-white/[0.04] flex items-center justify-center mb-5">{icon}</div>
+   671→   671→      <h3 className="text-white/50 text-lg font-semibold mb-2">{title}</h3>
+   672→   672→      <p className="text-white/50 text-sm max-w-md mb-6">{description}</p>
+   673→   673→      {actionLabel && onAction && (
+   674→   674→        <button onClick={onAction} className="px-5 py-2.5 bg-white/[0.08] hover:bg-white/15 text-white text-sm font-medium rounded-xl transition-all">{actionLabel}</button>
+   675→   675→      )}
+   676→   676→    </div>
+   677→   677→  );
+   678→   678→}
+   679→   679→
+   680→   680→function WatchlistCard({ tmdbId, onClick }: { tmdbId: number; onClick: (id: number, type: string) => void }) {
+   681→   681→  const [data, setData] = useState<{ title: string; posterPath: string | null; mediaType: string } | null>(null);
+   682→   682→
+   683→   683→  useEffect(() => {
+   684→   684→    Promise.any([
+   685→   685→      fetch(`/api/tmdb/preview?id=${tmdbId}&type=movie`).then(r => r.json()),
+   686→   686→      fetch(`/api/tmdb/preview?id=${tmdbId}&type=tv`).then(r => r.json()),
+   687→   687→    ]).then(d => {
+   688→   688→      if (d.title || d.name) setData({ title: d.title || d.name, posterPath: d.poster_path, mediaType: d.media_type || (d.first_air_date ? 'tv' : 'movie') });
+   689→   689→    }).catch(() => {});
+   690→   690→  }, [tmdbId]);
+   691→   691→
+   692→   692→  return (
+   693→   693→    <button onClick={() => data && onClick(tmdbId, data.mediaType)} className="group text-left">
+   694→   694→      <div className="aspect-[2/3] rounded-xl bg-white/[0.06] overflow-hidden mb-2 relative">
+   695→   695→        {data?.posterPath ? (
+   696→   696→          <img src={`https://image.tmdb.org/t/p/w342${data.posterPath}`} alt={data.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+   697→   697→        ) : (
+   698→   698→          <div className="w-full h-full flex items-center justify-center"><Film className="w-8 h-8 text-white/10" /></div>
+   699→   699→        )}
+   700→   700→      </div>
+   701→   701→      <p className="text-xs text-white/70 font-medium truncate group-hover:text-white transition-colors">{data?.title || 'Loading...'}</p>
+   702→   702→    </button>
+   703→   703→  );
+   704→   704→}
+   705→   705→

@@ -13,6 +13,7 @@ import { BackButton } from '@/components/shared/BackButton';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
+import { recordWatchHistory } from '@/lib/watch-history';
 
 export function TvDetail() {
   const selectedTv = useAppStore(s => s.selectedTv);
@@ -92,8 +93,18 @@ export function TvDetail() {
 
   const playEpisode = async (episode: Episode) => {
     setSelectedEpisode(episode);
-
     setShowPlayer(true);
+    // Record watch history
+    recordWatchHistory({
+      tmdbId: show.id,
+      title: title,
+      posterPath: show.poster_path,
+      backdropPath: show.backdrop_path,
+      mediaType: 'tv',
+      season: selectedSeason,
+      episode: episode.episode_number,
+      episodeName: episode.name,
+    });
   };
 
   const activeProvider = getProvider(selectedProvider);

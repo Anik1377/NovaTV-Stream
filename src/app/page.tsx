@@ -44,6 +44,7 @@ import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppMod
 import { VisitDisclaimer } from '@/components/movie/VisitDisclaimer';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ContinueWatching } from '@/components/movie/ContinueWatching';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
@@ -304,6 +305,9 @@ function HomePage() {
       {mediaFilter === 'all' && <Hero key="hero-all" movies={trending.slice(0, 8)} />}
       {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero key="hero-movie" movies={filteredTrending.slice(0, 8)} />}
       {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero key="hero-tv" movies={filteredTrending.slice(0, 8)} />}
+
+      {/* Continue Watching — only on the main 'all' tab */}
+      {mediaFilter === 'all' && <ContinueWatching />}
 
       {genres.length > 0 && (
         <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-4')}>
