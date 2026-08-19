@@ -100,12 +100,12 @@ export function MobileTabBar() {
   };
 
   const handleTabClick = (tab: TabDef) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
     tab.action();
   };
 
   const handleMoreItemClick = (item: MoreDef) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
     setMoreOpen(false);
     item.action();
   };
@@ -113,7 +113,7 @@ export function MobileTabBar() {
   const isMoreActive = isActive('more');
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/[0.08]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/[0.08] will-change-transform">
       <div
         className="relative flex items-center justify-around px-1"
         style={{ height: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -148,7 +148,7 @@ export function MobileTabBar() {
             <button
               key={tab.key}
               onClick={() => handleTabClick(tab)}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative select-none active:scale-95 transition-transform duration-100"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative select-none active:scale-95 transition-transform duration-150 ease-out"
             >
               {tab.key === 'profile' && authUser ? (
                 <span className={`block w-5 h-5 rounded-full overflow-hidden ${active ? '' : 'opacity-50'}`}>
@@ -168,7 +168,7 @@ export function MobileTabBar() {
         <Drawer open={moreOpen} onOpenChange={setMoreOpen}>
           <DrawerTrigger asChild>
             <button
-              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative select-none active:scale-95 transition-transform duration-100`}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 relative select-none active:scale-95 transition-transform duration-150 ease-out`}
             >
               <MoreHorizontal className={`w-5 h-5 transition-colors duration-150 ${getIconColor('more', isMoreActive)}`} />
               <span className={`text-[10px] font-medium leading-tight transition-colors duration-150 ${isMoreActive ? 'text-white' : 'text-white/40'}`}>

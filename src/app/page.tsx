@@ -401,9 +401,9 @@ export default function App() {
       <main className="flex-1 min-w-0 relative pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
         <motion.div
           key={view}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
         >
           {view === 'home' && <HomePage />}
           {view === 'movie' && <MovieDetail />}

@@ -88,15 +88,21 @@
   }
 }
 
-/* Smooth transitions globally */
+/* Smooth transitions globally (no transform — avoids conflicts with framer-motion) */
 *,
 *::before,
 *::after {
-  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 0ms;
 }
 a, button, [role="button"], input, img, video, iframe {
+  transition-duration: 300ms;
+}
+/* Explicit transform transitions only where needed */
+.transition-transform-smooth {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 300ms;
 }
 
