@@ -12,6 +12,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'provider_id is required' }, { status: 400 });
   }
 
+  if (type && type !== 'movie' && type !== 'tv') {
+    return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
+  }
+
   try {
     const endpoint =
       type === 'tv'

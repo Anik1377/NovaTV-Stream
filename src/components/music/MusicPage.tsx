@@ -167,7 +167,7 @@ export function MusicPage() {
               <motion.div className="w-[3px] bg-purple-400 rounded-full" animate={{ height: ['50%','80%','40%'] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.2 }} />
             </div>
           ) : (
-            <span className={active ? 'text-purple-400 text-xs' : 'text-white/30 text-xs'}>{index + 1}</span>
+            <span className={active ? 'text-purple-400 text-xs' : 'text-white/50 text-xs'}>{index + 1}</span>
           )}
         </div>
         <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-white/[0.06]">
@@ -178,8 +178,8 @@ export function MusicPage() {
           <p className="text-xs text-white/40 truncate mt-0.5">{song.artists}{song.album ? ' · ' + song.album : ''}</p>
         </div>
         <Badge className={'hidden sm:inline-flex shrink-0 text-[10px] px-1.5 py-0 border ' + lcolor}>{song.language}</Badge>
-        <div className="hidden md:flex items-center gap-1 text-white/30 shrink-0"><Volume2 className="w-3 h-3" /><span className="text-xs">{fmtPlays(song.playCount)}</span></div>
-        <span className="text-white/30 shrink-0 text-xs tabular-nums">{fmtDur(song.duration)}</span>
+        <div className="hidden md:flex items-center gap-1 text-white/50 shrink-0"><Volume2 className="w-3 h-3" /><span className="text-xs">{fmtPlays(song.playCount)}</span></div>
+        <span className="text-white/50 shrink-0 text-xs tabular-nums">{fmtDur(song.duration)}</span>
       </motion.div>
     );
   });
@@ -297,7 +297,7 @@ export function MusicPage() {
             value={query}
             onChange={function(e){ setQuery(e.target.value); }}
             placeholder="Search songs, artists, albums..."
-            className="pl-10 pr-10 h-11 bg-white/[0.07] border-white/10 text-white placeholder:text-white/30 rounded-xl focus-visible:border-purple-500/50 focus-visible:ring-purple-500/20"
+            className="pl-10 pr-10 h-11 bg-white/[0.07] border-white/10 text-white placeholder:text-white/50 rounded-xl focus-visible:border-purple-500/50 focus-visible:ring-purple-500/20"
           />
           {query ? (
             <button onClick={function(){ setQuery(''); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors">

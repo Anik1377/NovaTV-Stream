@@ -38,7 +38,11 @@ type EditStep = 'main' | 'avatar' | 'color' | 'genres';
 
 export function ProfilePage() {
   const { user, loading: authLoading, updateProfile, logout } = useAuthStore();
-  const { goHome, watchlist, selectMovie, selectTv, selectPerson } = useAppStore();
+  const goHome = useAppStore(s => s.goHome);
+  const watchlist = useAppStore(s => s.watchlist);
+  const selectMovie = useAppStore(s => s.selectMovie);
+  const selectTv = useAppStore(s => s.selectTv);
+  const selectPerson = useAppStore(s => s.selectPerson);
 
   const [tab, setTab] = useState<Tab>('profile');
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -263,7 +267,7 @@ export function ProfilePage() {
             <h1 className="text-2xl md:text-3xl font-bold text-white">{user?.name || 'StreamVault User'}</h1>
             <p className="text-white/40 text-sm mt-1">{user?.email}</p>
             {user?.bio && !editing && <p className="text-white/60 text-sm mt-2 max-w-md">{user.bio}</p>}
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3 text-xs text-white/30">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3 text-xs text-white/50">
               <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Joined {memberSince}</span>
               <span className="flex items-center gap-1.5"><Bookmark className="w-3.5 h-3.5" />{watchlist.length} saved</span>
               {profileStats && <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{profileStats.watchHistoryCount} watched</span>}
@@ -329,7 +333,7 @@ export function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5 space-y-4">
-                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><Shield className="w-4 h-4 text-white/30" />Account Info</h3>
+                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><Shield className="w-4 h-4 text-white/50" />Account Info</h3>
                     <div className="space-y-3">
                       <InfoRow label="Name" value={user?.name || '\u2014'} />
                       <InfoRow label="Email" value={user?.email} />
@@ -343,7 +347,7 @@ export function ProfilePage() {
 
                   {/* Content Settings */}
                   <div className="bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5 space-y-4">
-                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><ShieldOff className="w-4 h-4 text-white/30" />Content Settings</h3>
+                    <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2"><ShieldOff className="w-4 h-4 text-white/50" />Content Settings</h3>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-white/80 font-medium">Adult Content</p>
@@ -407,14 +411,14 @@ export function ProfilePage() {
               </div>
 
               {historyLoading ? (
-                <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>
+                <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-white/50 animate-spin" /></div>
               ) : history.length === 0 ? (
                 <EmptyState icon={<Clock className="w-9 h-9 text-white/10" />} title="No browsing history" description="Movies, shows, and people you view will appear here." />
               ) : (
                 <>
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-white/40">{history.length} of {historyTotal} items</p>
-                    <button onClick={clearHistory} className="flex items-center gap-1.5 text-sm text-white/30 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" />Clear All</button>
+                    <button onClick={clearHistory} className="flex items-center gap-1.5 text-sm text-white/50 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" />Clear All</button>
                   </div>
                   <div className="space-y-2">
                     <AnimatePresence mode="popLayout">
@@ -449,7 +453,7 @@ export function ProfilePage() {
                               <p className="text-white/90 text-sm font-medium truncate group-hover:text-white transition-colors">{item.title}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/[0.06] text-white/40">{item.mediaType}</span>
-                                {item.subtitle && <span className="text-white/30 text-xs truncate">{item.subtitle}</span>}
+                                {item.subtitle && <span className="text-white/50 text-xs truncate">{item.subtitle}</span>}
                               </div>
                             </div>
                             <div className="hidden sm:flex items-center gap-1.5 text-white/25 text-xs shrink-0">
@@ -459,7 +463,7 @@ export function ProfilePage() {
                             <button
                               onClick={(e) => handleDeleteHistoryItem(item.id, e)}
                               disabled={deletingId === item.id}
-                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-red-400 transition-all shrink-0"
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-red-400 transition-all shrink-0"
                               aria-label="Remove from history"
                             >
                               {deletingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
@@ -626,7 +630,7 @@ function EditPanel({
                 ))}
               </div>
               {selectedGenres.length > 0 && (
-                <p className="text-xs text-white/30">Selected: {selectedGenres.join(', ')}</p>
+                <p className="text-xs text-white/50">Selected: {selectedGenres.join(', ')}</p>
               )}
             </motion.div>
           )}
@@ -665,7 +669,7 @@ function EmptyState({ icon, title, description, actionLabel, onAction }: {
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="w-20 h-20 rounded-full bg-white/[0.04] flex items-center justify-center mb-5">{icon}</div>
       <h3 className="text-white/50 text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-white/30 text-sm max-w-md mb-6">{description}</p>
+      <p className="text-white/50 text-sm max-w-md mb-6">{description}</p>
       {actionLabel && onAction && (
         <button onClick={onAction} className="px-5 py-2.5 bg-white/[0.08] hover:bg-white/15 text-white text-sm font-medium rounded-xl transition-all">{actionLabel}</button>
       )}

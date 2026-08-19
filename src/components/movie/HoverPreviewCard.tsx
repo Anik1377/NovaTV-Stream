@@ -206,7 +206,7 @@ export function HoverPreviewCard({ movie, children }: HoverPreviewCardProps) {
           )}
           {!hasTrailer && !backdrop && !loading && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-white/30 text-sm">No preview available</span>
+              <span className="text-white/50 text-sm">No preview available</span>
             </div>
           )}
         </div>
@@ -242,7 +242,7 @@ export function HoverPreviewCard({ movie, children }: HoverPreviewCardProps) {
                 {data.number_of_seasons} Season{data.number_of_seasons > 1 ? 's' : ''}
               </span>
             )}
-            <span className="text-white/30">HD</span>
+            <span className="text-white/50">HD</span>
           </div>
           {genres.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">

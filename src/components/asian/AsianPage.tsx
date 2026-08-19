@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Home, Film, Tv, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { MovieCard } from '@/components/movie/MovieCard';
 import { ContentRow } from '@/components/movie/ContentRow';
+import { useLazyLoad } from '@/hooks/use-lazy-load';
 import type { Movie } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -29,26 +30,13 @@ const LANGUAGES: LangSection[] = [
 
 type Tab = 'all' | 'movie' | 'tv';
 
-function useLazyLoad(threshold = 0.1) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || visible) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { rootMargin: '200px 0px', threshold });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [visible, threshold]);
-  return { ref, visible };
-}
-
 export function AsianPage() {
   const { goHome } = useAppStore();
   const [tab, setTab] = useState<Tab>('all');
   const [data, setData] = useState<Record<string, Movie[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
-  const { ref: gridSentinelRef, visible: gridNear } = useLazyLoad(0);
+  const { ref: gridSentinelRef, isVisible: gridNear } = useLazyLoad(0);
 
   // Fetch initial rows (first 3 languages)
   useEffect(() => {

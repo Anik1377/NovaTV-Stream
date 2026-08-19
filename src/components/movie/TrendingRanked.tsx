@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Star, Play } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { getImageUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
 import type { Movie } from '@/lib/types';
@@ -15,7 +14,8 @@ export function TrendingRanked({ movies }: TrendingRankedProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
-  const { selectMovie, selectTv } = useAppStore();
+  const selectMovie = useAppStore(s => s.selectMovie);
+  const selectTv = useAppStore(s => s.selectTv);
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
@@ -95,14 +95,11 @@ export function TrendingRanked({ movies }: TrendingRankedProps) {
           };
 
           return (
-            <motion.button
+            <button
               key={`${movie.id}-${movie.media_type}-${i}`}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: i * 0.06, duration: 0.4, ease: 'easeOut' }}
               onClick={handleClick}
-              className="relative flex-shrink-0 text-left group cursor-pointer outline-none"
-              style={{ width: 'calc(50vw - 2rem)', maxWidth: '320px' }}
+              className="relative flex-shrink-0 text-left group cursor-pointer outline-none animate-[fadeSlideIn_0.4s_ease-out_both]"
+              style={{ width: 'calc(50vw - 2rem)', maxWidth: '320px', animationDelay: `${Math.min(i, 8) * 60}ms` }}
             >
               {/* Card container */}
               <div className="relative flex items-stretch gap-0 overflow-hidden rounded-lg bg-neutral-900/80 shadow-xl shadow-black/40">
@@ -164,7 +161,7 @@ export function TrendingRanked({ movies }: TrendingRankedProps) {
                   )}
                 </p>
               </div>
-            </motion.button>
+            </button>
           );
         })}
       </div>

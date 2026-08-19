@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const type = req.nextUrl.searchParams.get('type') || 'movie';
 
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  if (type && type !== 'movie' && type !== 'tv') return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
 
   try {
     const d = await tmdbFetch<Record<string, unknown>>(

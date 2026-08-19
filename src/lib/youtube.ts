@@ -1,4 +1,4 @@
-const YT_API_KEY = 'AIzaSyCI0WP-_L1UTwLW5prqYUWxY95OwLLvmt0';
+const YT_API_KEY = process.env.YOUTUBE_API_KEY || '';
 
 /**
  * Generic YouTube API fetch helper.
@@ -8,6 +8,7 @@ export async function ytFetch<T = Record<string, unknown>>(
   endpoint: string,
   params: Record<string, string>,
 ): Promise<T> {
+  if (!YT_API_KEY) throw new Error('YOUTUBE_API_KEY environment variable is required');
   const url = new URL('https://www.googleapis.com/youtube/v3/' + endpoint);
   url.searchParams.set('key', YT_API_KEY);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));

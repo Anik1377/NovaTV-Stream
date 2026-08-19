@@ -52,10 +52,10 @@ export function Hero({ movies }: { movies: Movie[] }) {
 
   const isTv = movie.media_type === 'tv' || !!movie.first_air_date;
   const title = movie.title || movie.name || '';
-  const tagline = (movie as any).tagline || '';
+  const tagline = movie.tagline || '';
   const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
   const rating = movie.vote_average?.toFixed(1);
-  const runtime = (movie as any).runtime;
+  const runtime = movie.runtime;
   const logos = logoData[String(movie.id)];
   const titleLogo = logos?.titleLogo;
   const studios = logos?.studios || [];
@@ -93,6 +93,7 @@ export function Hero({ movies }: { movies: Movie[] }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 1.2, ease: 'easeInOut' }}
           className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
         >
           {movie.backdrop_path && (
             <img
@@ -171,11 +172,11 @@ export function Hero({ movies }: { movies: Movie[] }) {
               {/* Metadata row */}
               <div className="flex items-center gap-2.5 text-sm text-white/70 mb-5">
                 {year && <span className="font-medium text-white/80">{year}</span>}
-                {year && ((isTv && (movie as any).number_of_seasons) || (!isTv && runtime)) && (
+                {year && ((isTv && movie.number_of_seasons) || (!isTv && runtime)) && (
                   <span className="w-1 h-1 rounded-full bg-white/30" />
                 )}
-                {isTv && (movie as any).number_of_seasons && (
-                  <span>{(movie as any).number_of_seasons} Season{(movie as any).number_of_seasons > 1 ? 's' : ''}</span>
+                {isTv && movie.number_of_seasons && (
+                  <span>{movie.number_of_seasons} Season{movie.number_of_seasons > 1 ? 's' : ''}</span>
                 )}
                 {!isTv && runtime && runtime > 0 && (
                   <span>{formatRuntime(runtime)}</span>
@@ -225,6 +226,7 @@ export function Hero({ movies }: { movies: Movie[] }) {
             <button
               key={i}
               onClick={() => goTo(i)}
+              aria-label={`Slide ${i + 1}`}
               className={`rounded-full transition-all duration-500 ${
                 i === currentIndex
                   ? 'w-8 h-2 bg-[#e50914]'

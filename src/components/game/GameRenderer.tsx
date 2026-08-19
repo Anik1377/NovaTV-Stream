@@ -31,7 +31,7 @@ export function GameRenderer({ gameId, gameKey }: { gameId: string; gameKey: num
         <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
           <div className="text-center">
             <p className="text-white/50 text-sm">Failed to load game</p>
-            <p className="text-white/30 text-xs mt-1">Please try again</p>
+            <p className="text-white/50 text-xs mt-1">Please try again</p>
           </div>
         </div>
       )}

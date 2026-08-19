@@ -1,39 +1,11 @@
 import { NextResponse } from 'next/server';
 
 /**
- * One-time setup: creates Supabase tables for profiles and watch_history.
- * Run this ONCE after setting up Supabase env vars.
- * Requires the anon key to have DDL permissions (enable in Supabase Dashboard → Settings → API).
+ * Setup route — disabled in production.
+ * The SQL is exported below for manual use in Supabase Dashboard → SQL Editor.
  */
 export async function POST() {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
-    }
-
-    // Execute DDL via Supabase REST API (needs RPC or direct SQL)
-    // We'll use the Supabase client's rpc or the REST endpoint
-    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseKey,
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({ sql: 'SELECT 1' }),
-    });
-
-    // If RPC doesn't exist, we need to provide the SQL for manual setup
-    return NextResponse.json({
-      message: 'Run the following SQL in Supabase Dashboard → SQL Editor:',
-      sql: SETUP_SQL,
-    });
-  } catch (err) {
-    return NextResponse.json({ error: 'Setup failed', details: String(err) }, { status: 500 });
-  }
+  return NextResponse.json({ error: 'Setup is disabled in production' }, { status: 403 });
 }
 
 const SETUP_SQL = `

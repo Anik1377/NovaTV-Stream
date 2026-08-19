@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Play, Star, ArrowLeft, Calendar, ChevronDown, Tv, Heart, Youtube, Zap, Crown } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Play, Star, Calendar, ChevronDown, Tv, Heart, Youtube, Zap, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -9,12 +9,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
+import { BackButton } from '@/components/shared/BackButton';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
 
 export function TvDetail() {
-  const { selectedTv, goBack, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, toggleWatchlist, isInWatchlist, selectedProvider } = useAppStore();
+  const selectedTv = useAppStore(s => s.selectedTv);
+  const goBack = useAppStore(s => s.goBack);
+  const selectedSeason = useAppStore(s => s.selectedSeason);
+  const setSelectedSeason = useAppStore(s => s.setSelectedSeason);
+  const selectedEpisode = useAppStore(s => s.selectedEpisode);
+  const setSelectedEpisode = useAppStore(s => s.setSelectedEpisode);
+  const toggleWatchlist = useAppStore(s => s.toggleWatchlist);
+  const watchlist = useAppStore(s => s.watchlist);
+  const selectedProvider = useAppStore(s => s.selectedProvider);
   const { record } = useRecordHistory();
   const [details, setDetails] = useState<TvShowDetails | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
@@ -41,6 +50,22 @@ export function TvDetail() {
     });
     return () => { cancelled = true; };
   }, [selectedTv, record]);
+
+  // Close season dropdown on outside click
+  useEffect(() => {
+    if (!seasonDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-season-dropdown]')) {
+        setSeasonDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [seasonDropdownOpen]);
+
+  const toggleSeasonDropdown = useCallback(() => {
+    setSeasonDropdownOpen(prev => !prev);
+  }, []);
 
   useEffect(() => {
     if (!selectedTv) return;
@@ -101,13 +126,7 @@ export function TvDetail() {
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
-          <button
-            onClick={goBack}
-            className="absolute top-20 left-4 md:left-8 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
+          <BackButton onClick={goBack} className="absolute top-20 left-4 md:left-8 z-10" />
         </div>
 
         {/* Content */}
@@ -209,9 +228,9 @@ export function TvDetail() {
                     onClick={() => toggleWatchlist(show.id)}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200 mb-6"
                   >
-                    <Heart className={`w-4 h-4 transition-colors ${isInWatchlist(show.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
-                    <span className={isInWatchlist(show.id) ? 'text-red-400' : 'text-white/60'}>
-                      {isInWatchlist(show.id) ? 'In Watchlist' : 'Add to Watchlist'}
+                    <Heart className={`w-4 h-4 transition-colors ${watchlist.includes(show.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
+                    <span className={watchlist.includes(show.id) ? 'text-red-400' : 'text-white/60'}>
+                      {watchlist.includes(show.id) ? 'In Watchlist' : 'Add to Watchlist'}
                     </span>
                   </button>
 
@@ -250,9 +269,15 @@ export function TvDetail() {
 
               {/* Season selector */}
               {seasons.length > 0 && (
-                <div className="relative">
+                <div className="relative" data-season-dropdown>
                   <button
-                    onClick={() => setSeasonDropdownOpen(!seasonDropdownOpen)}
+                    onClick={toggleSeasonDropdown}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSeasonDropdown(); }
+                      if (e.key === 'Escape') { setSeasonDropdownOpen(false); }
+                    }}
+                    aria-haspopup="listbox"
+                    aria-expanded={seasonDropdownOpen}
                     className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-white text-sm transition-colors border border-white/10"
                   >
                     <Tv className="w-4 h-4" />
@@ -260,7 +285,7 @@ export function TvDetail() {
                     <ChevronDown className={`w-4 h-4 transition-transform ${seasonDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {seasonDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 bg-zinc-900 border border-white/10 rounded-lg shadow-xl py-1 z-20 min-w-[180px] max-h-60 overflow-y-auto content-scroll">
+                    <div className="absolute top-full left-0 mt-1 bg-zinc-900 border border-white/10 rounded-lg shadow-xl py-1 z-20 min-w-[180px] max-h-60 overflow-y-auto content-scroll" role="listbox">
                       {seasons.map((s) => (
                         <button
                           key={s.id}

@@ -96,12 +96,12 @@ function ExpandableSection({
           {title}
         </h3>
         {count !== undefined && (
-          <span className="text-white/30 text-xs font-medium bg-white/[0.06] px-2.5 py-0.5 rounded-full">
+          <span className="text-white/50 text-xs font-medium bg-white/[0.06] px-2.5 py-0.5 rounded-full">
             {count}
           </span>
         )}
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="w-4 h-4 text-white/30" />
+          <ChevronDown className="w-4 h-4 text-white/50" />
         </motion.div>
       </button>
       <motion.div
@@ -489,7 +489,7 @@ function BiographyText({ text }: { text: string }) {
 
   return (
     <div>
-      <h3 className="text-white/30 text-xs font-medium uppercase tracking-wider mb-3">Biography</h3>
+      <h3 className="text-white/50 text-xs font-medium uppercase tracking-wider mb-3">Biography</h3>
       <p className="text-white/55 text-sm leading-relaxed whitespace-pre-line">
         {displayed}
       </p>

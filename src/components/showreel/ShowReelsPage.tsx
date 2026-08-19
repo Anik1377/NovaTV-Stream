@@ -420,7 +420,7 @@ export function ShowReelsPage() {
         <div className="relative z-10 flex flex-col items-center justify-center py-20 px-4">
           <Film className="w-12 h-12 text-white/20 mb-4" />
           <p className="text-white/50 text-sm mb-2">Failed to load showreels</p>
-          <p className="text-white/30 text-xs">{error}</p>
+          <p className="text-white/50 text-xs">{error}</p>
         </div>
       )}
 

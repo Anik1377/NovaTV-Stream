@@ -18,7 +18,11 @@ interface MovieCardProps {
 
 export function MovieCard({ movie, index = 0, accentColor = 'red', fluid = false }: MovieCardProps) {
   const isPurple = accentColor === 'purple';
-  const { selectMovie, selectTv, toggleWatchlist, isInWatchlist } = useAppStore();
+  const selectMovie = useAppStore(s => s.selectMovie);
+  const selectTv = useAppStore(s => s.selectTv);
+  const toggleWatchlist = useAppStore(s => s.toggleWatchlist);
+  const watchlist = useAppStore(s => s.watchlist);
+  const inList = watchlist.includes(movie.id);
   const [imgLoaded, setImgLoaded] = useState(false);
   const isTv = movie.media_type === 'tv' || !!movie.first_air_date;
   const title = movie.title || movie.name || 'Unknown';
@@ -37,7 +41,7 @@ export function MovieCard({ movie, index = 0, accentColor = 'red', fluid = false
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index, 20) * (fluid ? 0.02 : 0.05), duration: 0.3 }}
+      transition={{ delay: Math.min(index, 8) * (fluid ? 0.02 : 0.05), duration: 0.3 }}
       className={`group relative cursor-pointer ${fluid ? 'w-full' : 'flex-shrink-0 w-[140px] sm:w-[160px] md:w-[180px]'}`}
       onClick={handleClick}
     >
@@ -86,8 +90,10 @@ export function MovieCard({ movie, index = 0, accentColor = 'red', fluid = false
         <button
           onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
           className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label={inList ? 'Remove from watchlist' : 'Add to watchlist'}
+          aria-pressed={inList}
         >
-          <Heart className={`w-3.5 h-3.5 ${isInWatchlist(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/70'}`} />
+          <Heart className={`w-3.5 h-3.5 ${inList ? 'fill-red-500 text-red-500' : 'text-white/70'}`} />
         </button>
         {/* Color-coded rating badge */}
         {rating && parseFloat(rating) > 0 && (

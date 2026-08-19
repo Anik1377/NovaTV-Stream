@@ -16,6 +16,9 @@ export interface Movie {
   original_language: string;
   original_title?: string;
   original_name?: string;
+  tagline?: string;
+  runtime?: number;
+  number_of_seasons?: number;
 }
 
 export interface MovieDetails extends Movie {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import {
   Film, Star, Clock, Tv, Home, Swords, Heart, Ghost, Zap,
   Shield, Globe, Baby, Clapperboard, Popcorn, Shuffle,
@@ -13,34 +13,41 @@ import { Hero } from '@/components/movie/Hero';
 import { TrendingRanked } from '@/components/movie/TrendingRanked';
 import { PlatformSelector } from '@/components/movie/PlatformSelector';
 import { ContentRow } from '@/components/movie/ContentRow';
-import { MovieDetail } from '@/components/movie/MovieDetail';
-import { TvDetail } from '@/components/movie/TvDetail';
-import { SearchResults } from '@/components/movie/SearchResults';
-import { GenreView } from '@/components/movie/GenreView';
-import { CategoryBrowse } from '@/components/movie/CategoryBrowse';
-import { LiveTV } from '@/components/live-tv/LiveTV';
-import { AnimePage } from '@/components/anime/AnimePage';
-import { GamesPage } from '@/components/game/GamesPage';
-import { AsianPage } from '@/components/asian/AsianPage';
-import { DesiPage } from '@/components/desi/DesiPage';
-import { ShowReelsPage } from '@/components/showreel/ShowReelsPage';
-import { ShowReelDetail } from '@/components/showreel/ShowReelDetail';
-import { ReadPage } from '@/components/read/ReadPage';
-import { MangaDetail } from '@/components/read/MangaDetail';
-import { MangaReader } from '@/components/read/MangaReader';
-import { PeoplePage } from '@/components/people/PeoplePage';
-import { PeopleDetailPage } from '@/components/people/PeopleDetailPage';
-import { AdultPage } from '@/components/adult/AdultPage';
+/* ── Code-split view imports ── */
+const MovieDetail = lazy(() => import('@/components/movie/MovieDetail').then(m => ({ default: m.MovieDetail || m.default })));
+const TvDetail = lazy(() => import('@/components/movie/TvDetail').then(m => ({ default: m.TvDetail || m.default })));
+const SearchResults = lazy(() => import('@/components/movie/SearchResults').then(m => ({ default: m.SearchResults || m.default })));
+const GenreView = lazy(() => import('@/components/movie/GenreView').then(m => ({ default: m.GenreView || m.default })));
+const CategoryBrowse = lazy(() => import('@/components/movie/CategoryBrowse').then(m => ({ default: m.CategoryBrowse || m.default })));
+const LiveTV = lazy(() => import('@/components/live-tv/LiveTV').then(m => ({ default: m.LiveTV || m.default })));
+const AnimePage = lazy(() => import('@/components/anime/AnimePage').then(m => ({ default: m.AnimePage || m.default })));
+const GamesPage = lazy(() => import('@/components/game/GamesPage').then(m => ({ default: m.GamesPage || m.default })));
+const AsianPage = lazy(() => import('@/components/asian/AsianPage').then(m => ({ default: m.AsianPage || m.default })));
+const DesiPage = lazy(() => import('@/components/desi/DesiPage').then(m => ({ default: m.DesiPage || m.default })));
+const ShowReelsPage = lazy(() => import('@/components/showreel/ShowReelsPage').then(m => ({ default: m.ShowReelsPage || m.default })));
+const ShowReelDetail = lazy(() => import('@/components/showreel/ShowReelDetail').then(m => ({ default: m.ShowReelDetail || m.default })));
+const ReadPage = lazy(() => import('@/components/read/ReadPage').then(m => ({ default: m.ReadPage || m.default })));
+const MangaDetail = lazy(() => import('@/components/read/MangaDetail').then(m => ({ default: m.MangaDetail || m.default })));
+const MangaReader = lazy(() => import('@/components/read/MangaReader').then(m => ({ default: m.MangaReader || m.default })));
+const PeoplePage = lazy(() => import('@/components/people/PeoplePage').then(m => ({ default: m.PeoplePage || m.default })));
+const PeopleDetailPage = lazy(() => import('@/components/people/PeopleDetailPage').then(m => ({ default: m.PeopleDetailPage || m.default })));
+const AdultPage = lazy(() => import('@/components/adult/AdultPage').then(m => ({ default: m.AdultPage || m.default })));
+const ProfilePage = lazy(() => import('@/components/profile/ProfilePage').then(m => ({ default: m.ProfilePage || m.default })));
+const WarningPage = lazy(() => import('@/components/legal/LegalPages').then(m => ({ default: m.WarningPage || m.default })));
+const PrivacyPage = lazy(() => import('@/components/legal/LegalPages').then(m => ({ default: m.PrivacyPage || m.default })));
+const DmcaPage = lazy(() => import('@/components/legal/LegalPages').then(m => ({ default: m.DmcaPage || m.default })));
+
+/* ── Static imports (always visible) ── */
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
-import { ProfilePage } from '@/components/profile/ProfilePage';
-import { WarningPage, PrivacyPage, DmcaPage } from '@/components/legal/LegalPages';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import { VisitDisclaimer } from '@/components/movie/VisitDisclaimer';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuthStore } from '@/store/auth-store';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
+import { useLazyLoad } from '@/hooks/use-lazy-load';
 
 
 /* ── Genre category definitions ── */
@@ -64,25 +71,6 @@ const EXTRA_CATEGORIES: CategoryDef[] = [
   { key: 'crime-tv',   title: 'Crime & Mystery',     genreIds: '80,9648',  mediaType: 'tv',    showWhen: 'tv',    icon: <Shield className="w-5 h-5" /> },
   { key: 'animation',  title: 'Animation & Family',  genreIds: '16,10751', mediaType: 'all',   showWhen: 'all',   icon: <Baby className="w-5 h-5" /> },
 ];
-
-/* ── Intersection Observer hook for lazy loading ── */
-function useLazyLoad(threshold = 0.1) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || isVisible) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
-      { rootMargin: '200px 0px', threshold }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [isVisible, threshold]);
-
-  return { ref, isVisible };
-}
 
 /* ── Lazy ContentRow wrapper ── */
 function LazyContentRow({ title, icon, movies, ...props }: React.ComponentProps<typeof ContentRow>) {
@@ -164,6 +152,7 @@ function HomePage() {
   const [topRatedTv, setTopRatedTv] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   // Lazy-loaded category data
   const [categoryData, setCategoryData] = useState<Record<string, Movie[]>>({});
@@ -191,8 +180,8 @@ function HomePage() {
       if (data.providers?.results?.length) {
         setPlatforms(mergeProviderLogos(OTT_PLATFORMS, data.providers.results));
       }
-    } catch (error) {
-      console.error('Failed to fetch home data:', error);
+    } catch {
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -301,6 +290,15 @@ function HomePage() {
       (cat.showWhen === 'tv' && mediaFilter !== 'movie');
   });
 
+  if (fetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <p className="text-white/50 text-sm">Failed to load content</p>
+        <button onClick={() => { setFetchError(false); setLoading(true); fetchData(); }} className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-colors">Retry</button>
+      </div>
+    );
+  }
+
   return (
     <div>
       {mediaFilter === 'all' && <Hero key="hero-all" movies={trending.slice(0, 8)} />}
@@ -388,17 +386,37 @@ function HomePage() {
 }
 
 export default function App() {
-  const { view, navCounter } = useAppStore();
+  const { view, navCounter, showSearch } = useAppStore();
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const fetchUser = useAuthStore(s => s.fetchUser);
 
   useEffect(() => { fetchUser(); }, [fetchUser]);
 
+  // Ctrl+K keyboard shortcut to open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        showSearch();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showSearch]);
+
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar onInstallClick={() => setInstallModalOpen(true)} onAuthClick={() => setAuthModalOpen(true)} />
-      <main className="flex-1 min-w-0 relative pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+      <main role="main" className="flex-1 min-w-0 relative pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <ErrorBoundary>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+          </div>
+        }>
         <motion.div
           key={view}
           initial={{ opacity: 0 }}
@@ -429,6 +447,8 @@ export default function App() {
           {view === 'privacy' && <PrivacyPage />}
           {view === 'dmca' && <DmcaPage />}
         </motion.div>
+        </Suspense>
+        </ErrorBoundary>
       </main>
       <InstallBanner onOpen={() => setInstallModalOpen(true)} />
       <InstallAppModal open={installModalOpen} onClose={() => setInstallModalOpen(false)} />

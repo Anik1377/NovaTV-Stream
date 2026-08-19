@@ -50,14 +50,36 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       headers: {
         Referer: 'https://mangadex.org/',
         'User-Agent': 'MangaReader/1.0',
       },
-      // Don't follow redirects to non-allowed hosts
-      redirect: 'follow',
+      // Use manual redirect to validate each hop against allowed hosts
+      redirect: 'manual',
     });
+
+    // Follow redirects manually, validating each location against allowed hosts
+    let redirectCount = 0;
+    while (res.status >= 300 && res.status < 400 && redirectCount < 5) {
+      const location = res.headers.get('location');
+      if (!location) {
+        return new NextResponse('Redirect with no Location header', { status: 502 });
+      }
+      // Resolve relative URLs against the original
+      const redirectUrl = new URL(location, url);
+      if (!isAllowedHost(redirectUrl.hostname)) {
+        return new NextResponse('Redirect to non-allowed host', { status: 403 });
+      }
+      res = await fetch(redirectUrl.toString(), {
+        headers: {
+          Referer: 'https://mangadex.org/',
+          'User-Agent': 'MangaReader/1.0',
+        },
+        redirect: 'manual',
+      });
+      redirectCount++;
+    }
 
     if (!res.ok) {
       return new NextResponse(`Upstream error: ${res.status}`, {

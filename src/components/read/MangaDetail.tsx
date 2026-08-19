@@ -180,7 +180,7 @@ export function MangaDetail() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <AlertCircle className="w-10 h-10 text-white/20 mb-3" />
             <p className="text-white/50 text-sm mb-1">Failed to load manga details</p>
-            <p className="text-white/30 text-xs">Please try again later</p>
+            <p className="text-white/50 text-xs">Please try again later</p>
             <button
               onClick={() => {
                 setLoadedId(null);
@@ -300,7 +300,7 @@ export function MangaDetail() {
                   <p className="text-white/50 text-sm mb-1">
                     No readable chapters available
                   </p>
-                  <p className="text-white/30 text-xs max-w-xs">
+                  <p className="text-white/50 text-xs max-w-xs">
                     This manga may only be available on external sites, or no English
                     chapters have been uploaded with readable pages yet.
                   </p>
@@ -332,7 +332,7 @@ export function MangaDetail() {
                         </p>
                         <div className="flex items-center gap-3 mt-0.5">
                           {ch.group && (
-                            <span className="text-xs text-white/30 truncate max-w-[140px]">
+                            <span className="text-xs text-white/50 truncate max-w-[140px]">
                               {ch.group}
                             </span>
                           )}

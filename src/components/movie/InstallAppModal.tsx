@@ -203,7 +203,7 @@ export function InstallAppModal({
 
               {/* Features grid */}
               <div className="p-6 space-y-5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/30">
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/50">
                   Why install StreamVault?
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -315,14 +315,14 @@ export function InstallAppModal({
 
                 {/* Trust badges */}
                 <div className="flex items-center justify-center gap-4 pt-1 pb-2">
-                  <div className="flex items-center gap-1.5 text-white/30 text-xs">
+                  <div className="flex items-center gap-1.5 text-white/50 text-xs">
                     <Shield className="w-3.5 h-3.5" />
                     <span>Secure</span>
                   </div>
                   <div className="w-1 h-1 rounded-full bg-white/15" />
-                  <span className="text-white/30 text-xs">Free Forever</span>
+                  <span className="text-white/50 text-xs">Free Forever</span>
                   <div className="w-1 h-1 rounded-full bg-white/15" />
-                  <div className="flex items-center gap-1.5 text-white/30 text-xs">
+                  <div className="flex items-center gap-1.5 text-white/50 text-xs">
                     <Zap className="w-3.5 h-3.5" />
                     <span>No Ads</span>
                   </div>
@@ -382,7 +382,8 @@ export function InstallBanner({
           <div className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/40">
             <button
               onClick={handleDismiss}
-              className="absolute top-3 right-3 text-white/30 hover:text-white/60 transition-colors"
+              className="absolute top-3 right-3 text-white/50 hover:text-white/60 transition-colors"
+              aria-label="Dismiss install banner"
             >
               <X className="w-4 h-4" />
             </button>

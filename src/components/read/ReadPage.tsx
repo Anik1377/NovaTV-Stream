@@ -212,7 +212,7 @@ export function ReadPage() {
             placeholder="Search manga, manhwa, manhua..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors"
           />
         </div>
 
@@ -251,7 +251,7 @@ export function ReadPage() {
               <BookOpen className="w-8 h-8 text-white/20" />
             </div>
             <h3 className="text-lg font-semibold text-white/60 mb-1">Webnovels</h3>
-            <p className="text-sm text-white/30 max-w-xs">
+            <p className="text-sm text-white/50 max-w-xs">
               Coming soon! We are working on bringing webnovels to you.
             </p>
           </div>

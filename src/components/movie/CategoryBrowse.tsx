@@ -166,7 +166,7 @@ export function CategoryBrowse() {
 
       {/* End of results */}
       {!loadingMore && page >= totalPages && items.length > 0 && (
-        <p className="text-center text-white/30 text-sm py-8">You&apos;ve seen it all!</p>
+        <p className="text-center text-white/50 text-sm py-8">You&apos;ve seen it all!</p>
       )}
     </div>
   );

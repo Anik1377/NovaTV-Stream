@@ -209,7 +209,7 @@ export function ShowReelDetail() {
           <motion.section initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Play className="w-5 h-5 text-red-500" fill="currentColor" />
-              Trailers <span className="text-white/30 font-normal">({movie.trailers.length})</span>
+              Trailers <span className="text-white/50 font-normal">({movie.trailers.length})</span>
             </h2>
             {/* Main player with cinematic frame */}
             <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/50 border border-white/[0.06]">
@@ -275,7 +275,7 @@ export function ShowReelDetail() {
                           <p className="text-xs font-medium text-white/80 line-clamp-2 leading-tight mb-1">{v.title}</p>
                           <div className="flex items-center justify-between">
                             <p className="text-[10px] text-white/40 truncate mr-2">{v.channelTitle}</p>
-                            {v.viewCount > 0 && <p className="text-[10px] text-white/30 shrink-0">{formatViews(v.viewCount)} views</p>}
+                            {v.viewCount > 0 && <p className="text-[10px] text-white/50 shrink-0">{formatViews(v.viewCount)} views</p>}
                           </div>
                         </div>
                       </a>
@@ -286,7 +286,7 @@ export function ShowReelDetail() {
             </div>
           )}
 
-          {!buzzLoading && !buzz && <p className="text-white/30 text-sm">Buzz data unavailable for this title.</p>}
+          {!buzzLoading && !buzz && <p className="text-white/50 text-sm">Buzz data unavailable for this title.</p>}
         </motion.section>
       </div>
 

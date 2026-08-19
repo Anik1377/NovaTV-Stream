@@ -81,6 +81,7 @@ export function ContentRow({ title, movies, accentColor = 'red', icon, genreId, 
           <button
             onClick={() => scroll('left')}
             className="absolute left-0 top-0 bottom-8 z-10 w-12 bg-gradient-to-r from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
+            aria-label="Scroll left"
           >
             <ChevronLeft className="w-8 h-8 text-white" />
           </button>
@@ -102,6 +103,7 @@ export function ContentRow({ title, movies, accentColor = 'red', icon, genreId, 
           <button
             onClick={() => scroll('right')}
             className="absolute right-0 top-0 bottom-8 z-10 w-12 bg-gradient-to-l from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
+            aria-label="Scroll right"
           >
             <ChevronRight className="w-8 h-8 text-white" />
           </button>

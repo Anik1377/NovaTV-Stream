@@ -34,6 +34,12 @@ function toMovie(r: DiscoverResult, mediaType: 'movie' | 'tv'): Movie {
 }
 
 export async function GET(req: NextRequest) {
+  // Auth check: require Authorization header (Supabase JWT)
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const sp = req.nextUrl.searchParams;
     const page = sp.get('page') || '1';

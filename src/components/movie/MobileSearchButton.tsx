@@ -77,7 +77,7 @@ export function MobileSearchButton() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Search movies, shows..."
-              className="flex-1 h-10 bg-transparent border-0 text-sm text-white placeholder:text-white/30 focus-visible:ring-0 px-2.5 rounded-none"
+              className="flex-1 h-10 bg-transparent border-0 text-sm text-white placeholder:text-white/50 focus-visible:ring-0 px-2.5 rounded-none"
             />
             <button
               type="button"

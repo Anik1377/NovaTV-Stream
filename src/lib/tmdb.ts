@@ -2,7 +2,8 @@ const TMDB_BASE = 'https://api.themoviedb.org/3';
 const IMG_BASE = 'https://image.tmdb.org/t/p';
 
 function getTmdbKey(): string {
-  return process.env.TMDB_API_KEY || 'f71458d399e1eb9bdbfdc1c3318f5f75';
+  if (!process.env.TMDB_API_KEY) throw new Error('TMDB_API_KEY environment variable is required');
+  return process.env.TMDB_API_KEY;
 }
 
 export const getImageUrl = (path: string | null, size: string = 'w500') => {

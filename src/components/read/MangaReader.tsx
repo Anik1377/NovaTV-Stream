@@ -245,7 +245,7 @@ export function MangaReader() {
             <div className="text-center max-w-sm px-6">
               <BookX className="w-12 h-12 text-white/20 mx-auto mb-4" />
               <p className="text-white/60 text-sm mb-2">{error}</p>
-              <p className="text-white/30 text-xs mb-4">
+              <p className="text-white/50 text-xs mb-4">
                 Try selecting a different chapter.
               </p>
               <div className="flex gap-3 justify-center">
@@ -280,7 +280,7 @@ export function MangaReader() {
                 {failedImages.has(i) ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <AlertTriangle className="w-8 h-8 text-white/20 mb-2" />
-                    <p className="text-xs text-white/30">
+                    <p className="text-xs text-white/50">
                       Page {i + 1} failed to load
                     </p>
                   </div>
@@ -299,7 +299,7 @@ export function MangaReader() {
 
             {/* End of chapter indicator */}
             <div className="py-6">
-              <p className="text-sm text-white/30">
+              <p className="text-sm text-white/50">
                 {totalPages} pages &middot; End of Chapter{' '}
                 {chapterList[currentIdx]?.chapter &&
                   chapterList[currentIdx]!.chapter !== '?' &&
@@ -364,7 +364,7 @@ export function MangaReader() {
             className="shrink-0"
           >
             <div
-              className="text-center text-xs text-white/30 py-2 border-t border-white/5"
+              className="text-center text-xs text-white/50 py-2 border-t border-white/5"
               style={{
                 background:
                   'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.4))',

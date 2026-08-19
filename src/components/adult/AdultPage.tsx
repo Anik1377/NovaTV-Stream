@@ -142,7 +142,7 @@ export function AdultPage() {
             className="max-w-md w-full text-center"
           >
             <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-9 h-9 text-white/30" />
+              <Lock className="w-9 h-9 text-white/50" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Sign In Required</h2>
             <p className="text-white/50 text-sm leading-relaxed mb-8">
@@ -179,13 +179,13 @@ export function AdultPage() {
             className="max-w-md w-full text-center"
           >
             <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
-              <EyeOff className="w-9 h-9 text-white/30" />
+              <EyeOff className="w-9 h-9 text-white/50" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Adult Content Disabled</h2>
             <p className="text-white/50 text-sm leading-relaxed mb-2">
               This section is currently turned off in your settings.
             </p>
-            <p className="text-white/30 text-xs leading-relaxed mb-8">
+            <p className="text-white/50 text-xs leading-relaxed mb-8">
               You can enable or disable it anytime from your profile settings.
             </p>
             {!showConfirm ? (

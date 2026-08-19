@@ -7,7 +7,6 @@ const STORAGE_KEY = 'streamvault-disclaimer-accepted';
 
 export function VisitDisclaimer() {
   const [visible, setVisible] = useState(false);
-  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     const accepted = localStorage.getItem(STORAGE_KEY);
@@ -20,17 +19,14 @@ export function VisitDisclaimer() {
 
   const handleAgree = () => {
     localStorage.setItem(STORAGE_KEY, 'v1');
-    setAgreed(true);
-    setTimeout(() => setVisible(false), 300);
+    setVisible(false);
   };
 
   if (!visible) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-opacity duration-300 ${
-        agreed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />

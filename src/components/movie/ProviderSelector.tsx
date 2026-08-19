@@ -47,7 +47,7 @@ function ProviderRow({ provider, isActive, onClick, idx }: {
       </div>
       <div className="flex-1 min-w-0">
         <span className="text-white font-medium text-sm block">{provider.name}</span>
-        <p className="text-white/30 text-[11px] mt-0.5 truncate">{provider.description}</p>
+        <p className="text-white/50 text-[11px] mt-0.5 truncate">{provider.description}</p>
       </div>
       {isActive ? (
         <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center shrink-0">

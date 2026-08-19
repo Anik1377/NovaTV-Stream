@@ -279,7 +279,7 @@ export function PeoplePage() {
                 </div>
                 <span className="text-white text-xs font-bold hidden sm:block">Cast</span>
               </div>
-              <p className="text-white/30 text-[10px] pl-10 hidden sm:block">Explore actors and their roles</p>
+              <p className="text-white/50 text-[10px] pl-10 hidden sm:block">Explore actors and their roles</p>
             </div>
             <div className="group">
               <div className="flex items-center gap-2 mb-1">
@@ -288,7 +288,7 @@ export function PeoplePage() {
                 </div>
                 <span className="text-white text-xs font-bold hidden sm:block">Directors</span>
               </div>
-              <p className="text-white/30 text-[10px] pl-10 hidden sm:block">Visionaries behind the lens</p>
+              <p className="text-white/50 text-[10px] pl-10 hidden sm:block">Visionaries behind the lens</p>
             </div>
             <div className="group">
               <div className="flex items-center gap-2 mb-1">
@@ -297,7 +297,7 @@ export function PeoplePage() {
                 </div>
                 <span className="text-white text-xs font-bold hidden sm:block">Ratings</span>
               </div>
-              <p className="text-white/30 text-[10px] pl-10 hidden sm:block">Top-rated performances</p>
+              <p className="text-white/50 text-[10px] pl-10 hidden sm:block">Top-rated performances</p>
             </div>
           </motion.div>
         </div>

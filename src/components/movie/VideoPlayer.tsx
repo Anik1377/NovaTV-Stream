@@ -221,7 +221,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                       className="absolute top-full left-0 mt-2 w-60 rounded-xl bg-[#1a1a1a] border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden z-20"
                     >
                       <div className="px-3 py-2.5 border-b border-white/[0.06]">
-                        <p className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">
+                        <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider">
                           Switch Source
                         </p>
                       </div>
@@ -253,7 +253,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                                   </p>
                                   {p.primary && <Crown className="w-3 h-3 text-amber-400" />}
                                 </div>
-                                <p className="text-white/30 text-[10px] truncate">
+                                <p className="text-white/50 text-[10px] truncate">
                                   {p.description}
                                 </p>
                               </div>
@@ -309,7 +309,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
           >
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08]">
               <div className="w-1 h-1 rounded-full bg-white/30" />
-              <span className="text-white/30 text-[10px] font-medium">
+              <span className="text-white/50 text-[10px] font-medium">
                 Swipe down to close
               </span>
               <div className="w-1 h-1 rounded-full bg-white/30" />
@@ -338,7 +338,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                   className="w-10 h-10 animate-spin"
                   style={{ color: activeProvider.color }}
                 />
-                <p className="text-white/30 text-xs font-medium">
+                <p className="text-white/50 text-xs font-medium">
                   Loading from {activeProvider.name}...
                 </p>
               </motion.div>

@@ -17,19 +17,13 @@ export function GenreView() {
   useEffect(() => {
     if (!selectedGenreId) return;
     let cancelled = false;
-    Promise.resolve().then(() => {
-      if (cancelled) return;
-      setLoading(true);
-    });
     Promise.all([
-      fetch(`/api/tmdb/popular-movies?page=1`).then(r => r.json()).catch(() => ({ results: [] })),
-      fetch(`/api/tmdb/popular-tv?page=1`).then(r => r.json()).catch(() => ({ results: [] })),
+      fetch(`/api/tmdb/discover?genre_id=${selectedGenreId}&media_type=movie&page=1`).then(r => r.json()).catch(() => ({ results: [] })),
+      fetch(`/api/tmdb/discover?genre_id=${selectedGenreId}&media_type=tv&page=1`).then(r => r.json()).catch(() => ({ results: [] })),
     ]).then(([movieData, tvData]) => {
       if (cancelled) return;
-      const filteredMovies = movieData.results?.filter((m: Movie) => m.genre_ids?.includes(selectedGenreId!)) || [];
-      const filteredTv = tvData.results?.filter((m: Movie) => m.genre_ids?.includes(selectedGenreId!)) || [];
-      setMovies(filteredMovies);
-      setTvShows(filteredTv);
+      setMovies(movieData.results || []);
+      setTvShows((tvData.results || []).map((t: Movie) => ({ ...t, media_type: 'tv' as const })));
     }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [selectedGenreId]);

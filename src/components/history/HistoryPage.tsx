@@ -205,7 +205,7 @@ export function HistoryPage() {
       {/* Loading */}
       {loading && items.length === 0 && (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-white/30" />
+          <Loader2 className="w-6 h-6 animate-spin text-white/50" />
         </div>
       )}
 
@@ -215,7 +215,7 @@ export function HistoryPage() {
           <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
             <Clock className="w-7 h-7 text-white/15" />
           </div>
-          <p className="text-white/30 text-sm">No history yet</p>
+          <p className="text-white/50 text-sm">No history yet</p>
           <p className="text-white/20 text-xs mt-1">Movies, shows, and people you view will appear here</p>
         </div>
       )}
@@ -265,7 +265,7 @@ export function HistoryPage() {
                       {item.mediaType}
                     </span>
                     {item.subtitle && (
-                      <span className="text-white/30 text-xs truncate">{item.subtitle}</span>
+                      <span className="text-white/50 text-xs truncate">{item.subtitle}</span>
                     )}
                   </div>
                 </div>
@@ -280,7 +280,7 @@ export function HistoryPage() {
                 <button
                   onClick={(e) => handleDeleteItem(item.id, e)}
                   disabled={deleting === item.id}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/30 hover:text-red-400 transition-all shrink-0"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-red-400 transition-all shrink-0"
                   aria-label="Remove from history"
                 >
                   {deleting === item.id ? (
@@ -309,7 +309,7 @@ export function HistoryPage() {
       )}
       {loading && items.length > 0 && (
         <div className="flex justify-center mt-8">
-          <Loader2 className="w-5 h-5 animate-spin text-white/30" />
+          <Loader2 className="w-5 h-5 animate-spin text-white/50" />
         </div>
       )}
     </div>

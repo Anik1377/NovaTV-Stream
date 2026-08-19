@@ -81,8 +81,6 @@ interface AppState {
   selectedPerson: { id: number; name: string; profilePath: string | null } | null;
   selectPerson: (person: { id: number; name: string; profilePath: string | null }) => void;
   bumpNav: () => void;
-  showPeople: () => void;
-  showHistory: () => void;
   showWarning: () => void;
   showPrivacy: () => void;
   showDmca: () => void;
@@ -139,7 +137,7 @@ type SetFn = (fn: (state: AppState) => Partial<AppState>) => void;
 function navigate(set: SetFn, view: ViewType) {
   set((s) => ({
     ...s,
-    navHistory: [...s.navHistory, s.view],
+    navHistory: [...s.navHistory.slice(-49), s.view],
     view,
   }));
 }

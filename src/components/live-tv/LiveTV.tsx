@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Hls from 'hls.js';
 import {
   Radio,
   Search,
@@ -67,7 +66,7 @@ export function LiveTV() {
   }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const hlsRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const loadChannels = useCallback(async () => {
@@ -102,7 +101,8 @@ export function LiveTV() {
     if (!selectedChannel?.url || !videoRef.current) return;
 
     const video = videoRef.current;
-    let hls: Hls | null = null;
+    let hls: any = null;
+    let cancelled = false;
 
     // Cleanup previous
     if (hlsRef.current) {
@@ -112,62 +112,74 @@ export function LiveTV() {
 
     const url = selectedChannel.url;
 
-    if (Hls.isSupported() && (url.includes('.m3u8') || url.includes('m3u8'))) {
-      hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        maxBufferLength: 10,
-        maxMaxBufferLength: 30,
-        startFragPrefetch: true,
-      });
-      hlsRef.current = hls;
+    const setupPlayer = async () => {
+      if (url.includes('.m3u8') || url.includes('m3u8')) {
+        const { default: Hls } = await import('hls.js');
+        if (cancelled) return;
 
-      hls.loadSource(url);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {
-            // Autoplay blocked, user needs to interact
-            setIsPlaying(false);
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            maxBufferLength: 10,
+            maxMaxBufferLength: 30,
+            startFragPrefetch: true,
           });
-      });
+          hlsRef.current = hls;
 
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls?.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls?.recoverMediaError();
-              break;
-            default:
-              setPlayerError('This stream is currently unavailable. Try another channel.');
-              hls?.destroy();
-              hlsRef.current = null;
-              break;
-          }
+          hls.loadSource(url);
+          hls.attachMedia(video);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video
+              .play()
+              .then(() => setIsPlaying(true))
+              .catch(() => {
+                // Autoplay blocked, user needs to interact
+                setIsPlaying(false);
+              });
+          });
+
+          hls.on(Hls.Events.ERROR, (_event: any, data: any) => {
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  hls?.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  hls?.recoverMediaError();
+                  break;
+                default:
+                  setPlayerError('This stream is currently unavailable. Try another channel.');
+                  hls?.destroy();
+                  hlsRef.current = null;
+                  break;
+              }
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          // Safari native HLS
+          video.src = url;
+          video.addEventListener('loadedmetadata', () => {
+            video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          });
+        } else {
+          setPlayerError('This stream format is not supported in your browser.');
         }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari native HLS
-      video.src = url;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-      });
-    } else if (url.endsWith('.mp4')) {
-      video.src = url;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-      });
-    } else {
-      setPlayerError('This stream format is not supported in your browser.');
-    }
+      } else if (url.endsWith('.mp4')) {
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+          video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        });
+      } else {
+        setPlayerError('This stream format is not supported in your browser.');
+      }
+    };
+
+    setupPlayer();
 
     return () => {
+      cancelled = true;
       if (hls) {
         hls.destroy();
         hlsRef.current = null;
@@ -289,7 +301,7 @@ export function LiveTV() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search channels..."
-              className="pl-10 pr-4 h-9 bg-white/5 border-white/15 text-white text-sm placeholder:text-white/30 focus:border-red-500/50"
+              className="pl-10 pr-4 h-9 bg-white/5 border-white/15 text-white text-sm placeholder:text-white/50 focus:border-red-500/50"
             />
           </div>
 
@@ -576,7 +588,7 @@ export function LiveTV() {
                             </span>
                           )}
                           {channel.language && (
-                            <span className="text-[10px] text-white/30">
+                            <span className="text-[10px] text-white/50">
                               {channel.language}
                             </span>
                           )}

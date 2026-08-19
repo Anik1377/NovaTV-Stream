@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { Play, Star, ArrowLeft, Calendar, Clock, Zap, Heart, Youtube, Crown } from 'lucide-react';
+import { Play, Star, Calendar, Clock, Zap, Heart, Youtube, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -9,12 +9,17 @@ import { Button } from '@/components/ui/button';
 import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
 import { ProviderSelector } from './ProviderSelector';
+import { BackButton } from '@/components/shared/BackButton';
 import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { MovieDetails } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
 
 export function MovieDetail() {
-  const { selectedMovie, goBack, selectedProvider, toggleWatchlist, isInWatchlist } = useAppStore();
+  const selectedMovie = useAppStore(s => s.selectedMovie);
+  const goBack = useAppStore(s => s.goBack);
+  const selectedProvider = useAppStore(s => s.selectedProvider);
+  const toggleWatchlist = useAppStore(s => s.toggleWatchlist);
+  const watchlist = useAppStore(s => s.watchlist);
   const { record } = useRecordHistory();
   const [details, setDetails] = useState<MovieDetails | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -38,8 +43,7 @@ export function MovieDetail() {
           mediaType: 'movie',
           subtitle: (selectedMovie.release_date || '').split('-')[0] || undefined,
         });
-      } catch (e) {
-        console.error(e);
+      } catch {
       }
     });
   }, [selectedMovie, startTransition, record]);
@@ -112,13 +116,7 @@ export function MovieDetail() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/70 to-transparent" />
 
           {/* Floating back button pill */}
-          <button
-            onClick={goBack}
-            className="absolute top-20 left-6 md:left-12 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-colors duration-300"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
+          <BackButton onClick={goBack} className="absolute top-20 left-6 md:left-12 z-20" />
         </div>
 
         {/* Content - overlaps backdrop */}
@@ -152,9 +150,9 @@ export function MovieDetail() {
                   <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">
                     {title}
                   </h1>
-                  {(movie as any).tagline && (
+                  {movie.tagline && (
                     <p className="text-white/40 italic text-base md:text-lg mb-4 font-light">
-                      &ldquo;{(movie as any).tagline}&rdquo;
+                      &ldquo;{movie.tagline}&rdquo;
                     </p>
                   )}
 
@@ -249,7 +247,7 @@ export function MovieDetail() {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center text-white/30 text-lg font-semibold">
+                                <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center text-white/50 text-lg font-semibold">
                                   {person.name[0]}
                                 </div>
                               )}
@@ -292,9 +290,9 @@ export function MovieDetail() {
                     onClick={() => toggleWatchlist(movie.id)}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200 mb-8"
                   >
-                    <Heart className={`w-4 h-4 transition-colors ${isInWatchlist(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
-                    <span className={isInWatchlist(movie.id) ? 'text-red-400' : 'text-white/60'}>
-                      {isInWatchlist(movie.id) ? 'In Watchlist' : 'Add to Watchlist'}
+                    <Heart className={`w-4 h-4 transition-colors ${watchlist.includes(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
+                    <span className={watchlist.includes(movie.id) ? 'text-red-400' : 'text-white/60'}>
+                      {watchlist.includes(movie.id) ? 'In Watchlist' : 'Add to Watchlist'}
                     </span>
                   </button>
                 </>

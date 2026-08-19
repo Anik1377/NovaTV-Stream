@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
-  Search, ArrowLeft, Film, Tv, X, Loader2,
+  Search, Film, Tv, X, Loader2,
   TrendingUp, History, AlertCircle, ChevronDown, RotateCw, Users,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MovieCard } from './MovieCard';
 import { useSearch } from '@/hooks/use-search';
+import { BackButton } from '@/components/shared/BackButton';
 import type { Movie } from '@/lib/types';
 import type { SearchPerson } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
@@ -151,7 +152,7 @@ function EmptySearchState({
             </div>
             <button
               onClick={onClearHistory}
-              className="text-white/30 hover:text-red-400 text-xs font-medium transition-colors"
+              className="text-white/50 hover:text-red-400 text-xs font-medium transition-colors"
             >
               Clear All
             </button>
@@ -171,7 +172,7 @@ function EmptySearchState({
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onRemoveHistory(q); }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-white/10 text-white/30 hover:text-white transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-all"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -221,7 +222,7 @@ function NoResultsState({ query, onGoHome }: { query: string; onGoHome: () => vo
         <Search className="w-9 h-9 text-white/10" />
       </div>
       <h3 className="text-white/50 text-lg font-semibold mb-2">No results found</h3>
-      <p className="text-white/30 text-sm max-w-md mb-6">
+      <p className="text-white/50 text-sm max-w-md mb-6">
         No matches for &ldquo;<span className="text-white/50">{query}</span>&rdquo;. Try different keywords or check the spelling.
       </p>
       <Button
@@ -315,7 +316,7 @@ export function SearchResults() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Search movies, TV shows, people..."
-            className="pl-10 pr-10 bg-white/[0.08] border-white/10 text-white placeholder:text-white/30 focus:border-red-500/50 h-12 rounded-xl text-base"
+            className="pl-10 pr-10 bg-white/[0.08] border-white/10 text-white placeholder:text-white/50 focus:border-red-500/50 h-12 rounded-xl text-base"
           />
           {inputValue && (
             <button
@@ -329,15 +330,7 @@ export function SearchResults() {
       </div>
 
       {/* Back button - desktop only */}
-      <button
-        onClick={goHome}
-        className="hidden md:flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors duration-300 group"
-      >
-        <div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-        </div>
-        <span className="text-sm font-medium">Back to Home</span>
-      </button>
+      <BackButton onClick={goHome} label="Back to Home" className="hidden md:flex mb-6" />
 
       {/* Search header */}
       {searchQuery && (
@@ -367,7 +360,7 @@ export function SearchResults() {
                 >
                   {tab.icon}
                   <span>{tab.label}</span>
-                  <span className={`text-xs ${activeFilter === tab.key ? 'text-white/60' : 'text-white/30'}`}>
+                  <span className={`text-xs ${activeFilter === tab.key ? 'text-white/60' : 'text-white/50'}`}>
                     {counts[tab.key]}
                   </span>
                 </button>
@@ -398,7 +391,7 @@ export function SearchResults() {
               <h2 className="text-lg font-semibold text-white/80 flex items-center gap-2">
                 <Users className="w-5 h-5 text-lime-400" />
                 People
-                <span className="text-white/30 text-sm font-normal">({searchPeople.length})</span>
+                <span className="text-white/50 text-sm font-normal">({searchPeople.length})</span>
               </h2>
             </div>
           )}
@@ -422,7 +415,7 @@ export function SearchResults() {
               <h2 className="text-lg font-semibold text-white/80 flex items-center gap-2">
                 <Film className="w-5 h-5 text-red-400" />
                 Movies & TV Shows
-                <span className="text-white/30 text-sm font-normal">({searchResults.length})</span>
+                <span className="text-white/50 text-sm font-normal">({searchResults.length})</span>
               </h2>
             </div>
           )}
@@ -441,7 +434,7 @@ export function SearchResults() {
             <Users className="w-7 h-7 text-white/10" />
           </div>
           <h3 className="text-white/50 text-base font-medium mb-1">No people found</h3>
-          <p className="text-white/30 text-sm">Try searching for an actor or director name.</p>
+          <p className="text-white/50 text-sm">Try searching for an actor or director name.</p>
         </div>
       )}
 

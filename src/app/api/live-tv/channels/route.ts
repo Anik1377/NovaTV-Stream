@@ -70,6 +70,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const country = searchParams.get('country') || 'in';
 
+  // Sanitize country: allow only alphanumeric and dash, max 3 chars
+  if (!/^[a-zA-Z0-9-]{1,3}$/.test(country)) {
+    return NextResponse.json({ error: 'Invalid country code' }, { status: 400 });
+  }
+
   try {
     const m3uUrl = `https://iptv-org.github.io/iptv/countries/${country}.m3u`;
     const res = await fetch(m3uUrl, {

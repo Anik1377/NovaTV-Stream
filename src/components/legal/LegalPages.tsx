@@ -114,7 +114,7 @@ export function PrivacyPage() {
   return (
     <LegalLayout icon={<Lock className="w-5 h-5 text-emerald-400" />} title="Privacy Policy">
       <div className={sectionClass}>
-        <p className="text-white/30 text-xs mb-4">Last updated: June 2025</p>
+        <p className="text-white/50 text-xs mb-4">Last updated: June 2025</p>
         <p className={textClass}>
           This Privacy Policy explains how StreamVault (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects,
           uses, and protects your information when you use our service. By using StreamVault, you
@@ -215,7 +215,7 @@ export function DmcaPage() {
   return (
     <LegalLayout icon={<FileWarning className="w-5 h-5 text-amber-400" />} title="DMCA">
       <div className={sectionClass}>
-        <p className="text-white/30 text-xs mb-4">Digital Millennium Copyright Act Notice</p>
+        <p className="text-white/50 text-xs mb-4">Digital Millennium Copyright Act Notice</p>
         <p className={textClass}>
           StreamVault respects the intellectual property rights of others and expects its users to
           do the same. In accordance with the Digital Millennium Copyright Act of 1998
