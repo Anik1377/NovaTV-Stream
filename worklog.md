@@ -928,3 +928,24 @@ Stage Summary:
 - 3 `as any` casts removed from Hero.tsx and MovieDetail.tsx
 - 6 client-side fetch calls consolidated to 1 server-side batch endpoint
 - Season dropdown now accessible via keyboard and closes on outside click
+---
+Task ID: 3
+Agent: main
+Task: Fix watch history recording in VideoPlayer + add real-time history updates in ProfilePage
+
+Work Log:
+- Diagnosed root cause: VideoPlayer.tsx only recorded watch history to Supabase (logged-in users), never to localStorage
+- Added `recordWatchHistory()` import to VideoPlayer.tsx
+- Modified VideoPlayer useEffect to always save to localStorage for ALL users (not just logged-in)
+- Kept Supabase server-side recording for logged-in users as additional sync
+- Added watch history recording on provider/source switch in `switchProvider()` function
+- Added `watch-history-updated` event listener in ProfilePage history tab for real-time refresh
+- Verified ContinueWatching component on home tab reads from localStorage and refreshes via events
+- Ran ESLint — zero errors
+- Verified with Agent Browser: Continue Watching section appears with correct data after recording
+
+Stage Summary:
+- 2 files changed: VideoPlayer.tsx, ProfilePage.tsx
+- Watch history now records to localStorage for ALL users when clicking play or switching sources
+- Continue Watching section on home tab now shows items immediately after playing
+- Profile history tab refreshes in real-time via custom event listener
