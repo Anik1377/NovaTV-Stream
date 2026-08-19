@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { Play, Star, Calendar, Clock, Zap, Heart, Youtube, Crown } from 'lucide-react';
+import { Play, Star, Calendar, Clock, Zap, Heart, Youtube, Crown, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -14,6 +14,7 @@ import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { MovieDetails } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
 import { recordWatchHistory } from '@/lib/watch-history';
+import { ShareModal } from '@/components/shared/ShareModal';
 
 export function MovieDetail() {
   const selectedMovie = useAppStore(s => s.selectedMovie);
@@ -26,6 +27,7 @@ export function MovieDetail() {
   const [isPending, startTransition] = useTransition();
   const [showPlayer, setShowPlayer] = useState(false);
   const [showProviderSelector, setShowProviderSelector] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const prevIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -294,16 +296,42 @@ export function MovieDetail() {
                     );
                   })()}
 
-                  {/* Watchlist button */}
-                  <button
-                    onClick={() => toggleWatchlist(movie.id)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200 mb-8"
-                  >
-                    <Heart className={`w-4 h-4 transition-colors ${watchlist.includes(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
-                    <span className={watchlist.includes(movie.id) ? 'text-red-400' : 'text-white/60'}>
-                      {watchlist.includes(movie.id) ? 'In Watchlist' : 'Add to Watchlist'}
-                    </span>
-                  </button>
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 mb-8">
+                    <button
+                      onClick={() => toggleWatchlist(movie.id)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200"
+                    >
+                      <Heart className={`w-4 h-4 transition-colors ${watchlist.includes(movie.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
+                      <span className={watchlist.includes(movie.id) ? 'text-red-400' : 'text-white/60'}>
+                        {watchlist.includes(movie.id) ? 'In Watchlist' : 'Watchlist'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/50 hover:text-white/80 text-sm font-medium transition-all duration-200"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                  </div>
+
+                  <ShareModal
+                    open={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    data={{
+                      tmdbId: movie.id,
+                      title,
+                      posterPath: movie.poster_path,
+                      backdropPath: movie.backdrop_path,
+                      mediaType: 'movie',
+                      year,
+                      rating: movie.vote_average,
+                      runtime: details?.runtime,
+                      genres: details?.genres?.map(g => g.name),
+                      overview: movie.overview,
+                    }}
+                  />
                 </>
               )}
             </div>

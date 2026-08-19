@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Play, Star, Calendar, ChevronDown, Tv, Heart, Youtube, Zap, Crown } from 'lucide-react';
+import { Play, Star, Calendar, ChevronDown, Tv, Heart, Youtube, Zap, Crown, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
@@ -14,6 +14,7 @@ import { getEmbedUrl, getProvider } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
 import { recordWatchHistory } from '@/lib/watch-history';
+import { ShareModal } from '@/components/shared/ShareModal';
 
 export function TvDetail() {
   const selectedTv = useAppStore(s => s.selectedTv);
@@ -31,6 +32,7 @@ export function TvDetail() {
   const [loading, setLoading] = useState(true);
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [seasonDropdownOpen, setSeasonDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -234,16 +236,41 @@ export function TvDetail() {
                     );
                   })()}
 
-                  {/* Watchlist */}
-                  <button
-                    onClick={() => toggleWatchlist(show.id)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200 mb-6"
-                  >
-                    <Heart className={`w-4 h-4 transition-colors ${watchlist.includes(show.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
-                    <span className={watchlist.includes(show.id) ? 'text-red-400' : 'text-white/60'}>
-                      {watchlist.includes(show.id) ? 'In Watchlist' : 'Add to Watchlist'}
-                    </span>
-                  </button>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 mb-6">
+                    <button
+                      onClick={() => toggleWatchlist(show.id)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-sm font-medium transition-all duration-200"
+                    >
+                      <Heart className={`w-4 h-4 transition-colors ${watchlist.includes(show.id) ? 'fill-red-500 text-red-500' : 'text-white/50'}`} />
+                      <span className={watchlist.includes(show.id) ? 'text-red-400' : 'text-white/60'}>
+                        {watchlist.includes(show.id) ? 'In Watchlist' : 'Watchlist'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white/50 hover:text-white/80 text-sm font-medium transition-all duration-200"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                  </div>
+
+                  <ShareModal
+                    open={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    data={{
+                      tmdbId: show.id,
+                      title,
+                      posterPath: show.poster_path,
+                      backdropPath: show.backdrop_path,
+                      mediaType: 'tv',
+                      year,
+                      rating: show.vote_average,
+                      genres: details?.genres?.map(g => g.name),
+                      overview: show.overview,
+                    }}
+                  />
 
                   {/* Cast */}
                   {cast.length > 0 && (

@@ -949,3 +949,31 @@ Stage Summary:
 - Watch history now records to localStorage for ALL users when clicking play or switching sources
 - Continue Watching section on home tab now shows items immediately after playing
 - Profile history tab refreshes in real-time via custom event listener
+---
+Task ID: 4
+Agent: main
+Task: Add share feature with beautiful preview card for movies/TV shows
+
+Work Log:
+- Installed html-to-image package for card-as-image download
+- Created ShareModal component (src/components/shared/ShareModal.tsx) with:
+  - 16:9 preview card with backdrop, poster, title, rating, genres, year, runtime
+  - StreamVault branding badge
+  - Media type badge (Movie/TV Series)
+  - Web Share API integration (native share on mobile)
+  - Copy link with clipboard feedback
+  - Social sharing: X/Twitter, WhatsApp, Telegram
+  - Download card as PNG (2x resolution via html-to-image)
+- Created /api/share/og/route.ts - server-side OG image generation (SVG)
+  - Proxies TMDB images server-side to avoid CORS
+  - Generates 1200x630 SVG with poster, backdrop, metadata
+  - Genre pills, rating stars, StreamVault branding, Watch Now CTA
+- Added Share button to MovieDetail (next to Watchlist)
+- Added Share button to TvDetail (next to Watchlist)
+- All changes pass ESLint with zero errors
+
+Stage Summary:
+- 4 files changed: ShareModal.tsx (new), share/og/route.ts (new), MovieDetail.tsx, TvDetail.tsx
+- Share button appears on both movie and TV show detail pages
+- Share modal features: native share, copy link, X, WhatsApp, Telegram, download as image
+- OG image API for social media link previews
