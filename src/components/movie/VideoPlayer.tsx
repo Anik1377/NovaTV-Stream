@@ -8,6 +8,7 @@ import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useIsIOS } from '@/hooks/use-ios';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { recordWatchHistory } from '@/lib/watch-history';
 
 interface VideoPlayerProps {
   src: string;
@@ -67,22 +68,35 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
     [dragY, onClose],
   );
 
-  // ── Track watch history for logged-in users ──
+  // ── Record watch history to localStorage (all users) + server (logged-in) ──
   useEffect(() => {
-    if (!user || !title) return;
+    if (!title) return;
     const item = mediaType === 'tv' ? selectedTv : selectedMovie;
-    fetch('/api/profile/history', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tmdbId,
-        title,
-        posterPath: item?.poster_path || null,
-        mediaType,
-        season: season ?? null,
-        episode: episode ?? null,
-      }),
-    }).catch(() => {});
+    // Always save to localStorage
+    recordWatchHistory({
+      tmdbId,
+      title,
+      posterPath: item?.poster_path || null,
+      backdropPath: item?.backdrop_path || null,
+      mediaType,
+      season: season ?? null,
+      episode: episode ?? null,
+    });
+    // Also save to server for logged-in users
+    if (user) {
+      fetch('/api/profile/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tmdbId,
+          title,
+          posterPath: item?.poster_path || null,
+          mediaType,
+          season: season ?? null,
+          episode: episode ?? null,
+        }),
+      }).catch(() => {});
+    }
   }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
 
   // ── Body scroll lock (iOS-safe: saves/restores scroll position) ──
@@ -108,6 +122,17 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
     setLoading(true);
     setError(false);
     setShowProviders(false);
+    // Re-record watch history on source switch
+    const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+    recordWatchHistory({
+      tmdbId,
+      title: title || 'Unknown',
+      posterPath: item?.poster_path || null,
+      backdropPath: item?.backdrop_path || null,
+      mediaType,
+      season: season ?? null,
+      episode: episode ?? null,
+    });
   };
 
   const activeProvider = getProvider(selectedProvider);

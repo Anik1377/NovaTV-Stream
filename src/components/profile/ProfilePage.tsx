@@ -128,6 +128,19 @@ export function ProfilePage() {
     if (tab === 'history') fetchHistory(historyFilter, 1, false);
   }, [tab, historyFilter, user, fetchHistory, fetchProfile]);
 
+  // Refresh watch history when a new watch event is recorded
+  useEffect(() => {
+    const refresh = () => {
+      if (tab === 'history') {
+        let wh = getWatchHistory();
+        if (historyFilter !== 'all') wh = wh.filter((i) => i.mediaType === historyFilter);
+        setWatchItems(wh);
+      }
+    };
+    window.addEventListener('watch-history-updated', refresh);
+    return () => window.removeEventListener('watch-history-updated', refresh);
+  }, [tab, historyFilter]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
