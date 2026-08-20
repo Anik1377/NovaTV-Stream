@@ -1,9 +1,21 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Maximize2, Minimize2, Loader2, Play, ChevronDown, Zap, Crown, ChevronLeft } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import {
+  X,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
+  ChevronLeft,
+  ShieldCheck,
+  Monitor,
+  Server,
+  Check,
+  Loader2,
+} from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
-import { providers, getProvider, getEmbedUrl } from '@/lib/providers';
+import { providers, getProvider, getEmbedUrl, type Provider } from '@/lib/providers';
+import { getRankedProviderIds, getServerScore, recordServerPick } from '@/lib/server-rankings';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useIsIOS } from '@/hooks/use-ios';
@@ -20,59 +32,100 @@ interface VideoPlayerProps {
   episode?: number;
 }
 
-/* ── iOS native fullscreen detection ── */
+/* ------------------------------------------------------------------ */
+/*  iOS native fullscreen detection                                    */
+/* ------------------------------------------------------------------ */
 function useIOSFullscreenDetect(onReturn: () => void) {
   useEffect(() => {
-    const handleEnd = () => {
-      // iOS native player "Done" button was tapped — fire onClose
-      onReturn();
-    };
+    const handleEnd = () => onReturn();
     document.addEventListener('webkitendfullscreen', handleEnd);
     return () => document.removeEventListener('webkitendfullscreen', handleEnd);
   }, [onReturn]);
 }
 
-export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, episode }: VideoPlayerProps) {
+/* ------------------------------------------------------------------ */
+/*  Score badge helper                                                 */
+/* ------------------------------------------------------------------ */
+function scoreBadge(score: number) {
+  if (score >= 80) return { label: 'Top Pick', cls: 'bg-emerald-500/20 text-emerald-400' };
+  if (score >= 40) return { label: 'Popular', cls: 'bg-amber-500/20 text-amber-400' };
+  if (score > 0) return { label: 'Used', cls: 'bg-zinc-500/20 text-zinc-400' };
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main component                                                     */
+/* ------------------------------------------------------------------ */
+export function VideoPlayer({
+  src,
+  title,
+  onClose,
+  mediaType,
+  tmdbId,
+  season,
+  episode,
+}: VideoPlayerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showProviders, setShowProviders] = useState(false);
+  const [serverPanelOpen, setServerPanelOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { selectedProvider, setSelectedProvider, selectedMovie, selectedTv } = useAppStore();
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
   const isIOS = useIsIOS();
   const isMobile = useIsMobile();
 
-  // ── Swipe-to-dismiss (mobile only) ──
+  // Swipe-to-dismiss (mobile only)
   const dragY = useMotionValue(0);
   const iframeScale = useTransform(dragY, [0, 250], [1, 0.92]);
   const iframeRadius = useTransform(dragY, [0, 250], [8, 24]);
 
+  /* ---------------------------------------------------------------- */
+  /*  Ranked provider list                                              */
+  /* ---------------------------------------------------------------- */
+  const rankedIds = useMemo(() => getRankedProviderIds(), []);
+  const rankedSet = useMemo(() => new Set(rankedIds), [rankedIds]);
+
+  const sortedProviders = useMemo(() => {
+    const ranked = rankedIds
+      .map((id) => providers.find((p) => p.id === id))
+      .filter((p): p is Provider => !!p);
+    const unranked = providers.filter((p) => !rankedSet.has(p.id));
+    return [...ranked, ...unranked];
+  }, [rankedIds, rankedSet]);
+
+  const activeProvider = getProvider(selectedProvider);
+
+  /* ---------------------------------------------------------------- */
+  /*  Drag end handler                                                  */
+  /* ---------------------------------------------------------------- */
   const handleDragEnd = useCallback(
     (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
       const shouldClose = info.offset.y > 120 || info.velocity.y > 500;
       if (shouldClose) {
-        // Animate out, then close
         animate(dragY, 600, {
           duration: 0.25,
           ease: 'easeOut',
           onComplete: onClose,
         });
       } else {
-        // Spring back
         animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
       }
     },
     [dragY, onClose],
   );
 
-  // ── Record watch history to localStorage (all users) + server (logged-in) ──
+  /* ---------------------------------------------------------------- */
+  /*  Record watch history                                              */
+  /* ---------------------------------------------------------------- */
   useEffect(() => {
     if (!title) return;
     const item = mediaType === 'tv' ? selectedTv : selectedMovie;
-    // Always save to localStorage
     recordWatchHistory({
       tmdbId,
       title,
@@ -82,7 +135,6 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
       season: season ?? null,
       episode: episode ?? null,
     });
-    // Also save to server for logged-in users
     if (user) {
       fetch('/api/profile/history', {
         method: 'POST',
@@ -99,7 +151,9 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
     }
   }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
 
-  // ── Body scroll lock (iOS-safe: saves/restores scroll position) ──
+  /* ---------------------------------------------------------------- */
+  /*  Body scroll lock                                                  */
+  /* ---------------------------------------------------------------- */
   useEffect(() => {
     const scrollY = window.scrollY;
     document.body.style.setProperty('--player-scroll-y', `${scrollY}px`);
@@ -112,31 +166,45 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
     };
   }, []);
 
-  // ── iOS native fullscreen "Done" button detection ──
+  /* ---------------------------------------------------------------- */
+  /*  iOS native fullscreen "Done" button                               */
+  /* ---------------------------------------------------------------- */
   useIOSFullscreenDetect(onClose);
 
-  const switchProvider = (providerId: string) => {
-    setSelectedProvider(providerId);
-    const newSrc = getEmbedUrl(providerId, mediaType, tmdbId, season, episode);
-    setCurrentSrc(newSrc);
-    setLoading(true);
-    setError(false);
-    setShowProviders(false);
-    // Re-record watch history on source switch
-    const item = mediaType === 'tv' ? selectedTv : selectedMovie;
-    recordWatchHistory({
-      tmdbId,
-      title: title || 'Unknown',
-      posterPath: item?.poster_path || null,
-      backdropPath: item?.backdrop_path || null,
-      mediaType,
-      season: season ?? null,
-      episode: episode ?? null,
-    });
-  };
+  /* ---------------------------------------------------------------- */
+  /*  Switch provider                                                   */
+  /* ---------------------------------------------------------------- */
+  const switchProvider = useCallback(
+    (providerId: string) => {
+      setSwitchingTo(providerId);
+      recordServerPick(providerId);
+      setSelectedProvider(providerId);
+      const newSrc = getEmbedUrl(providerId, mediaType, tmdbId, season, episode);
+      setCurrentSrc(newSrc);
+      setLoading(true);
+      setError(false);
+      setServerPanelOpen(false);
+      setMobileSheetOpen(false);
 
-  const activeProvider = getProvider(selectedProvider);
+      const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+      recordWatchHistory({
+        tmdbId,
+        title: title || 'Unknown',
+        posterPath: item?.poster_path || null,
+        backdropPath: item?.backdrop_path || null,
+        mediaType,
+        season: season ?? null,
+        episode: episode ?? null,
+      });
 
+      setTimeout(() => setSwitchingTo(null), 3000);
+    },
+    [mediaType, tmdbId, season, episode, setSelectedProvider, selectedTv, selectedMovie, title],
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  Fullscreen toggle                                                 */
+  /* ---------------------------------------------------------------- */
   const toggleFullscreen = async () => {
     if (!containerRef.current) return;
     try {
@@ -148,7 +216,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
         setIsFullscreen(false);
       }
     } catch {
-      // Silently fail on iOS where Fullscreen API is limited
+      // Fullscreen API unavailable (e.g. iOS)
     }
   };
 
@@ -158,17 +226,212 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
+  /* ---------------------------------------------------------------- */
+  /*  Keyboard shortcuts                                                */
+  /* ---------------------------------------------------------------- */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showProviders) onClose();
+      if (e.key === 'Escape' && !serverPanelOpen && !mobileSheetOpen) onClose();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose, showProviders]);
+  }, [onClose, serverPanelOpen, mobileSheetOpen]);
 
-  // Safe area insets for notch/dynamic island
-  const topSafe = 'env(safe-area-inset-top, 0px)';
+  /* ---------------------------------------------------------------- */
+  /*  Active server score / badge                                       */
+  /* ---------------------------------------------------------------- */
+  const activeScore = useMemo(() => getServerScore(selectedProvider), [selectedProvider]);
+  const activeBadge = useMemo(() => scoreBadge(activeScore), [activeScore]);
+  const isTopRanked = rankedIds[0] === selectedProvider;
 
+  /* ---------------------------------------------------------------- */
+  /*  Desktop side panel (inner const, not a component)                 */
+  /* ---------------------------------------------------------------- */
+  const serverPanel = (
+    <AnimatePresence>
+      {serverPanelOpen && (
+        <motion.div
+          initial={{ x: 340, opacity: 0.5 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 340, opacity: 0.5 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="absolute top-0 right-0 bottom-0 w-[340px] bg-[#111]/95 backdrop-blur-xl border-l border-white/[0.06] z-20 flex flex-col"
+        >
+          {/* Panel header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <Server className="w-4 h-4 text-white/50" />
+              <h4 className="text-white/90 text-sm font-semibold">Servers</h4>
+              <span className="text-white/30 text-xs">{sortedProviders.length}</span>
+            </div>
+            <button
+              onClick={() => setServerPanelOpen(false)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+              aria-label="Close server panel"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Server list */}
+          <div className="flex-1 overflow-y-auto content-scroll py-2">
+            {sortedProviders.map((p) => {
+              const isActive = p.id === selectedProvider;
+              const score = getServerScore(p.id);
+              const badge = scoreBadge(score);
+              const isTop = rankedIds[0] === p.id;
+              const isSwitching = switchingTo === p.id;
+
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => switchProvider(p.id)}
+                  disabled={isSwitching}
+                  className={
+                    'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ' +
+                    (isActive ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]')
+                  }
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                    style={{ backgroundColor: p.color + '18', color: p.color }}
+                  >
+                    {p.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-white/90 text-xs font-medium truncate">{p.name}</span>
+                      {isTop && <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                    </div>
+                    <p className="text-white/40 text-[10px] truncate mt-0.5">{p.description}</p>
+                    {badge && (
+                      <span className={'inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold ' + badge.cls}>
+                        {badge.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center shrink-0">
+                    {isSwitching ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                    ) : isActive ? (
+                      <Check className="w-4 h-4" style={{ color: p.color }} />
+                    ) : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Panel footer hint */}
+          <div className="px-5 py-3 border-t border-white/[0.06]">
+            <p className="text-white/25 text-[10px] text-center">Rankings based on community usage</p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  Mobile bottom sheet                                               */
+  /* ---------------------------------------------------------------- */
+  const mobileSheet = (
+    <AnimatePresence>
+      {mobileSheetOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 z-20"
+            onClick={() => setMobileSheetOpen(false)}
+          />
+          {/* Sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="absolute bottom-0 left-0 right-0 max-h-[70vh] bg-[#111] rounded-t-2xl z-30 flex flex-col"
+            style={{ paddingBottom: isIOS ? 'env(safe-area-inset-bottom, 16px)' : 16 }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3">
+              <div className="flex items-center gap-2">
+                <Server className="w-4 h-4 text-white/50" />
+                <h4 className="text-white/90 text-sm font-semibold">Servers</h4>
+              </div>
+              <button
+                onClick={() => setMobileSheetOpen(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+                aria-label="Close server sheet"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Server list */}
+            <div className="flex-1 overflow-y-auto content-scroll px-3 pb-2">
+              {sortedProviders.map((p) => {
+                const isActive = p.id === selectedProvider;
+                const score = getServerScore(p.id);
+                const badge = scoreBadge(score);
+                const isTop = rankedIds[0] === p.id;
+                const isSwitching = switchingTo === p.id;
+
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => switchProvider(p.id)}
+                    disabled={isSwitching}
+                    className={
+                      'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors ' +
+                      (isActive ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]')
+                    }
+                  >
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                      style={{ backgroundColor: p.color + '18', color: p.color }}
+                    >
+                      {p.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-white/90 text-sm font-medium truncate">{p.name}</span>
+                        {isTop && <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                      </div>
+                      <p className="text-white/40 text-[11px] truncate mt-0.5">{p.description}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {badge && (
+                        <span className={'px-1.5 py-0.5 rounded text-[9px] font-semibold ' + badge.cls}>
+                          {badge.label}
+                        </span>
+                      )}
+                      {isSwitching ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+                      ) : isActive ? (
+                        <Check className="w-4 h-4" style={{ color: p.color }} />
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  /* ================================================================== */
+  /*  RENDER                                                            */
+  /* ================================================================== */
   return (
     <AnimatePresence>
       <motion.div
@@ -186,16 +449,20 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
         {/* iOS: translucent status bar spacer */}
         <div
           className="shrink-0 w-full"
-          style={{ height: isIOS ? topSafe : 0 }}
+          style={{ height: isIOS ? 'env(safe-area-inset-top, 0px)' : 0 }}
         />
 
-        {/* Top bar — with safe area padding */}
+        {/* ==================== TOP BAR ==================== */}
         <div
-          className="flex items-center justify-between px-3 md:px-5 h-14 shrink-0 z-10"
-          style={{ paddingTop: isIOS ? 'max(4px, env(safe-area-inset-top, 0px) - 10px)' : 0 }}
+          className="flex items-center gap-3 px-3 md:px-5 h-12 shrink-0 z-10 justify-between"
+          style={{
+            paddingTop: isIOS
+              ? 'max(2px, env(safe-area-inset-top, 0px) - 10px)'
+              : 0,
+          }}
         >
-          {/* iOS: "Done" button top-left (native iOS style) */}
-          {isIOS && (
+          {/* Left: iOS Done button or empty spacer */}
+          {isIOS ? (
             <button
               onClick={onClose}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full text-white/80 hover:text-white text-sm font-semibold transition-colors active:scale-95"
@@ -209,114 +476,43 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
               <span>Done</span>
             </button>
+          ) : (
+            <div className="w-16" />
           )}
 
-          {/* Center: title + provider switcher */}
-          <div className={`flex items-center gap-3 min-w-0 ${isIOS ? '' : 'flex-1'} ${isIOS ? 'flex-1 justify-center' : ''}`}>
-            <h3 className="text-white/80 font-medium text-sm truncate">
+          {/* Center: title + active server pill */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+            <h3 className="text-white/70 font-medium text-sm truncate">
               {title || 'Now Playing'}
             </h3>
-
-            {/* Provider switcher button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProviders(!showProviders)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/10 border border-white/[0.08] text-white/60 hover:text-white/90 text-xs font-medium transition-all duration-200"
-              >
-                <Zap className="w-3 h-3" style={{ color: activeProvider.color }} />
-                <span className="hidden sm:inline">{activeProvider.name}</span>
-                <ChevronDown
-                  className={
-                    'w-3 h-3 transition-transform duration-200 ' +
-                    (showProviders ? 'rotate-180' : '')
-                  }
-                />
-              </button>
-
-              {/* Provider dropdown */}
-              <AnimatePresence>
-                {showProviders && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowProviders(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-2 w-60 rounded-xl bg-[#1a1a1a] border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden z-20"
-                    >
-                      <div className="px-3 py-2.5 border-b border-white/[0.06]">
-                        <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider">
-                          Switch Source
-                        </p>
-                      </div>
-                      <div className="py-1 max-h-72 overflow-y-auto content-scroll">
-                        {providers.map((p) => {
-                          const isActive = p.id === selectedProvider;
-                          return (
-                            <button
-                              key={p.id}
-                              onClick={() => switchProvider(p.id)}
-                              className={
-                                'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors ' +
-                                (isActive ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04]')
-                              }
-                            >
-                              <div
-                                className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
-                                style={{
-                                  backgroundColor: p.color + '20',
-                                  color: p.color,
-                                }}
-                              >
-                                {p.icon}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-white/90 text-xs font-medium">
-                                    {p.name}
-                                  </p>
-                                  {p.primary && <Crown className="w-3 h-3 text-amber-400" />}
-                                </div>
-                                <p className="text-white/50 text-[10px] truncate">
-                                  {p.description}
-                                </p>
-                              </div>
-                              {isActive && (
-                                <div
-                                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: p.color }}
-                                />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
+            <span
+              className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{
+                backgroundColor: activeProvider.color + '20',
+                color: activeProvider.color,
+              }}
+            >
+              {isTopRanked && <ShieldCheck className="w-3 h-3" />}
+              {activeProvider.name}
+            </span>
           </div>
 
-          {/* Right side buttons — hide fullscreen on iOS */}
-          <div className="flex items-center gap-1">
+          {/* Right: fullscreen + close (desktop) */}
+          <div className="flex items-center gap-1 shrink-0">
             {!isIOS && (
               <button
                 onClick={toggleFullscreen}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               >
-                {isFullscreen ? (
-                  <Minimize2 className="w-4 h-4" />
-                ) : (
-                  <Maximize2 className="w-4 h-4" />
-                )}
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
             )}
             {!isIOS && (
               <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close player"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -324,7 +520,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
           </div>
         </div>
 
-        {/* iOS: swipe-to-dismiss hint (fades out) */}
+        {/* iOS swipe hint */}
         {isIOS && (
           <motion.div
             initial={{ opacity: 1, y: 0 }}
@@ -334,60 +530,89 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
           >
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08]">
               <div className="w-1 h-1 rounded-full bg-white/30" />
-              <span className="text-white/50 text-[10px] font-medium">
-                Swipe down to close
-              </span>
+              <span className="text-white/50 text-[10px] font-medium">Swipe down to close</span>
               <div className="w-1 h-1 rounded-full bg-white/30" />
             </div>
           </motion.div>
         )}
 
-        {/* 16:9 centered iframe */}
-        <div className="flex-1 flex items-center justify-center p-3 md:p-8">
+        {/* ==================== VIDEO AREA ==================== */}
+        <div
+          className={
+            'flex-1 flex items-center justify-center p-3 md:p-8 relative overflow-hidden ' +
+            (!isMobile && serverPanelOpen ? 'pr-[356px]' : '')
+          }
+        >
           <motion.div
             ref={containerRef}
             style={{
               scale: isMobile ? iframeScale : 1,
               borderRadius: isMobile ? iframeRadius : 8,
             }}
-            className="relative w-full max-w-6xl aspect-video bg-black overflow-hidden shadow-2xl shadow-black/80"
+            className={
+              'relative bg-black overflow-hidden shadow-2xl shadow-black/80 ' +
+              (!isMobile ? 'w-full max-w-6xl aspect-video' : 'w-full h-full')
+            }
           >
-            {loading && !error && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3"
-              >
-                <Loader2
-                  className="w-10 h-10 animate-spin"
-                  style={{ color: activeProvider.color }}
-                />
-                <p className="text-white/50 text-xs font-medium">
-                  Loading from {activeProvider.name}...
-                </p>
-              </motion.div>
-            )}
+            {/* Loading state: animated pulsing ring */}
+            <AnimatePresence>
+              {loading && !error && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-4"
+                >
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <div
+                      className="absolute inset-0 rounded-full animate-ping opacity-30"
+                      style={{ backgroundColor: activeProvider.color }}
+                    />
+                    <div
+                      className="absolute inset-1 rounded-full animate-pulse opacity-60"
+                      style={{ backgroundColor: activeProvider.color }}
+                    />
+                    <div
+                      className="relative w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: activeProvider.color + '25' }}
+                    >
+                      <Loader2
+                        className="w-5 h-5 animate-spin"
+                        style={{ color: activeProvider.color }}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-white/50 text-xs font-medium">
+                    Connecting to {activeProvider.name}...
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Error state */}
             {error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black">
-                <Play className="w-16 h-16 text-white/20" />
-                <p className="text-white/40 text-sm">
-                  Unable to load video from {activeProvider.name}.
-                </p>
-                <p className="text-white/25 text-xs">
-                  Try switching to a different source above.
-                </p>
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-white/30" />
+                </div>
+                <div className="text-center">
+                  <p className="text-white/50 text-sm font-medium">Unable to load from {activeProvider.name}</p>
+                  <p className="text-white/25 text-xs mt-1">Try switching to a different server</p>
+                </div>
                 <button
                   onClick={() => {
                     setError(false);
                     setLoading(true);
                   }}
-                  className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
+                  className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium transition-colors active:scale-95"
                 >
                   Retry
                 </button>
               </div>
             )}
+
+            {/* Iframe */}
             <iframe
               ref={iframeRef}
               key={currentSrc}
@@ -396,7 +621,6 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               referrerPolicy="no-referrer"
               allowFullScreen
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-              /* Critical iOS attributes */
               playsInline
               style={{ borderRadius: 0 }}
               onLoad={() => setLoading(false)}
@@ -407,10 +631,113 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               title={title || 'Video Player'}
             />
           </motion.div>
+
+          {/* Desktop side panel */}
+          {!isMobile && serverPanel}
         </div>
 
-        {/* iOS: bottom safe area spacer */}
-        {isIOS && (
+        {/* ==================== MOBILE SERVER STRIP ==================== */}
+        {isMobile && (
+          <div className="shrink-0 border-t border-white/[0.06] bg-black/80 backdrop-blur-md">
+            <div className="flex items-center gap-2 px-3 py-2.5 overflow-x-auto scrollbar-none">
+              {sortedProviders.map((p) => {
+                const isActive = p.id === selectedProvider;
+                const score = getServerScore(p.id);
+                const badge = scoreBadge(score);
+                const isTop = rankedIds[0] === p.id;
+                const isSwitching = switchingTo === p.id;
+
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      if (isSwitching) return;
+                      if (isActive) {
+                        setMobileSheetOpen(true);
+                      } else {
+                        switchProvider(p.id);
+                      }
+                    }}
+                    disabled={isSwitching}
+                    className={
+                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ' +
+                      (isActive
+                        ? 'border-white/20 bg-white/[0.08] text-white/90'
+                        : 'border-white/[0.06] bg-white/[0.03] text-white/50 hover:bg-white/[0.06] hover:text-white/70')
+                    }
+                  >
+                    {isSwitching ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: p.color }}
+                      />
+                    )}
+                    <span className="truncate max-w-[70px]">{p.name}</span>
+                    {isTop && !isSwitching && (
+                      <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                    )}
+                    {badge && !isSwitching && (
+                      <span className={badge.cls + ' px-1 py-0 rounded text-[8px] font-bold'}>
+                        {badge.label}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== DESKTOP BOTTOM BAR ==================== */}
+        {!isMobile && (
+          <div className="shrink-0 h-14 border-t border-white/[0.06] bg-black/60 backdrop-blur-md flex items-center justify-between px-4">
+            {/* Left: Servers toggle */}
+            <button
+              onClick={() => setServerPanelOpen(!serverPanelOpen)}
+              className={
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ' +
+                (serverPanelOpen
+                  ? 'bg-white/[0.1] text-white'
+                  : 'bg-white/[0.04] text-white/60 hover:bg-white/[0.07] hover:text-white/80')
+              }
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>Servers</span>
+            </button>
+
+            {/* Center: active server info with green dot */}
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ backgroundColor: activeProvider.color }}
+              />
+              <span className="text-white/60 text-xs font-medium">{activeProvider.name}</span>
+              {activeBadge && (
+                <span className={'px-1.5 py-0.5 rounded text-[9px] font-semibold ' + activeBadge.cls}>
+                  {activeBadge.label}
+                </span>
+              )}
+            </div>
+
+            {/* Right: Close */}
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] text-white/60 hover:bg-white/[0.07] hover:text-white/80 text-xs font-medium transition-colors"
+              aria-label="Close player"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Close</span>
+            </button>
+          </div>
+        )}
+
+        {/* ==================== MOBILE BOTTOM SHEET ==================== */}
+        {isMobile && mobileSheet}
+
+        {/* ==================== iOS BOTTOM SAFE AREA ==================== */}
+        {isIOS && !isMobile && (
           <div
             className="shrink-0 w-full"
             style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
