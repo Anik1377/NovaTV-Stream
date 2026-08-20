@@ -1515,3 +1515,31 @@ Stage Summary:
 - Error state now has "Retry" + "Next Server" buttons with provider color theming
 - Mobile experience unchanged (strip + bottom sheet)
 
+---
+Task ID: 3
+Agent: main
+Task: Redesign VideoPlayer with iframe-on-top layout matching user wireframe
+
+Work Log:
+- Analyzed user's wireframe image using VLM: video top 70%, controls bar below, server selector dropdown, video info footer, collapsible episode sidebar
+- Read existing VideoPlayer, providers, app-store, types, MovieDetail, TvDetail to understand integration
+- Completely rewrote VideoPlayer.tsx with new layout:
+  - Iframe at z-[5] (highest), absolutely positioned, NO overlays blocking it
+  - Header bar: Back button (left), title (center), episode list toggle + fullscreen + close (right)
+  - Controls bar below video: server selector dropdown, loading/status text, retry button
+  - Video info footer: title and episode name
+  - Collapsible episode sidebar for TV shows (right panel, 320px, animates in/out)
+  - Episode sidebar has season tabs, episode list with thumbnails, play/playing indicators
+- Loading indicator now shown in controls bar area (not overlaying iframe)
+- Loading overlay behind iframe (z-[1]) with pointer-events-none for extra safety
+- 5s mobile / 10s desktop auto-dismiss loading timeout
+- No framer-motion drag (was interfering with mobile iframe touches)
+- Episode sidebar fetches season data from /api/tmdb/tv/[id]/season/[season]
+- playEpisode() updates store state so parent TvDetail can stay in sync
+- Verified: ESLint passes with zero errors, dev server compiles cleanly, no console errors
+
+Stage Summary:
+- VideoPlayer.tsx completely rewritten (410 insertions, 252 deletions)
+- Key design: iframe is on TOP with no overlays, all controls BELOW the video
+- Matches user wireframe: video → controls → server selector → info footer → episode sidebar
+- Pushed to GitHub as commit d694e17
