@@ -120,11 +120,12 @@ export function VideoPlayer({
   const activeProvider = getProvider(selectedProvider);
 
   /* ---------------------------------------------------------------- */
-  /*  Lightweight touch swipe-down to dismiss (doesn't use framer drag)   */
+  /*  Swipe-down on top bar to dismiss (Android only, touch area limited   */
+  /*  to top bar so iframe touches are never intercepted)                 */
   /* ---------------------------------------------------------------- */
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.tagName === 'IFRAME' || target.closest('button')) return;
+    if (target.closest('button')) return;
     touchStartRef.current = { y: e.touches[0].clientY, time: Date.now() };
   }, []);
 
@@ -133,7 +134,7 @@ export function VideoPlayer({
     const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
     const dt = Date.now() - touchStartRef.current.time;
     touchStartRef.current = null;
-    if (dy > 100 || (dy > 50 && dy / dt > 0.5)) onClose();
+    if (dy > 80 || (dy > 40 && dy / dt > 0.5)) onClose();
   }, [onClose]);
 
   /* ---------------------------------------------------------------- */
@@ -408,8 +409,6 @@ export function VideoPlayer({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
-        onTouchStart={isMobile && !isIOS ? handleTouchStart : undefined}
-        onTouchEnd={isMobile && !isIOS ? handleTouchEnd : undefined}
         className="fixed inset-0 z-[100] bg-black flex flex-col ios-player-container"
       >
         {/* ==================== TOP BAR ==================== */}
@@ -421,6 +420,8 @@ export function VideoPlayer({
             paddingLeft: isMobile ? 8 : 20,
             paddingRight: isMobile ? 8 : 20,
           }}
+          onTouchStart={isMobile && !isIOS ? handleTouchStart : undefined}
+          onTouchEnd={isMobile && !isIOS ? handleTouchEnd : undefined}
         >
           {/* Left: Close button — works on ALL devices */}
           {isMobile ? (
