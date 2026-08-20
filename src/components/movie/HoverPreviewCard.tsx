@@ -176,7 +176,6 @@ export function HoverPreviewCard({ movie, children }: HoverPreviewCardProps) {
             <iframe
               src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${trailerKey}`}
               className="absolute inset-0 w-full h-full"
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"
               referrerPolicy="no-referrer"
               allow="autoplay; encrypted-media"
               allowFullScreen

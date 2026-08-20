@@ -393,7 +393,6 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               key={currentSrc}
               src={currentSrc}
               className="w-full h-full"
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"
               referrerPolicy="no-referrer"
               allowFullScreen
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"

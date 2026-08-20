@@ -289,7 +289,6 @@ export function MovieDetail() {
                           <iframe
                             src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`}
                             className="absolute inset-0 w-full h-full"
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"
                             referrerPolicy="no-referrer"
                             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
