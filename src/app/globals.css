@@ -159,13 +159,6 @@ body.player-open {
   -webkit-touch-callout: none;
 }
 
-/* iOS safe area for the player */
-@supports (padding-top: env(safe-area-inset-top)) {
-  .ios-player-container {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-}
-
 /* Selection color */
 ::selection {
   background: rgba(229, 9, 20, 0.4);
