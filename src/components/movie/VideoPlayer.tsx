@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Maximize2, Minimize2, Loader2, Play, ChevronDown, Zap, Crown, ChevronLeft } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { X, Maximize2, Minimize2, Loader2, Play, ChevronDown, Zap, Crown, ChevronLeft, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { providers, getProvider, getEmbedUrl } from '@/lib/providers';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -38,6 +38,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showProviders, setShowProviders] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
+  const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { selectedProvider, setSelectedProvider, selectedMovie, selectedTv } = useAppStore();
@@ -45,28 +46,12 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
   const isIOS = useIsIOS();
   const isMobile = useIsMobile();
 
-  // ── Swipe-to-dismiss (mobile only) ──
-  const dragY = useMotionValue(0);
-  const iframeScale = useTransform(dragY, [0, 250], [1, 0.92]);
-  const iframeRadius = useTransform(dragY, [0, 250], [8, 24]);
-
-  const handleDragEnd = useCallback(
-    (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
-      const shouldClose = info.offset.y > 120 || info.velocity.y > 500;
-      if (shouldClose) {
-        // Animate out, then close
-        animate(dragY, 600, {
-          duration: 0.25,
-          ease: 'easeOut',
-          onComplete: onClose,
-        });
-      } else {
-        // Spring back
-        animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
-      }
-    },
-    [dragY, onClose],
-  );
+  // ── Auto-dismiss loading on mobile (onLoad may never fire for cross-origin iframes) ──
+  useEffect(() => {
+    if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+    loadTimerRef.current = setTimeout(() => setLoading(false), isMobile ? 5000 : 10000);
+    return () => { if (loadTimerRef.current) clearTimeout(loadTimerRef.current); };
+  }, [currentSrc, isMobile]);
 
   // ── Record watch history to localStorage (all users) + server (logged-in) ──
   useEffect(() => {
@@ -176,11 +161,6 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 60 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
-        style={{ y: dragY }}
-        drag={isMobile ? 'y' : false}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0.1, bottom: 0.4 }}
-        onDragEnd={handleDragEnd}
         className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col ios-player-container"
       >
         {/* iOS: translucent status bar spacer */}
@@ -344,20 +324,16 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
 
         {/* 16:9 centered iframe */}
         <div className="flex-1 flex items-center justify-center p-3 md:p-8">
-          <motion.div
+          <div
             ref={containerRef}
-            style={{
-              scale: isMobile ? iframeScale : 1,
-              borderRadius: isMobile ? iframeRadius : 8,
-            }}
-            className="relative w-full max-w-6xl aspect-video bg-black overflow-hidden shadow-2xl shadow-black/80"
+            className="relative w-full max-w-6xl aspect-video bg-black overflow-hidden shadow-2xl shadow-black/80 rounded-lg"
           >
             {loading && !error && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3"
+                className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/80 gap-3 pointer-events-none"
               >
                 <Loader2
                   className="w-10 h-10 animate-spin"
@@ -370,9 +346,9 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
             )}
             {error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black">
-                <Play className="w-16 h-16 text-white/20" />
+                <RefreshCw className="w-10 h-10 text-white/20" />
                 <p className="text-white/40 text-sm">
-                  Unable to load video from {activeProvider.name}.
+                  Unable to load from {activeProvider.name}
                 </p>
                 <p className="text-white/25 text-xs">
                   Try switching to a different source above.
@@ -380,7 +356,10 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                 <button
                   onClick={() => {
                     setError(false);
-                    setLoading(true);
+                    const retrySrc = currentSrc.includes('?')
+                      ? currentSrc + '&_r=' + Date.now()
+                      : currentSrc + '?_r=' + Date.now();
+                    setCurrentSrc(retrySrc);
                   }}
                   className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
                 >
@@ -396,17 +375,19 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               referrerPolicy="no-referrer"
               allowFullScreen
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-              /* Critical iOS attributes */
               playsInline
               style={{ borderRadius: 0 }}
-              onLoad={() => setLoading(false)}
+              onLoad={() => {
+                setLoading(false);
+                if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+              }}
               onError={() => {
                 setLoading(false);
                 setError(true);
               }}
               title={title || 'Video Player'}
             />
-          </motion.div>
+          </div>
         </div>
 
         {/* iOS: bottom safe area spacer */}
