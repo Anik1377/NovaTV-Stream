@@ -15,6 +15,7 @@ import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
 import { recordWatchHistory } from '@/lib/watch-history';
 import { ShareModal } from '@/components/shared/ShareModal';
+import { TrailerEmbed } from './TrailerEmbed';
 
 export function TvDetail() {
   const selectedTv = useAppStore(s => s.selectedTv);
@@ -225,16 +226,7 @@ export function TvDetail() {
                         <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
                           <Youtube className="w-4 h-4 text-red-500" /> Trailer
                         </h3>
-                        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/[0.06]">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`}
-                            className="absolute inset-0 w-full h-full"
-                            referrerPolicy="no-referrer"
-                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            title={`${title} Trailer`}
-                          />
-                        </div>
+                        <TrailerEmbed videoKey={trailer.key} title={title} />
                       </div>
                     );
                   })()}

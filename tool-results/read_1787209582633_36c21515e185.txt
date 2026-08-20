@@ -1,0 +1,656 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+     4→import {
+     5→  X,
+     6→  Maximize2,
+     7→  Minimize2,
+     8→  RefreshCw,
+     9→  ChevronLeft,
+    10→  Loader2,
+    11→  ArrowRight,
+    12→  Signal,
+    13→  Zap,
+    14→  Flame,
+    15→} from 'lucide-react';
+    16→import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+    17→import { providers, getProvider, getEmbedUrl, type Provider } from '@/lib/providers';
+    18→import { getRankedProviderIds, getServerScore, recordServerPick } from '@/lib/server-rankings';
+    19→import { useAppStore } from '@/store/app-store';
+    20→import { useAuthStore } from '@/store/auth-store';
+    21→import { useIsIOS } from '@/hooks/use-ios';
+    22→import { useIsMobile } from '@/hooks/use-mobile';
+    23→import { recordWatchHistory } from '@/lib/watch-history';
+    24→
+    25→interface VideoPlayerProps {
+    26→  src: string;
+    27→  title?: string;
+    28→  onClose: () => void;
+    29→  mediaType: 'movie' | 'tv';
+    30→  tmdbId: number;
+    31→  season?: number;
+    32→  episode?: number;
+    33→}
+    34→
+    35→/* ================================================================== */
+    36→/*  iOS native fullscreen detection                                     */
+    37→/* ================================================================== */
+    38→function useIOSFullscreenDetect(onReturn: () => void) {
+    39→  useEffect(() => {
+    40→    const handleEnd = () => onReturn();
+    41→    document.addEventListener('webkitendfullscreen', handleEnd);
+    42→    return () => document.removeEventListener('webkitendfullscreen', handleEnd);
+    43→  }, [onReturn]);
+    44→}
+    45→
+    46→/* ================================================================== */
+    47→/*  Score tier helper                                                   */
+    48→/* ================================================================== */
+    49→function getScoreTier(score: number): { label: string; cls: string; icon: typeof Zap } | null {
+    50→  if (score >= 80) return { label: 'Top Pick', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', icon: Zap };
+    51→  if (score >= 40) return { label: 'Popular', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', icon: Flame };
+    52→  if (score > 0) return { label: 'Used', cls: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/15', icon: Signal };
+    53→  return null;
+    54→}
+    55→
+    56→/* ================================================================== */
+    57→/*  Main VideoPlayer Component                                          */
+    58→/* ================================================================== */
+    59→export function VideoPlayer({
+    60→  src,
+    61→  title,
+    62→  onClose,
+    63→  mediaType,
+    64→  tmdbId,
+    65→  season,
+    66→  episode,
+    67→}: VideoPlayerProps) {
+    68→  const [loading, setLoading] = useState(true);
+    69→  const [error, setError] = useState(false);
+    70→  const [isFullscreen, setIsFullscreen] = useState(false);
+    71→  const [currentSrc, setCurrentSrc] = useState(src);
+    72→  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+    73→  const [serverBarExpanded, setServerBarExpanded] = useState(false);
+    74→
+    75→  const containerRef = useRef<HTMLDivElement>(null);
+    76→  const iframeRef = useRef<HTMLIFrameElement>(null);
+    77→  const serverBarRef = useRef<HTMLDivElement>(null);
+    78→  const { selectedProvider, setSelectedProvider, selectedMovie, selectedTv } = useAppStore();
+    79→  const user = useAuthStore((s) => s.user);
+    80→  const isIOS = useIsIOS();
+    81→  const isMobile = useIsMobile();
+    82→
+    83→  // Swipe-to-dismiss on mobile
+    84→  const dragY = useMotionValue(0);
+    85→  const iframeScale = useTransform(dragY, [0, 250], [1, 0.92]);
+    86→  const iframeRadius = useTransform(dragY, [0, 250], [8, 24]);
+    87→
+    88→  /* ---------------------------------------------------------------- */
+    89→  /*  Ranked provider list                                              */
+    90→  /* ---------------------------------------------------------------- */
+    91→  const rankedIds = useMemo(() => getRankedProviderIds(), []);
+    92→  const rankedSet = useMemo(() => new Set(rankedIds), [rankedIds]);
+    93→
+    94→  const sortedProviders = useMemo(() => {
+    95→    const ranked = rankedIds
+    96→      .map((id) => providers.find((p) => p.id === id))
+    97→      .filter((p): p is Provider => !!p);
+    98→    const unranked = providers.filter((p) => !rankedSet.has(p.id));
+    99→    return [...ranked, ...unranked];
+   100→  }, [rankedIds, rankedSet]);
+   101→
+   102→  const activeProvider = getProvider(selectedProvider);
+   103→
+   104→  /* ---------------------------------------------------------------- */
+   105→  /*  Drag end (mobile dismiss)                                         */
+   106→  /* ---------------------------------------------------------------- */
+   107→  const handleDragEnd = useCallback(
+   108→    (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+   109→      const shouldClose = info.offset.y > 120 || info.velocity.y > 500;
+   110→      if (shouldClose) {
+   111→        animate(dragY, 600, {
+   112→          duration: 0.25,
+   113→          ease: 'easeOut',
+   114→          onComplete: onClose,
+   115→        });
+   116→      } else {
+   117→        animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
+   118→      }
+   119→    },
+   120→    [dragY, onClose],
+   121→  );
+   122→
+   123→  /* ---------------------------------------------------------------- */
+   124→  /*  Record watch history                                              */
+   125→  /* ---------------------------------------------------------------- */
+   126→  useEffect(() => {
+   127→    if (!title) return;
+   128→    const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+   129→    recordWatchHistory({
+   130→      tmdbId,
+   131→      title,
+   132→      posterPath: item?.poster_path || null,
+   133→      backdropPath: item?.backdrop_path || null,
+   134→      mediaType,
+   135→      season: season ?? null,
+   136→      episode: episode ?? null,
+   137→    });
+   138→    if (user) {
+   139→      fetch('/api/profile/history', {
+   140→        method: 'POST',
+   141→        headers: { 'Content-Type': 'application/json' },
+   142→        body: JSON.stringify({
+   143→          tmdbId,
+   144→          title,
+   145→          posterPath: item?.poster_path || null,
+   146→          mediaType,
+   147→          season: season ?? null,
+   148→          episode: episode ?? null,
+   149→        }),
+   150→      }).catch(() => {});
+   151→    }
+   152→  }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
+   153→
+   154→  /* ---------------------------------------------------------------- */
+   155→  /*  Body scroll lock                                                  */
+   156→  /* ---------------------------------------------------------------- */
+   157→  useEffect(() => {
+   158→    const scrollY = window.scrollY;
+   159→    document.body.style.setProperty('--player-scroll-y', `${scrollY}px`);
+   160→    document.body.classList.add('player-open');
+   161→    document.body.style.top = `-${scrollY}px`;
+   162→    return () => {
+   163→      document.body.classList.remove('player-open');
+   164→      document.body.style.top = '';
+   165→      window.scrollTo(0, scrollY);
+   166→    };
+   167→  }, []);
+   168→
+   169→  /* ---------------------------------------------------------------- */
+   170→  /*  iOS native fullscreen detection                                   */
+   171→  /* ---------------------------------------------------------------- */
+   172→  useIOSFullscreenDetect(onClose);
+   173→
+   174→  /* ---------------------------------------------------------------- */
+   175→  /*  Switch provider                                                   */
+   176→  /* ---------------------------------------------------------------- */
+   177→  const switchProvider = useCallback(
+   178→    (providerId: string) => {
+   179→      if (providerId === selectedProvider && !error) return;
+   180→      setSwitchingTo(providerId);
+   181→      recordServerPick(providerId);
+   182→      setSelectedProvider(providerId);
+   183→      const newSrc = getEmbedUrl(providerId, mediaType, tmdbId, season, episode);
+   184→      setCurrentSrc(newSrc);
+   185→      setLoading(true);
+   186→      setError(false);
+   187→
+   188→      const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+   189→      recordWatchHistory({
+   190→        tmdbId,
+   191→        title: title || 'Unknown',
+   192→        posterPath: item?.poster_path || null,
+   193→        backdropPath: item?.backdrop_path || null,
+   194→        mediaType,
+   195→        season: season ?? null,
+   196→        episode: episode ?? null,
+   197→      });
+   198→
+   199→      setTimeout(() => setSwitchingTo(null), 3000);
+   200→    },
+   201→    [mediaType, tmdbId, season, episode, setSelectedProvider, selectedTv, selectedMovie, title, selectedProvider, error],
+   202→  );
+   203→
+   204→  /* ---------------------------------------------------------------- */
+   205→  /*  Auto-try next server on error                                     */
+   206→  /* ---------------------------------------------------------------- */
+   207→  const tryNextServer = useCallback(() => {
+   208→    const currentIdx = sortedProviders.findIndex(p => p.id === selectedProvider);
+   209→    const next = sortedProviders[(currentIdx + 1) % sortedProviders.length];
+   210→    if (next) switchProvider(next.id);
+   211→  }, [sortedProviders, selectedProvider, switchProvider]);
+   212→
+   213→  /* ---------------------------------------------------------------- */
+   214→  /*  Fullscreen toggle                                                 */
+   215→  /* ---------------------------------------------------------------- */
+   216→  const toggleFullscreen = async () => {
+   217→    if (!containerRef.current) return;
+   218→    try {
+   219→      if (!document.fullscreenElement) {
+   220→        await containerRef.current.requestFullscreen();
+   221→        setIsFullscreen(true);
+   222→      } else {
+   223→        await document.exitFullscreen();
+   224→        setIsFullscreen(false);
+   225→      }
+   226→    } catch {
+   227→      // Fullscreen API unavailable (iOS)
+   228→    }
+   229→  };
+   230→
+   231→  useEffect(() => {
+   232→    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+   233→    document.addEventListener('fullscreenchange', handler);
+   234→    return () => document.removeEventListener('fullscreenchange', handler);
+   235→  }, []);
+   236→
+   237→  /* ---------------------------------------------------------------- */
+   238→  /*  Keyboard shortcuts                                                */
+   239→  /* ---------------------------------------------------------------- */
+   240→  useEffect(() => {
+   241→    const handleKey = (e: KeyboardEvent) => {
+   242→      if (e.key === 'Escape') onClose();
+   243→    };
+   244→    window.addEventListener('keydown', handleKey);
+   245→    return () => window.removeEventListener('keydown', handleKey);
+   246→  }, [onClose]);
+   247→
+   248→  /* ---------------------------------------------------------------- */
+   249→  /*  Active server score                                               */
+   250→  /* ---------------------------------------------------------------- */
+   251→  const activeScore = useMemo(() => getServerScore(selectedProvider), [selectedProvider]);
+   252→  const activeTier = useMemo(() => getScoreTier(activeScore), [activeScore]);
+   253→  const isTopRanked = rankedIds[0] === selectedProvider;
+   254→
+   255→  /* ================================================================== */
+   256→  /*  RENDER                                                            */
+   257→  /* ================================================================== */
+   258→  return (
+   259→    <AnimatePresence>
+   260→      <motion.div
+   261→        initial={{ opacity: 0 }}
+   262→        animate={{ opacity: 1 }}
+   263→        exit={{ opacity: 0 }}
+   264→        transition={{ duration: 0.3 }}
+   265→        className="fixed inset-0 z-[100] bg-[#0a0a0a] flex flex-col ios-player-container"
+   266→      >
+   267→        {/* iOS: translucent status bar spacer */}
+   268→        <div
+   269→          className="shrink-0 w-full"
+   270→          style={{ height: isIOS ? 'env(safe-area-inset-top, 0px)' : 0 }}
+   271→        />
+   272→
+   273→        {/* ==================== TOP BAR ==================== */}
+   274→        <div className="shrink-0 flex items-center justify-between px-3 md:px-5 h-12 z-10">
+   275→          {/* Left: Back / Done */}
+   276→          {isIOS ? (
+   277→            <button
+   278→              onClick={onClose}
+   279→              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-white/80 hover:text-white text-sm font-semibold transition-colors active:scale-95"
+   280→              style={{
+   281→                background: 'rgba(255,255,255,0.12)',
+   282→                backdropFilter: 'blur(20px)',
+   283→                WebkitBackdropFilter: 'blur(20px)',
+   284→              }}
+   285→              aria-label="Done"
+   286→            >
+   287→              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+   288→              <span>Done</span>
+   289→            </button>
+   290→          ) : (
+   291→            <button
+   292→              onClick={onClose}
+   293→              className="w-9 h-9 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
+   294→              aria-label="Close player"
+   295→            >
+   296→              <X className="w-5 h-5" />
+   297→            </button>
+   298→          )}
+   299→
+   300→          {/* Center: Title + Episode info */}
+   301→          <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-center px-4">
+   302→            <div className="min-w-0 text-center">
+   303→              <h3 className="text-white/90 font-semibold text-sm truncate leading-tight">
+   304→                {title || 'Now Playing'}
+   305→              </h3>
+   306→              {mediaType === 'tv' && season != null && episode != null && (
+   307→                <p className="text-white/35 text-[11px] mt-0.5 font-medium">
+   308→                  S{String(season).padStart(2, '0')} E{String(episode).padStart(2, '0')}
+   309→                </p>
+   310→              )}
+   311→            </div>
+   312→          </div>
+   313→
+   314→          {/* Right: Fullscreen (desktop only) */}
+   315→          <div className="flex items-center gap-1 shrink-0">
+   316→            {!isIOS && (
+   317→              <button
+   318→                onClick={toggleFullscreen}
+   319→                className="w-9 h-9 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200"
+   320→                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+   321→              >
+   322→                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+   323→              </button>
+   324→            )}
+   325→          </div>
+   326→        </div>
+   327→
+   328→        {/* iOS swipe hint */}
+   329→        {isIOS && (
+   330→          <motion.div
+   331→            initial={{ opacity: 1, y: 0 }}
+   332→            animate={{ opacity: 0, y: -10 }}
+   333→            transition={{ delay: 2.5, duration: 1 }}
+   334→            className="flex justify-center pb-1"
+   335→          >
+   336→            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08]">
+   337→              <div className="w-1 h-1 rounded-full bg-white/30" />
+   338→              <span className="text-white/50 text-[10px] font-medium">Swipe down to close</span>
+   339→              <div className="w-1 h-1 rounded-full bg-white/30" />
+   340→            </div>
+   341→          </motion.div>
+   342→        )}
+   343→
+   344→        {/* ==================== VIDEO AREA ==================== */}
+   345→        <motion.div
+   346→          className="flex-1 flex items-center justify-center p-2 md:p-6 relative overflow-hidden"
+   347→          drag={isMobile ? 'y' : false}
+   348→          dragConstraints={{ top: 0, bottom: 0 }}
+   349→          dragElastic={{ top: 0.1, bottom: 0.4 }}
+   350→          onDragEnd={handleDragEnd}
+   351→          style={
+   352→            isMobile
+   353→              ? { y: dragY, scale: iframeScale, borderRadius: iframeRadius }
+   354→              : undefined
+   355→          }
+   356→        >
+   357→          <motion.div
+   358→            ref={containerRef}
+   359→            layout
+   360→            className={
+   361→              'relative bg-black overflow-hidden shadow-2xl shadow-black/90 ' +
+   362→              (!isMobile ? 'w-full max-w-6xl aspect-video rounded-lg' : 'w-full h-full')
+   363→            }
+   364→          >
+   365→            {/* Loading overlay */}
+   366→            <AnimatePresence mode="wait">
+   367→              {loading && !error && (
+   368→                <motion.div
+   369→                  key={`loading-${switchingTo || 'init'}`}
+   370→                  initial={{ opacity: 0 }}
+   371→                  animate={{ opacity: 1 }}
+   372→                  exit={{ opacity: 0, scale: 0.95 }}
+   373→                  transition={{ duration: 0.2 }}
+   374→                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-[#0a0a0a] gap-5"
+   375→                >
+   376→                  {/* Cinematic loading ring */}
+   377→                  <div className="relative w-20 h-20 flex items-center justify-center">
+   378→                    <div
+   379→                      className="absolute inset-0 rounded-full opacity-20 animate-[spin_3s_linear_infinite]"
+   380→                      style={{
+   381→                        background: `conic-gradient(from 0deg, transparent 0%, ${activeProvider.color}80 50%, transparent 100%)`,
+   382→                      }}
+   383→                    />
+   384→                    <div
+   385→                      className="absolute inset-1.5 rounded-full opacity-40 animate-[spin_2s_linear_infinite_reverse]"
+   386→                      style={{
+   387→                        background: `conic-gradient(from 180deg, transparent 0%, ${activeProvider.color}60 50%, transparent 100%)`,
+   388→                      }}
+   389→                    />
+   390→                    <div
+   391→                      className="relative w-12 h-12 rounded-full flex items-center justify-center"
+   392→                      style={{ backgroundColor: activeProvider.color + '15' }}
+   393→                    >
+   394→                      <Loader2
+   395→                        className="w-5 h-5 animate-spin"
+   396→                        style={{ color: activeProvider.color }}
+   397→                      />
+   398→                    </div>
+   399→                  </div>
+   400→                  <div className="text-center">
+   401→                    <p className="text-white/60 text-sm font-medium">
+   402→                      Connecting to <span style={{ color: activeProvider.color }}>{activeProvider.name}</span>
+   403→                    </p>
+   404→                    <p className="text-white/25 text-xs mt-1">Please wait a moment...</p>
+   405→                  </div>
+   406→                </motion.div>
+   407→              )}
+   408→            </AnimatePresence>
+   409→
+   410→            {/* Error overlay */}
+   411→            <AnimatePresence>
+   412→              {error && (
+   413→                <motion.div
+   414→                  key="error"
+   415→                  initial={{ opacity: 0 }}
+   416→                  animate={{ opacity: 1 }}
+   417→                  exit={{ opacity: 0 }}
+   418→                  className="absolute inset-0 flex flex-col items-center justify-center gap-5 z-10 bg-[#0a0a0a]/95"
+   419→                >
+   420→                  <div
+   421→                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
+   422→                    style={{ backgroundColor: activeProvider.color + '10' }}
+   423→                  >
+   424→                    <RefreshCw className="w-7 h-7" style={{ color: activeProvider.color + '60' }} />
+   425→                  </div>
+   426→                  <div className="text-center max-w-xs px-4">
+   427→                    <p className="text-white/60 text-sm font-medium">
+   428→                      Could not load from <span style={{ color: activeProvider.color }}>{activeProvider.name}</span>
+   429→                    </p>
+   430→                    <p className="text-white/30 text-xs mt-1.5">This server may not have this title available</p>
+   431→                  </div>
+   432→                  <div className="flex items-center gap-3">
+   433→                    <button
+   434→                      onClick={() => {
+   435→                        setError(false);
+   436→                        setLoading(true);
+   437→                      }}
+   438→                      className="px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-white/80 text-sm font-medium transition-all duration-200 active:scale-95"
+   439→                    >
+   440→                      Retry
+   441→                    </button>
+   442→                    <button
+   443→                      onClick={tryNextServer}
+   444→                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95"
+   445→                      style={{
+   446→                        backgroundColor: activeProvider.color + '15',
+   447→                        color: activeProvider.color,
+   448→                      }}
+   449→                    >
+   450→                      Next Server
+   451→                      <ArrowRight className="w-4 h-4" />
+   452→                    </button>
+   453→                  </div>
+   454→                </motion.div>
+   455→              )}
+   456→            </AnimatePresence>
+   457→
+   458→            {/* Iframe */}
+   459→            <iframe
+   460→              ref={iframeRef}
+   461→              key={currentSrc}
+   462→              src={currentSrc}
+   463→              className="w-full h-full"
+   464→              referrerPolicy="no-referrer"
+   465→              allowFullScreen
+   466→              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+   467→              playsInline
+   468→              onLoad={() => setLoading(false)}
+   469→              onError={() => {
+   470→                setLoading(false);
+   471→                setError(true);
+   472→              }}
+   473→              title={title || 'Video Player'}
+   474→            />
+   475→          </motion.div>
+   476→        </motion.div>
+   477→
+   478→        {/* ==================== SERVER BAR ==================== */}
+   479→        <motion.div
+   480→          ref={serverBarRef}
+   481→          className="shrink-0 border-t border-white/[0.06] bg-[#111]/90 backdrop-blur-xl"
+   482→          style={{
+   483→            paddingBottom: isIOS ? 'max(env(safe-area-inset-bottom, 8px), 8px)' : 8,
+   484→            paddingTop: 8,
+   485→          }}
+   486→        >
+   487→          {/* Server bar header — shows on mobile as expand toggle, on desktop as info */}
+   488→          <div className="flex items-center justify-between px-3 md:px-4 mb-1.5">
+   489→            <div className="flex items-center gap-2">
+   490→              <div className="flex items-center gap-1.5">
+   491→                <div
+   492→                  className="w-1.5 h-1.5 rounded-full"
+   493→                  style={{
+   494→                    backgroundColor: activeProvider.color,
+   495→                    boxShadow: `0 0 6px ${activeProvider.color}60`,
+   496→                  }}
+   497→                />
+   498→                <span className="text-white/40 text-[11px] font-medium">
+   499→                  {isMobile ? 'Servers' : `Playing via ${activeProvider.name}`}
+   500→                </span>
+   501→              </div>
+   502→              {activeTier && (
+   503→                <span
+   504→                  className={
+   505→                    'hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ' +
+   506→                    activeTier.cls
+   507→                  }
+   508→                >
+   509→                  <activeTier.icon className="w-3 h-3" />
+   510→                  {activeTier.label}
+   511→                </span>
+   512→              )}
+   513→            </div>
+   514→            {/* Mobile: expand/collapse */}
+   515→            <button
+   516→              onClick={() => setServerBarExpanded(!serverBarExpanded)}
+   517→              className="md:hidden flex items-center gap-1 text-white/30 hover:text-white/60 transition-colors"
+   518→              aria-label={serverBarExpanded ? 'Collapse servers' : 'Expand servers'}
+   519→            >
+   520→              <span className="text-[10px] font-medium">
+   521→                {serverBarExpanded ? 'Less' : `${sortedProviders.length} servers`}
+   522→              </span>
+   523→              <motion.div
+   524→                animate={{ rotate: serverBarExpanded ? 180 : 0 }}
+   525→                transition={{ duration: 0.2 }}
+   526→              >
+   527→                <ChevronLeft className="w-3 h-3 rotate-90" />
+   528→              </motion.div>
+   529→            </button>
+   530→          </div>
+   531→
+   532→          {/* Server pills — horizontal scrollable strip */}
+   533→          <AnimatePresence mode="wait">
+   534→            <motion.div
+   535→              key={serverBarExpanded ? 'expanded' : 'compact'}
+   536→              initial={{ opacity: 0, height: 0 }}
+   537→              animate={{ opacity: 1, height: 'auto' }}
+   538→              exit={{ opacity: 0, height: 0 }}
+   539→              transition={{ duration: 0.2 }}
+   540→              className="overflow-hidden"
+   541→            >
+   542→              <div
+   543→                className={
+   544→                  'flex gap-1.5 overflow-x-auto scrollbar-none px-3 md:px-4 ' +
+   545→                  (serverBarExpanded
+   546→                    ? 'flex-wrap pb-1'
+   547→                    : 'flex-nowrap'
+   548→                  )
+   549→                }
+   550→              >
+   551→                {sortedProviders.map((p, idx) => {
+   552→                  const isActive = p.id === selectedProvider;
+   553→                  const isSwitching = switchingTo === p.id;
+   554→                  const score = getServerScore(p.id);
+   555→                  const tier = getScoreTier(score);
+   556→                  const isTop = rankedIds[0] === p.id;
+   557→
+   558→                  // On mobile compact mode, only show top 5 + active
+   559→                  if (isMobile && !serverBarExpanded && !isActive && idx >= 5) return null;
+   560→
+   561→                  return (
+   562→                    <motion.button
+   563→                      key={p.id}
+   564→                      onClick={() => {
+   565→                        if (isSwitching) return;
+   566→                        switchProvider(p.id);
+   567→                      }}
+   568→                      disabled={isSwitching}
+   569→                      whileTap={{ scale: 0.95 }}
+   570→                      layout
+   571→                      className={
+   572→                        'group relative shrink-0 flex items-center gap-2 rounded-lg text-xs font-medium transition-all duration-200 border ' +
+   573→                        (isActive
+   574→                          ? 'border-white/[0.15] shadow-lg'
+   575→                          : 'border-white/[0.06] hover:border-white/[0.12]')
+   576→                      }
+   577→                      style={{
+   578→                        backgroundColor: isActive ? p.color + '18' : 'rgba(255,255,255,0.03)',
+   579→                        color: isActive ? p.color : 'rgba(255,255,255,0.55)',
+   580→                        boxShadow: isActive ? `0 0 20px ${p.color}15, inset 0 1px 0 ${p.color}20` : undefined,
+   581→                        padding: isMobile && !serverBarExpanded ? '6px 12px' : '8px 14px',
+   582→                      }}
+   583→                    >
+   584→                      {/* Active indicator glow */}
+   585→                      {isActive && (
+   586→                        <motion.div
+   587→                          layoutId="active-server-glow"
+   588→                          className="absolute inset-0 rounded-lg"
+   589→                          style={{
+   590→                            boxShadow: `0 0 12px ${p.color}20`,
+   591→                          }}
+   592→                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   593→                        />
+   594→                      )}
+   595→
+   596→                      {/* Server icon/letter */}
+   597→                      <div
+   598→                        className={
+   599→                          'w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ' +
+   600→                          (isActive ? '' : 'group-hover:opacity-100 opacity-70')
+   601→                        }
+   602→                        style={{
+   603→                          backgroundColor: p.color + (isActive ? '25' : '12'),
+   604→                          color: p.color,
+   605→                        }}
+   606→                      >
+   607→                        {isSwitching ? (
+   608→                          <Loader2 className="w-3 h-3 animate-spin" />
+   609→                        ) : (
+   610→                          <span>{p.icon}</span>
+   611→                        )}
+   612→                      </div>
+   613→
+   614→                      {/* Server name */}
+   615→                      <span className="truncate max-w-[80px] md:max-w-[120px] font-medium">
+   616→                        {p.name}
+   617→                      </span>
+   618→
+   619→                      {/* Top rank crown indicator (only on expanded/desktop) */}
+   620→                      {isTop && !isSwitching && (
+   621→                        <Zap
+   622→                          className="w-3 h-3 shrink-0"
+   623→                          style={{ color: '#10b981' }}
+   624→                        />
+   625→                      )}
+   626→
+   627→                      {/* Tier badge (only on expanded/desktop) */}
+   628→                      {tier && !isSwitching && (serverBarExpanded || !isMobile) && (
+   629→                        <span
+   630→                          className={
+   631→                            'hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold ' +
+   632→                            tier.cls.replace('border-', 'border ')
+   633→                          }
+   634→                        >
+   635→                          {tier.label}
+   636→                        </span>
+   637→                      )}
+   638→                    </motion.button>
+   639→                  );
+   640→                })}
+   641→              </div>
+   642→            </motion.div>
+   643→          </AnimatePresence>
+   644→
+   645→          {/* Ranking explanation hint */}
+   646→          {rankedIds.length > 0 && (
+   647→            <p className="text-white/15 text-[9px] text-center mt-1.5 hidden md:block">
+   648→              Servers ranked by community usage • Most picked servers appear first
+   649→            </p>
+   650→          )}
+   651→        </motion.div>
+   652→      </motion.div>
+   653→    </AnimatePresence>
+   654→  );
+   655→}
+   656→

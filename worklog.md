@@ -1492,4 +1492,26 @@ Stage Summary:
 - Build config hardened (strict TS, strict mode)
 - Page parameter validated and clamped across 5 TMDB API routes
 - timeWindow and mediaType validated against allowlists
-- Dead Prisma fields (passwordHash) and models (Session) removed from schema
+- Dead Prisma fields (passwordHash) and models (Session) removed from schema---
+Task ID: 1
+Agent: main
+Task: Fix trailer Error 153 + Rebuild VideoPlayer UI
+
+Work Log:
+- Investigated YouTube Error 153: root cause was referrerPolicy="no-referrer" on trailer iframes stripping the referrer header
+- Created TrailerEmbed component with error fallback, origin parameter, no no-referrer
+- Fixed MovieDetail.tsx, TvDetail.tsx, HoverPreviewCard.tsx trailer embeds
+- Added youtube-nocookie.com to CSP frame-src
+- Rebuilt VideoPlayer: removed desktop side panel, added bottom server strip with pills
+- Added "Next Server" button on error state for quick server cycling
+- Added tryNextServer function
+- Kept mobile server strip and bottom sheet intact
+- Dynamic server ranking system (localStorage-based) already existed and still works
+- Lint passes clean, page compiles and serves 200
+
+Stage Summary:
+- TrailerEmbed.tsx created for YouTube trailers with error fallback
+- VideoPlayer.tsx: desktop bottom bar replaced with always-visible server pill strip
+- Error state now has "Retry" + "Next Server" buttons with provider color theming
+- Mobile experience unchanged (strip + bottom sheet)
+

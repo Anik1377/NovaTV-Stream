@@ -174,9 +174,8 @@ export function HoverPreviewCard({ movie, children }: HoverPreviewCardProps) {
         <div className="relative aspect-video w-full bg-black">
           {hasTrailer && (
             <iframe
-              src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${trailerKey}`}
+              src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${trailerKey}&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
               className="absolute inset-0 w-full h-full"
-              referrerPolicy="no-referrer"
               allow="autoplay; encrypted-media"
               allowFullScreen
               title={`${title} trailer`}
