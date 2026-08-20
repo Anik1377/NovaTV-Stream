@@ -71,6 +71,8 @@ export function VideoPlayer({
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -149,6 +151,36 @@ export function VideoPlayer({
       }).catch(() => {});
     }
   }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Loading timeout — mobile iframes may never fire onLoad            */
+  /* ---------------------------------------------------------------- */
+  useEffect(() => {
+    // Clear any previous timeouts
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
+
+    // On mobile, auto-dismiss loading overlay after 6s so user can interact
+    // Desktop gives more time since onLoad usually fires reliably
+    const dismissDelay = isMobile ? 6000 : 12000;
+
+    dismissTimeoutRef.current = setTimeout(() => {
+      setLoading(false);
+    }, dismissDelay);
+
+    // On mobile, if still loading after 15s, show error with next server option
+    if (isMobile) {
+      loadTimeoutRef.current = setTimeout(() => {
+        setLoading(false);
+        setError(true);
+      }, 15000);
+    }
+
+    return () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
+    };
+  }, [currentSrc, isMobile]);
 
   /* ---------------------------------------------------------------- */
   /*  Body scroll lock                                                  */
@@ -473,7 +505,7 @@ export function VideoPlayer({
               (!isMobile ? 'w-full max-w-6xl aspect-video' : 'w-full h-full')
             }
           >
-            {/* Loading state: animated pulsing ring */}
+            {/* Loading state: animated pulsing ring — pointer-events-none so user can tap iframe */}
             <AnimatePresence>
               {loading && !error && (
                 <motion.div
@@ -481,7 +513,7 @@ export function VideoPlayer({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-4"
+                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/80 gap-4 pointer-events-none"
                 >
                   <div className="relative w-16 h-16 flex items-center justify-center">
                     <div
@@ -505,6 +537,11 @@ export function VideoPlayer({
                   <p className="text-white/50 text-xs font-medium">
                     Connecting to {activeProvider.name}...
                   </p>
+                  {isMobile && (
+                    <p className="text-white/30 text-[10px]">
+                      Tap the player if video loads
+                    </p>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -524,6 +561,11 @@ export function VideoPlayer({
                     onClick={() => {
                       setError(false);
                       setLoading(true);
+                      // Reset the iframe by changing key (force re-render)
+                      const newSrc = currentSrc.includes('?') 
+                        ? currentSrc + '&_retry=' + Date.now() 
+                        : currentSrc + '?_retry=' + Date.now();
+                      setCurrentSrc(newSrc);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/12 text-white/80 text-sm font-medium transition-colors active:scale-95"
                   >
@@ -541,18 +583,22 @@ export function VideoPlayer({
               </div>
             )}
 
-            {/* Iframe */}
+            {/* Iframe — always rendered and interactive */}
             <iframe
               ref={iframeRef}
               key={currentSrc}
               src={currentSrc}
-              className="w-full h-full"
+              className="w-full h-full absolute inset-0"
               referrerPolicy="no-referrer"
               allowFullScreen
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               playsInline
-              style={{ borderRadius: 0 }}
-              onLoad={() => setLoading(false)}
+              style={{ borderRadius: 0, zIndex: 0 }}
+              onLoad={() => {
+                setLoading(false);
+                if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
+                if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+              }}
               onError={() => {
                 setLoading(false);
                 setError(true);

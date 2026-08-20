@@ -1,0 +1,694 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+     4→import {
+     5→  X,
+     6→  Maximize2,
+     7→  Minimize2,
+     8→  RefreshCw,
+     9→  ChevronLeft,
+    10→  ShieldCheck,
+    11→  Server,
+    12→  Check,
+    13→  Loader2,
+    14→  ArrowRight,
+    15→} from 'lucide-react';
+    16→import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+    17→import { providers, getProvider, getEmbedUrl, type Provider } from '@/lib/providers';
+    18→import { getRankedProviderIds, getServerScore, recordServerPick } from '@/lib/server-rankings';
+    19→import { useAppStore } from '@/store/app-store';
+    20→import { useAuthStore } from '@/store/auth-store';
+    21→import { useIsIOS } from '@/hooks/use-ios';
+    22→import { useIsMobile } from '@/hooks/use-mobile';
+    23→import { recordWatchHistory } from '@/lib/watch-history';
+    24→
+    25→interface VideoPlayerProps {
+    26→  src: string;
+    27→  title?: string;
+    28→  onClose: () => void;
+    29→  mediaType: 'movie' | 'tv';
+    30→  tmdbId: number;
+    31→  season?: number;
+    32→  episode?: number;
+    33→}
+    34→
+    35→/* ------------------------------------------------------------------ */
+    36→/*  iOS native fullscreen detection                                    */
+    37→/* ------------------------------------------------------------------ */
+    38→function useIOSFullscreenDetect(onReturn: () => void) {
+    39→  useEffect(() => {
+    40→    const handleEnd = () => onReturn();
+    41→    document.addEventListener('webkitendfullscreen', handleEnd);
+    42→    return () => document.removeEventListener('webkitendfullscreen', handleEnd);
+    43→  }, [onReturn]);
+    44→}
+    45→
+    46→/* ------------------------------------------------------------------ */
+    47→/*  Score badge helper                                                 */
+    48→/* ------------------------------------------------------------------ */
+    49→function scoreBadge(score: number) {
+    50→  if (score >= 80) return { label: 'Top Pick', cls: 'bg-emerald-500/20 text-emerald-400' };
+    51→  if (score >= 40) return { label: 'Popular', cls: 'bg-amber-500/20 text-amber-400' };
+    52→  if (score > 0) return { label: 'Used', cls: 'bg-zinc-500/20 text-zinc-400' };
+    53→  return null;
+    54→}
+    55→
+    56→/* ------------------------------------------------------------------ */
+    57→/*  Main component                                                     */
+    58→/* ------------------------------------------------------------------ */
+    59→export function VideoPlayer({
+    60→  src,
+    61→  title,
+    62→  onClose,
+    63→  mediaType,
+    64→  tmdbId,
+    65→  season,
+    66→  episode,
+    67→}: VideoPlayerProps) {
+    68→  const [loading, setLoading] = useState(true);
+    69→  const [error, setError] = useState(false);
+    70→  const [isFullscreen, setIsFullscreen] = useState(false);
+    71→  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+    72→  const [currentSrc, setCurrentSrc] = useState(src);
+    73→  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+    74→
+    75→  const containerRef = useRef<HTMLDivElement>(null);
+    76→  const iframeRef = useRef<HTMLIFrameElement>(null);
+    77→  const { selectedProvider, setSelectedProvider, selectedMovie, selectedTv } = useAppStore();
+    78→  const user = useAuthStore((s) => s.user);
+    79→  const isIOS = useIsIOS();
+    80→  const isMobile = useIsMobile();
+    81→
+    82→  // Swipe-to-dismiss (mobile only)
+    83→  const dragY = useMotionValue(0);
+    84→  const iframeScale = useTransform(dragY, [0, 250], [1, 0.92]);
+    85→  const iframeRadius = useTransform(dragY, [0, 250], [8, 24]);
+    86→
+    87→  /* ---------------------------------------------------------------- */
+    88→  /*  Ranked provider list                                              */
+    89→  /* ---------------------------------------------------------------- */
+    90→  const rankedIds = useMemo(() => getRankedProviderIds(), []);
+    91→  const rankedSet = useMemo(() => new Set(rankedIds), [rankedIds]);
+    92→
+    93→  const sortedProviders = useMemo(() => {
+    94→    const ranked = rankedIds
+    95→      .map((id) => providers.find((p) => p.id === id))
+    96→      .filter((p): p is Provider => !!p);
+    97→    const unranked = providers.filter((p) => !rankedSet.has(p.id));
+    98→    return [...ranked, ...unranked];
+    99→  }, [rankedIds, rankedSet]);
+   100→
+   101→  const activeProvider = getProvider(selectedProvider);
+   102→
+   103→  /* ---------------------------------------------------------------- */
+   104→  /*  Drag end handler                                                  */
+   105→  /* ---------------------------------------------------------------- */
+   106→  const handleDragEnd = useCallback(
+   107→    (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+   108→      const shouldClose = info.offset.y > 120 || info.velocity.y > 500;
+   109→      if (shouldClose) {
+   110→        animate(dragY, 600, {
+   111→          duration: 0.25,
+   112→          ease: 'easeOut',
+   113→          onComplete: onClose,
+   114→        });
+   115→      } else {
+   116→        animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
+   117→      }
+   118→    },
+   119→    [dragY, onClose],
+   120→  );
+   121→
+   122→  /* ---------------------------------------------------------------- */
+   123→  /*  Record watch history                                              */
+   124→  /* ---------------------------------------------------------------- */
+   125→  useEffect(() => {
+   126→    if (!title) return;
+   127→    const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+   128→    recordWatchHistory({
+   129→      tmdbId,
+   130→      title,
+   131→      posterPath: item?.poster_path || null,
+   132→      backdropPath: item?.backdrop_path || null,
+   133→      mediaType,
+   134→      season: season ?? null,
+   135→      episode: episode ?? null,
+   136→    });
+   137→    if (user) {
+   138→      fetch('/api/profile/history', {
+   139→        method: 'POST',
+   140→        headers: { 'Content-Type': 'application/json' },
+   141→        body: JSON.stringify({
+   142→          tmdbId,
+   143→          title,
+   144→          posterPath: item?.poster_path || null,
+   145→          mediaType,
+   146→          season: season ?? null,
+   147→          episode: episode ?? null,
+   148→        }),
+   149→      }).catch(() => {});
+   150→    }
+   151→  }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
+   152→
+   153→  /* ---------------------------------------------------------------- */
+   154→  /*  Body scroll lock                                                  */
+   155→  /* ---------------------------------------------------------------- */
+   156→  useEffect(() => {
+   157→    const scrollY = window.scrollY;
+   158→    document.body.style.setProperty('--player-scroll-y', `${scrollY}px`);
+   159→    document.body.classList.add('player-open');
+   160→    document.body.style.top = `-${scrollY}px`;
+   161→    return () => {
+   162→      document.body.classList.remove('player-open');
+   163→      document.body.style.top = '';
+   164→      window.scrollTo(0, scrollY);
+   165→    };
+   166→  }, []);
+   167→
+   168→  /* ---------------------------------------------------------------- */
+   169→  /*  iOS native fullscreen "Done" button                               */
+   170→  /* ---------------------------------------------------------------- */
+   171→  useIOSFullscreenDetect(onClose);
+   172→
+   173→  /* ---------------------------------------------------------------- */
+   174→  /*  Auto-try next server on error                                     */
+   175→  /* ---------------------------------------------------------------- */
+   176→  const tryNextServer = () => {
+   177→    const currentIdx = sortedProviders.findIndex(p => p.id === selectedProvider);
+   178→    const next = sortedProviders[(currentIdx + 1) % sortedProviders.length];
+   179→    if (next) {
+   180→      switchProvider(next.id);
+   181→    }
+   182→  };
+   183→
+   184→  /* ---------------------------------------------------------------- */
+   185→  /*  Switch provider                                                   */
+   186→  /* ---------------------------------------------------------------- */
+   187→  const switchProvider = useCallback(
+   188→    (providerId: string) => {
+   189→      setSwitchingTo(providerId);
+   190→      recordServerPick(providerId);
+   191→      setSelectedProvider(providerId);
+   192→      const newSrc = getEmbedUrl(providerId, mediaType, tmdbId, season, episode);
+   193→      setCurrentSrc(newSrc);
+   194→      setLoading(true);
+   195→      setError(false);
+   196→      setMobileSheetOpen(false);
+   197→
+   198→      const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+   199→      recordWatchHistory({
+   200→        tmdbId,
+   201→        title: title || 'Unknown',
+   202→        posterPath: item?.poster_path || null,
+   203→        backdropPath: item?.backdrop_path || null,
+   204→        mediaType,
+   205→        season: season ?? null,
+   206→        episode: episode ?? null,
+   207→      });
+   208→
+   209→      setTimeout(() => setSwitchingTo(null), 3000);
+   210→    },
+   211→    [mediaType, tmdbId, season, episode, setSelectedProvider, selectedTv, selectedMovie, title],
+   212→  );
+   213→
+   214→  /* ---------------------------------------------------------------- */
+   215→  /*  Fullscreen toggle                                                 */
+   216→  /* ---------------------------------------------------------------- */
+   217→  const toggleFullscreen = async () => {
+   218→    if (!containerRef.current) return;
+   219→    try {
+   220→      if (!document.fullscreenElement) {
+   221→        await containerRef.current.requestFullscreen();
+   222→        setIsFullscreen(true);
+   223→      } else {
+   224→        await document.exitFullscreen();
+   225→        setIsFullscreen(false);
+   226→      }
+   227→    } catch {
+   228→      // Fullscreen API unavailable (e.g. iOS)
+   229→    }
+   230→  };
+   231→
+   232→  useEffect(() => {
+   233→    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+   234→    document.addEventListener('fullscreenchange', handler);
+   235→    return () => document.removeEventListener('fullscreenchange', handler);
+   236→  }, []);
+   237→
+   238→  /* ---------------------------------------------------------------- */
+   239→  /*  Keyboard shortcuts                                                */
+   240→  /* ---------------------------------------------------------------- */
+   241→  useEffect(() => {
+   242→    const handleKey = (e: KeyboardEvent) => {
+   243→      if (e.key === 'Escape' && !mobileSheetOpen) onClose();
+   244→    };
+   245→    window.addEventListener('keydown', handleKey);
+   246→    return () => window.removeEventListener('keydown', handleKey);
+   247→  }, [onClose, mobileSheetOpen]);
+   248→
+   249→  /* ---------------------------------------------------------------- */
+   250→  /*  Active server score / badge                                       */
+   251→  /* ---------------------------------------------------------------- */
+   252→  const activeScore = useMemo(() => getServerScore(selectedProvider), [selectedProvider]);
+   253→  const activeBadge = useMemo(() => scoreBadge(activeScore), [activeScore]);
+   254→  const isTopRanked = rankedIds[0] === selectedProvider;
+   255→
+   256→  /* ---------------------------------------------------------------- */
+   257→  /*  Mobile bottom sheet                                               */
+   258→  /* ---------------------------------------------------------------- */
+   259→  const mobileSheet = (
+   260→    <AnimatePresence>
+   261→      {mobileSheetOpen && (
+   262→        <>
+   263→          {/* Backdrop */}
+   264→          <motion.div
+   265→            initial={{ opacity: 0 }}
+   266→            animate={{ opacity: 1 }}
+   267→            exit={{ opacity: 0 }}
+   268→            className="absolute inset-0 bg-black/60 z-20"
+   269→            onClick={() => setMobileSheetOpen(false)}
+   270→          />
+   271→          {/* Sheet */}
+   272→          <motion.div
+   273→            initial={{ y: '100%' }}
+   274→            animate={{ y: 0 }}
+   275→            exit={{ y: '100%' }}
+   276→            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   277→            className="absolute bottom-0 left-0 right-0 max-h-[70vh] bg-[#111] rounded-t-2xl z-30 flex flex-col"
+   278→            style={{ paddingBottom: isIOS ? 'env(safe-area-inset-bottom, 16px)' : 16 }}
+   279→          >
+   280→            {/* Drag handle */}
+   281→            <div className="flex justify-center pt-3 pb-2">
+   282→              <div className="w-10 h-1 rounded-full bg-white/20" />
+   283→            </div>
+   284→
+   285→            {/* Header */}
+   286→            <div className="flex items-center justify-between px-5 pb-3">
+   287→              <div className="flex items-center gap-2">
+   288→                <Server className="w-4 h-4 text-white/50" />
+   289→                <h4 className="text-white/90 text-sm font-semibold">Servers</h4>
+   290→              </div>
+   291→              <button
+   292→                onClick={() => setMobileSheetOpen(false)}
+   293→                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+   294→                aria-label="Close server sheet"
+   295→              >
+   296→                <X className="w-3.5 h-3.5" />
+   297→              </button>
+   298→            </div>
+   299→
+   300→            {/* Server list */}
+   301→            <div className="flex-1 overflow-y-auto content-scroll px-3 pb-2">
+   302→              {sortedProviders.map((p) => {
+   303→                const isActive = p.id === selectedProvider;
+   304→                const score = getServerScore(p.id);
+   305→                const badge = scoreBadge(score);
+   306→                const isTop = rankedIds[0] === p.id;
+   307→                const isSwitching = switchingTo === p.id;
+   308→
+   309→                return (
+   310→                  <button
+   311→                    key={p.id}
+   312→                    onClick={() => switchProvider(p.id)}
+   313→                    disabled={isSwitching}
+   314→                    className={
+   315→                      'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors ' +
+   316→                      (isActive ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]')
+   317→                    }
+   318→                  >
+   319→                    <div
+   320→                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+   321→                      style={{ backgroundColor: p.color + '18', color: p.color }}
+   322→                    >
+   323→                      {p.icon}
+   324→                    </div>
+   325→                    <div className="flex-1 min-w-0">
+   326→                      <div className="flex items-center gap-1.5">
+   327→                        <span className="text-white/90 text-sm font-medium truncate">{p.name}</span>
+   328→                        {isTop && <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+   329→                      </div>
+   330→                      <p className="text-white/40 text-[11px] truncate mt-0.5">{p.description}</p>
+   331→                    </div>
+   332→                    <div className="flex flex-col items-end gap-1 shrink-0">
+   333→                      {badge && (
+   334→                        <span className={'px-1.5 py-0.5 rounded text-[9px] font-semibold ' + badge.cls}>
+   335→                          {badge.label}
+   336→                        </span>
+   337→                      )}
+   338→                      {isSwitching ? (
+   339→                        <Loader2 className="w-4 h-4 animate-spin text-white/40" />
+   340→                      ) : isActive ? (
+   341→                        <Check className="w-4 h-4" style={{ color: p.color }} />
+   342→                      ) : null}
+   343→                    </div>
+   344→                  </button>
+   345→                );
+   346→              })}
+   347→            </div>
+   348→          </motion.div>
+   349→        </>
+   350→      )}
+   351→    </AnimatePresence>
+   352→  );
+   353→
+   354→  /* ================================================================== */
+   355→  /*  RENDER                                                            */
+   356→  /* ================================================================== */
+   357→  return (
+   358→    <AnimatePresence>
+   359→      <motion.div
+   360→        initial={{ opacity: 0, y: 40 }}
+   361→        animate={{ opacity: 1, y: 0 }}
+   362→        exit={{ opacity: 0, y: 60 }}
+   363→        transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
+   364→        style={{ y: dragY }}
+   365→        drag={isMobile ? 'y' : false}
+   366→        dragConstraints={{ top: 0, bottom: 0 }}
+   367→        dragElastic={{ top: 0.1, bottom: 0.4 }}
+   368→        onDragEnd={handleDragEnd}
+   369→        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col ios-player-container"
+   370→      >
+   371→        {/* iOS: translucent status bar spacer */}
+   372→        <div
+   373→          className="shrink-0 w-full"
+   374→          style={{ height: isIOS ? 'env(safe-area-inset-top, 0px)' : 0 }}
+   375→        />
+   376→
+   377→        {/* ==================== TOP BAR ==================== */}
+   378→        <div
+   379→          className="flex items-center gap-3 px-3 md:px-5 h-12 shrink-0 z-10 justify-between"
+   380→          style={{
+   381→            paddingTop: isIOS
+   382→              ? 'max(2px, env(safe-area-inset-top, 0px) - 10px)'
+   383→              : 0,
+   384→          }}
+   385→        >
+   386→          {/* Left: iOS Done button or empty spacer */}
+   387→          {isIOS ? (
+   388→            <button
+   389→              onClick={onClose}
+   390→              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-white/80 hover:text-white text-sm font-semibold transition-colors active:scale-95"
+   391→              style={{
+   392→                background: 'rgba(255,255,255,0.12)',
+   393→                backdropFilter: 'blur(20px)',
+   394→                WebkitBackdropFilter: 'blur(20px)',
+   395→              }}
+   396→              aria-label="Done"
+   397→            >
+   398→              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+   399→              <span>Done</span>
+   400→            </button>
+   401→          ) : (
+   402→            <div className="w-16" />
+   403→          )}
+   404→
+   405→          {/* Center: title + active server pill */}
+   406→          <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+   407→            <h3 className="text-white/70 font-medium text-sm truncate">
+   408→              {title || 'Now Playing'}
+   409→            </h3>
+   410→            <span
+   411→              className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+   412→              style={{
+   413→                backgroundColor: activeProvider.color + '20',
+   414→                color: activeProvider.color,
+   415→              }}
+   416→            >
+   417→              {isTopRanked && <ShieldCheck className="w-3 h-3" />}
+   418→              {activeProvider.name}
+   419→            </span>
+   420→          </div>
+   421→
+   422→          {/* Right: fullscreen + close (desktop) */}
+   423→          <div className="flex items-center gap-1 shrink-0">
+   424→            {!isIOS && (
+   425→              <button
+   426→                onClick={toggleFullscreen}
+   427→                className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+   428→                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+   429→              >
+   430→                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+   431→              </button>
+   432→            )}
+   433→            {!isIOS && (
+   434→              <button
+   435→                onClick={onClose}
+   436→                className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+   437→                aria-label="Close player"
+   438→              >
+   439→                <X className="w-5 h-5" />
+   440→              </button>
+   441→            )}
+   442→          </div>
+   443→        </div>
+   444→
+   445→        {/* iOS swipe hint */}
+   446→        {isIOS && (
+   447→          <motion.div
+   448→            initial={{ opacity: 1, y: 0 }}
+   449→            animate={{ opacity: 0, y: -10 }}
+   450→            transition={{ delay: 2.5, duration: 1 }}
+   451→            className="flex justify-center pb-1"
+   452→          >
+   453→            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08]">
+   454→              <div className="w-1 h-1 rounded-full bg-white/30" />
+   455→              <span className="text-white/50 text-[10px] font-medium">Swipe down to close</span>
+   456→              <div className="w-1 h-1 rounded-full bg-white/30" />
+   457→            </div>
+   458→          </motion.div>
+   459→        )}
+   460→
+   461→        {/* ==================== VIDEO AREA ==================== */}
+   462→        <div
+   463→          className="flex-1 flex items-center justify-center p-3 md:p-8 relative overflow-hidden"
+   464→        >
+   465→          <motion.div
+   466→            ref={containerRef}
+   467→            style={{
+   468→              scale: isMobile ? iframeScale : 1,
+   469→              borderRadius: isMobile ? iframeRadius : 8,
+   470→            }}
+   471→            className={
+   472→              'relative bg-black overflow-hidden shadow-2xl shadow-black/80 ' +
+   473→              (!isMobile ? 'w-full max-w-6xl aspect-video' : 'w-full h-full')
+   474→            }
+   475→          >
+   476→            {/* Loading state: animated pulsing ring */}
+   477→            <AnimatePresence>
+   478→              {loading && !error && (
+   479→                <motion.div
+   480→                  key="loading"
+   481→                  initial={{ opacity: 0 }}
+   482→                  animate={{ opacity: 1 }}
+   483→                  exit={{ opacity: 0 }}
+   484→                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-4"
+   485→                >
+   486→                  <div className="relative w-16 h-16 flex items-center justify-center">
+   487→                    <div
+   488→                      className="absolute inset-0 rounded-full animate-ping opacity-30"
+   489→                      style={{ backgroundColor: activeProvider.color }}
+   490→                    />
+   491→                    <div
+   492→                      className="absolute inset-1 rounded-full animate-pulse opacity-60"
+   493→                      style={{ backgroundColor: activeProvider.color }}
+   494→                    />
+   495→                    <div
+   496→                      className="relative w-10 h-10 rounded-full flex items-center justify-center"
+   497→                      style={{ backgroundColor: activeProvider.color + '25' }}
+   498→                    >
+   499→                      <Loader2
+   500→                        className="w-5 h-5 animate-spin"
+   501→                        style={{ color: activeProvider.color }}
+   502→                      />
+   503→                    </div>
+   504→                  </div>
+   505→                  <p className="text-white/50 text-xs font-medium">
+   506→                    Connecting to {activeProvider.name}...
+   507→                  </p>
+   508→                </motion.div>
+   509→              )}
+   510→            </AnimatePresence>
+   511→
+   512→            {/* Error state */}
+   513→            {error && (
+   514→              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 bg-black">
+   515→                <div className="w-14 h-14 rounded-2xl bg-white/[0.06] flex items-center justify-center">
+   516→                  <RefreshCw className="w-6 h-6 text-white/30" />
+   517→                </div>
+   518→                <div className="text-center">
+   519→                  <p className="text-white/50 text-sm font-medium">Unable to load from <span style={{ color: activeProvider.color }}>{activeProvider.name}</span></p>
+   520→                  <p className="text-white/25 text-xs mt-1">This server may not have this title</p>
+   521→                </div>
+   522→                <div className="flex items-center gap-3">
+   523→                  <button
+   524→                    onClick={() => {
+   525→                      setError(false);
+   526→                      setLoading(true);
+   527→                    }}
+   528→                    className="px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/12 text-white/80 text-sm font-medium transition-colors active:scale-95"
+   529→                  >
+   530→                    Retry
+   531→                  </button>
+   532→                  <button
+   533→                    onClick={tryNextServer}
+   534→                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
+   535→                    style={{ backgroundColor: activeProvider.color + '15', color: activeProvider.color }}
+   536→                  >
+   537→                    Next Server
+   538→                    <ArrowRight className="w-4 h-4" />
+   539→                  </button>
+   540→                </div>
+   541→              </div>
+   542→            )}
+   543→
+   544→            {/* Iframe */}
+   545→            <iframe
+   546→              ref={iframeRef}
+   547→              key={currentSrc}
+   548→              src={currentSrc}
+   549→              className="w-full h-full"
+   550→              referrerPolicy="no-referrer"
+   551→              allowFullScreen
+   552→              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+   553→              playsInline
+   554→              style={{ borderRadius: 0 }}
+   555→              onLoad={() => setLoading(false)}
+   556→              onError={() => {
+   557→                setLoading(false);
+   558→                setError(true);
+   559→              }}
+   560→              title={title || 'Video Player'}
+   561→            />
+   562→          </motion.div>
+   563→
+   564→        </div>
+   565→
+   566→        {/* ==================== MOBILE SERVER STRIP ==================== */}
+   567→        {isMobile && (
+   568→          <div className="shrink-0 border-t border-white/[0.06] bg-black/80 backdrop-blur-md">
+   569→            <div className="flex items-center gap-2 px-3 py-2.5 overflow-x-auto scrollbar-none">
+   570→              {sortedProviders.map((p) => {
+   571→                const isActive = p.id === selectedProvider;
+   572→                const score = getServerScore(p.id);
+   573→                const badge = scoreBadge(score);
+   574→                const isTop = rankedIds[0] === p.id;
+   575→                const isSwitching = switchingTo === p.id;
+   576→
+   577→                return (
+   578→                  <button
+   579→                    key={p.id}
+   580→                    onClick={() => {
+   581→                      if (isSwitching) return;
+   582→                      if (isActive) {
+   583→                        setMobileSheetOpen(true);
+   584→                      } else {
+   585→                        switchProvider(p.id);
+   586→                      }
+   587→                    }}
+   588→                    disabled={isSwitching}
+   589→                    className={
+   590→                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ' +
+   591→                      (isActive
+   592→                        ? 'border-white/20 bg-white/[0.08] text-white/90'
+   593→                        : 'border-white/[0.06] bg-white/[0.03] text-white/50 hover:bg-white/[0.06] hover:text-white/70')
+   594→                    }
+   595→                  >
+   596→                    {isSwitching ? (
+   597→                      <Loader2 className="w-3 h-3 animate-spin" />
+   598→                    ) : (
+   599→                      <span
+   600→                        className="w-2 h-2 rounded-full shrink-0"
+   601→                        style={{ backgroundColor: p.color }}
+   602→                      />
+   603→                    )}
+   604→                    <span className="truncate max-w-[70px]">{p.name}</span>
+   605→                    {isTop && !isSwitching && (
+   606→                      <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+   607→                    )}
+   608→                    {badge && !isSwitching && (
+   609→                      <span className={badge.cls + ' px-1 py-0 rounded text-[8px] font-bold'}>
+   610→                        {badge.label}
+   611→                      </span>
+   612→                    )}
+   613→                  </button>
+   614→                );
+   615→              })}
+   616→            </div>
+   617→          </div>
+   618→        )}
+   619→
+   620→        {/* ==================== DESKTOP SERVER STRIP ==================== */}
+   621→        {!isMobile && (
+   622→          <div className="shrink-0 border-t border-white/[0.06] bg-black/60 backdrop-blur-md px-4 py-2">
+   623→            <div className="flex items-center gap-2 mb-1.5">
+   624→              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeProvider.color, boxShadow: '0 0 6px ' + activeProvider.color + '60' }} />
+   625→              <span className="text-white/40 text-[11px] font-medium">Playing via {activeProvider.name}</span>
+   626→              {activeBadge && (
+   627→                <span className={"px-2 py-0.5 rounded-full text-[10px] font-semibold border " + activeBadge.cls}>
+   628→                  {isTopRanked && <ShieldCheck className="w-3 h-3 mr-1" />}
+   629→                  {activeBadge.label}
+   630→                </span>
+   631→              )}
+   632→            </div>
+   633→            <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+   634→              {sortedProviders.map((p) => {
+   635→                const isActive = p.id === selectedProvider;
+   636→                const isSwitching = switchingTo === p.id;
+   637→                const score = getServerScore(p.id);
+   638→                const badge = scoreBadge(score);
+   639→                const isTop = rankedIds[0] === p.id;
+   640→                return (
+   641→                  <button
+   642→                    key={p.id}
+   643→                    onClick={() => {
+   644→                      if (isSwitching) return;
+   645→                      switchProvider(p.id);
+   646→                    }}
+   647→                    disabled={isSwitching}
+   648→                    className={
+   649→                      'group relative shrink-0 flex items-center gap-2 rounded-lg text-xs font-medium transition-all duration-200 border ' +
+   650→                      (isActive ? 'border-white/15 shadow-lg' : 'border-white/[0.06] hover:border-white/12')
+   651→                    }
+   652→                    style={{
+   653→                      backgroundColor: isActive ? p.color + '18' : 'rgba(255,255,255,0.03)',
+   654→                      color: isActive ? p.color : 'rgba(255,255,255,0.55)',
+   655→                      boxShadow: isActive ? '0 0 20px ' + p.color + '15' : undefined,
+   656→                      padding: '7px 12px',
+   657→                    }}
+   658→                  >
+   659→                    <div
+   660→                      className={
+   661→                        'w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 ' +
+   662→                        (isActive ? '' : 'opacity-70 group-hover:opacity-100')
+   663→                      }
+   664→                      style={{ backgroundColor: p.color + (isActive ? '25' : '12'), color: p.color }}
+   665→                    >
+   666→                      {isSwitching ? <Loader2 className="w-3 h-3 animate-spin" /> : <span>{p.icon}</span>}
+   667→                    </div>
+   668→                    <span className="truncate max-w-[100px] font-medium">{p.name}</span>
+   669→                    {isTop && !isSwitching && <ShieldCheck className="w-3 h-3 shrink-0 text-emerald-400" />}
+   670→                    {badge && !isSwitching && (
+   671→                      <span className={badge.cls + ' px-1.5 py-0.5 rounded text-[8px] font-bold'}>{badge.label}</span>
+   672→                    )}
+   673→                  </button>
+   674→                );
+   675→              })}
+   676→            </div>
+   677→          </div>
+   678→        )}
+   679→
+   680→        {/* ==================== MOBILE BOTTOM SHEET ==================== */}
+   681→        {isMobile && mobileSheet}
+   682→
+   683→        {/* ==================== iOS BOTTOM SAFE AREA ==================== */}
+   684→        {isIOS && !isMobile && (
+   685→          <div
+   686→            className="shrink-0 w-full"
+   687→            style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+   688→          />
+   689→        )}
+   690→      </motion.div>
+   691→    </AnimatePresence>
+   692→  );
+   693→}
+   694→
