@@ -40,6 +40,9 @@ export async function POST(req: Request) {
 
     // Ensure local user record exists
     const authUser = data.user;
+    if (!authUser) {
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    }
     try {
       const { db } = await import('@/lib/db');
       await db.user.upsert({

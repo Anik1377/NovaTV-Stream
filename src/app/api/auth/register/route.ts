@@ -52,6 +52,10 @@ export async function POST(req: Request) {
 
     const authUser = data.user;
 
+    if (!authUser) {
+      return NextResponse.json({ error: 'Registration failed' }, { status: 400 });
+    }
+
     // Create local user record
     try {
       const { db } = await import('@/lib/db');
