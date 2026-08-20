@@ -46,7 +46,7 @@ export async function getSessionUser() {
       return {
         user: {
           id: profile.id,
-          email: profile.email,
+          email: authUser.email,
           name: profile.name || meta.name || null,
           avatar: profile.avatar || meta.avatar || 'hero',
           bio: profile.bio || meta.bio || null,
