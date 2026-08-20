@@ -127,13 +127,17 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
   // ── Close server dropdown on outside click ──
   useEffect(() => {
     if (!showServers) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent | TouchEvent) => {
       if (serversRef.current && !serversRef.current.contains(e.target as Node)) {
         setShowServers(false);
       }
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
   }, [showServers]);
 
   const switchProvider = (providerId: string) => {
@@ -328,11 +332,11 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                   <AnimatePresence>
                     {showServers && (
                       <motion.div
-                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute bottom-full left-0 mb-2 w-60 rounded-xl bg-[#1a1a1a] border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden z-30"
+                        className="absolute top-full left-0 mt-2 w-60 rounded-xl bg-[#1a1a1a] border border-white/[0.08] shadow-2xl shadow-black/60 overflow-hidden z-30"
                       >
                         <div className="px-3 py-2 border-b border-white/[0.06]">
                           <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wider">
