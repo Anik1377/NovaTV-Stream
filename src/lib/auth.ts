@@ -38,7 +38,7 @@ export async function getSessionUser() {
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, name, bio, avatar, accent_color, favorite_genres, adult_enabled, created_at')
       .eq('id', authUser.id)
       .single();
 

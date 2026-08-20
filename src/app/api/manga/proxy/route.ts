@@ -29,6 +29,9 @@ export async function GET(req: NextRequest) {
   // Security: only allow MangaDex URLs
   try {
     const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') {
+      return NextResponse.json({ error: 'Only HTTPS URLs are allowed' }, { status: 400 });
+    }
     if (!isAllowedHost(parsed.hostname)) {
       return new NextResponse('Invalid URL host', { status: 403 });
     }
@@ -44,7 +47,6 @@ export async function GET(req: NextRequest) {
       headers: {
         'content-type': cached.contentType,
         'cache-control': `public, max-age=86400`,
-        'x-cache': 'HIT',
       },
     });
   }
@@ -87,6 +89,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const contentLength = parseInt(res.headers.get('content-length') || '0', 10);
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (contentLength > MAX_IMAGE_SIZE) {
+      return NextResponse.json({ error: 'Response too large' }, { status: 413 });
+    }
+
     const contentType = res.headers.get('content-type') || 'image/jpeg';
     const buffer = await res.arrayBuffer();
 
@@ -97,11 +105,11 @@ export async function GET(req: NextRequest) {
       expiry: Date.now() + CACHE_TTL,
     });
 
-    // Evict old entries if cache grows too large (keep max 500)
-    if (imageCache.size > 500) {
+    // Evict old entries if cache grows too large (keep max 100)
+    if (imageCache.size > 100) {
       const entries = [...imageCache.entries()];
       entries.sort((a, b) => a[1].expiry - b[1].expiry);
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 20; i++) {
         imageCache.delete(entries[i][0]);
       }
     }
@@ -110,7 +118,6 @@ export async function GET(req: NextRequest) {
       headers: {
         'content-type': contentType,
         'cache-control': 'public, max-age=86400',
-        'x-cache': 'MISS',
       },
     });
   } catch {

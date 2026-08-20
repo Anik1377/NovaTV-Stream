@@ -218,6 +218,8 @@ export function TvDetail() {
                     if (!vids?.length) return null;
                     const trailer = vids.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || vids[0];
                     if (!trailer) return null;
+                    const isValidTrailerKey = trailer.key && /^[A-Za-z0-9_-]{11}$/.test(trailer.key);
+                    if (!isValidTrailerKey) return null;
                     return (
                       <div className="mb-6">
                         <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
@@ -227,6 +229,8 @@ export function TvDetail() {
                           <iframe
                             src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`}
                             className="absolute inset-0 w-full h-full"
+                            sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"
+                            referrerPolicy="no-referrer"
                             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             title={`${title} Trailer`}

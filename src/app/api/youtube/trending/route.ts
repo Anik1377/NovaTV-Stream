@@ -59,9 +59,8 @@ export async function GET() {
     setCache(cacheKey, response, CACHE_TTL);
     return NextResponse.json(response);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to fetch trending music', details: message },
+      { error: 'Failed to fetch trending music' },
       { status: 500 },
     );
   }

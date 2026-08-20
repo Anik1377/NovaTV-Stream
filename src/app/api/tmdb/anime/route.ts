@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') || 'trending';
-    const page = searchParams.get('page') || '1';
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isNaN(rawPage) ? 1 : Math.max(1, Math.min(rawPage, 500));
 
     let data: PaginatedResponse<Movie>;
 
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
       case 'trending':
         // Trending anime: use discover with animation genre + Japanese language
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
-          page,
+          page: String(page),
           with_genres: '16',
           with_original_language: 'ja',
           sort_by: 'popularity.desc',
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
       case 'popular':
         // Popular anime TV shows
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
-          page,
+          page: String(page),
           with_genres: '16',
           sort_by: 'popularity.desc',
           with_original_language: 'ja',
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
       case 'top-rated':
         // Top rated anime
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
-          page,
+          page: String(page),
           with_genres: '16',
           sort_by: 'vote_average.desc',
           with_original_language: 'ja',
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       case 'airing':
         // Currently airing anime
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
-          page,
+          page: String(page),
           with_genres: '16',
           with_status: 'returning_series',
           sort_by: 'popularity.desc',
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
       case 'upcoming':
         // Upcoming anime movies
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/movie', {
-          page,
+          page: String(page),
           with_genres: '16',
           sort_by: 'popularity.desc',
           with_original_language: 'ja',
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
         // Fallback if no upcoming, get recent anime movies
         if (data.results.length === 0) {
           data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/movie', {
-            page,
+            page: String(page),
             with_genres: '16',
             sort_by: 'popularity.desc',
             with_original_language: 'ja',
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
       case 'movies':
         // Anime movies (all time popular)
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/movie', {
-          page,
+          page: String(page),
           with_genres: '16',
           sort_by: 'popularity.desc',
           with_original_language: 'ja',
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
       case 'all-popular':
         // Broad anime: Japanese + English animation, TV only
         data = await tmdbFetch<PaginatedResponse<Movie>>('/discover/tv', {
-          page,
+          page: String(page),
           with_genres: '16',
           sort_by: 'popularity.desc',
           vote_count_gte: '100',

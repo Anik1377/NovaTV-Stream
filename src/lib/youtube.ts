@@ -45,6 +45,10 @@ export function getCached<T>(key: string): T | null {
 
 /** Store a value in cache with a TTL in **milliseconds**. */
 export function setCache<T>(key: string, data: T, ttlMs: number): void {
+  if (cache.size >= 200) {
+    const firstKey = cache.keys().next().value;
+    cache.delete(firstKey);
+  }
   cache.set(key, { data, expiry: Date.now() + ttlMs });
 }
 

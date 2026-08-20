@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (!supabase) return ok([]);
 
     const url = new URL(req.url);
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
+    const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 100);
 
     const { data, error } = await supabase
       .from('watch_history')
@@ -39,6 +39,13 @@ export async function POST(req: Request) {
 
     if (!tmdbId || !title || !mediaType) {
       return badRequest('tmdbId, title, and mediaType are required');
+    }
+
+    if (typeof tmdbId !== 'number' || !Number.isInteger(tmdbId)) {
+      return badRequest('Invalid tmdbId');
+    }
+    if (!['movie', 'tv'].includes(mediaType)) {
+      return badRequest('Invalid mediaType');
     }
 
     const cookieStore = await cookies();
@@ -79,7 +86,7 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (error) return badRequest(error.message);
+    if (error) return badRequest('Failed to record watch history');
     return ok(data);
   } catch {
     return badRequest('Failed to record watch history');

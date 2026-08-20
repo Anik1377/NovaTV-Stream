@@ -9,6 +9,8 @@ export async function GET(
 ) {
   try {
     const { id, season } = await params;
+    if (!/^\d+$/.test(id)) { return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 }); }
+    if (!/^\d+$/.test(season)) { return NextResponse.json({ error: 'Invalid season format' }, { status: 400 }); }
     const data = await getCached(`tmdb-tv-${id}-s${season}`, 10 * 60 * 1000, () =>
       tmdbFetch<SeasonDetails>(`/tv/${id}/season/${season}`)
     );

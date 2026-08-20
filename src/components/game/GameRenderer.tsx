@@ -40,7 +40,7 @@ export function GameRenderer({ gameId, gameKey }: { gameId: string; gameKey: num
         key={`${gameId}-${gameKey}`}
         src={`/games/${gameId}/index.html`}
         className="w-full h-full border-0"
-        sandbox="allow-scripts allow-same-origin"
+        sandbox="allow-scripts allow-presentation"
         onLoad={handleLoad}
         onError={handleError}
         title="Game"

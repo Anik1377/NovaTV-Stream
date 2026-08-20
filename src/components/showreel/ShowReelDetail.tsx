@@ -214,7 +214,7 @@ export function ShowReelDetail() {
             {/* Main player with cinematic frame */}
             <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/50 border border-white/[0.06]">
               <div className="relative w-full aspect-video">
-                <iframe src={`https://www.youtube.com/embed/${currentTrailer}?autoplay=0&rel=0&modestbranding=1`} className="absolute inset-0 w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={`${movie.title} trailer`} />
+                <iframe src={`https://www.youtube.com/embed/${currentTrailer}?autoplay=0&rel=0&modestbranding=1`} className="absolute inset-0 w-full h-full" sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay" referrerPolicy="no-referrer" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" title={`${movie.title} trailer`} />
               </div>
             </div>
             {movie.trailers.length > 1 && (

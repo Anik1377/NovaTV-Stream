@@ -24,7 +24,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const genreId = searchParams.get('genre_id');
     const mediaType = searchParams.get('media_type') || 'movie';
-    const page = searchParams.get('page') || '1';
+
+    const validMediaTypes = ['movie', 'tv'];
+    if (!validMediaTypes.includes(mediaType)) {
+      return NextResponse.json({ error: 'Invalid media type' }, { status: 400 });
+    }
+
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isNaN(rawPage) ? 1 : Math.max(1, Math.min(rawPage, 500));
     const sortBy = searchParams.get('sort_by') || 'popularity.desc';
     const region = searchParams.get('region') || '';
     const withLang = searchParams.get('with_original_language') || '';
@@ -35,7 +42,7 @@ export async function GET(req: NextRequest) {
     const endpoint = mediaType === 'tv' ? '/discover/tv' : '/discover/movie';
 
     const params: Record<string, string> = {
-      page,
+      page: String(page),
       sort_by: sortBy,
       'vote_count.gte': minVotes || '30',
     };
@@ -56,7 +63,7 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({
-      page: parseInt(page),
+      page,
       results,
       total_pages: data.total_pages,
       total_results: data.total_results,

@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     if (authError || !authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const url = new URL(req.url);
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 200);
-    const offset = Math.max(0, Math.min(parseInt(url.searchParams.get('offset') || '0'), 500));
+    const limit = Math.min(Number(url.searchParams.get('limit')) || 100, 200);
+    const offset = Math.max(0, Math.min(Number(url.searchParams.get('offset')) || 0, 500));
     const mediaType = url.searchParams.get('type'); // 'movie' | 'tv' | 'person'
 
     const where: Record<string, unknown> = { userId: authUser.id };
@@ -51,6 +51,10 @@ export async function POST(req: Request) {
 
     if (!tmdbId || !title || !mediaType) {
       return NextResponse.json({ error: 'tmdbId, title, and mediaType are required' }, { status: 400 });
+    }
+
+    if (typeof tmdbId !== 'number' || !Number.isInteger(tmdbId)) {
+      return NextResponse.json({ error: 'Invalid tmdbId' }, { status: 400 });
     }
 
     if (!['movie', 'tv', 'person'].includes(mediaType)) {

@@ -43,11 +43,37 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { name, bio, avatar, accentColor, favoriteGenres, adultEnabled } = body;
 
-    if (bio && bio.length > 200) {
-      return badRequest('Bio must be 200 characters or less');
+    const ALLOWED_AVATARS = ['hero', 'naruto', 'goku', 'luffy', 'spiderman', 'batman'];
+
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.length > 100) {
+        return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
+      }
     }
-    if (favoriteGenres && !Array.isArray(favoriteGenres)) {
-      return badRequest('favoriteGenres must be an array');
+    if (bio !== undefined) {
+      if (typeof bio !== 'string' || bio.length > 200) {
+        return NextResponse.json({ error: 'Invalid bio' }, { status: 400 });
+      }
+    }
+    if (avatar !== undefined) {
+      if (!ALLOWED_AVATARS.includes(avatar)) {
+        return NextResponse.json({ error: 'Invalid avatar' }, { status: 400 });
+      }
+    }
+    if (accentColor !== undefined) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(accentColor)) {
+        return NextResponse.json({ error: 'Invalid accent color' }, { status: 400 });
+      }
+    }
+    if (favoriteGenres !== undefined) {
+      if (!Array.isArray(favoriteGenres) || favoriteGenres.length > 20 || !favoriteGenres.every((g: unknown) => typeof g === 'string' && g.length <= 50)) {
+        return NextResponse.json({ error: 'Invalid favorite genres' }, { status: 400 });
+      }
+    }
+    if (adultEnabled !== undefined) {
+      if (typeof adultEnabled !== 'boolean') {
+        return NextResponse.json({ error: 'Invalid adult enabled value' }, { status: 400 });
+      }
     }
 
     const cookieStore = await cookies();
@@ -56,7 +82,7 @@ export async function PUT(req: Request) {
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name !== undefined) updates.name = name || null;
     if (bio !== undefined) updates.bio = bio || null;
-    if (avatar !== undefined) updates.avatar = avatar || 'hero';
+    if (avatar !== undefined) updates.avatar = avatar;
     if (accentColor !== undefined) updates.accent_color = accentColor || null;
     if (favoriteGenres !== undefined) updates.favorite_genres = favoriteGenres;
     if (adultEnabled !== undefined) updates.adult_enabled = adultEnabled;
@@ -73,7 +99,7 @@ export async function PUT(req: Request) {
         const metaUpdates: Record<string, unknown> = {};
         if (name !== undefined) metaUpdates.name = name || null;
         if (bio !== undefined) metaUpdates.bio = bio || null;
-        if (avatar !== undefined) metaUpdates.avatar = avatar || 'hero';
+        if (avatar !== undefined) metaUpdates.avatar = avatar;
         if (accentColor !== undefined) metaUpdates.accentColor = accentColor || null;
         if (favoriteGenres !== undefined) metaUpdates.favoriteGenres = favoriteGenres;
         if (adultEnabled !== undefined) metaUpdates.adultEnabled = adultEnabled;
@@ -86,7 +112,7 @@ export async function PUT(req: Request) {
       const metaUpdates: Record<string, unknown> = {};
       if (name !== undefined) metaUpdates.name = name || null;
       if (bio !== undefined) metaUpdates.bio = bio || null;
-      if (avatar !== undefined) metaUpdates.avatar = avatar || 'hero';
+      if (avatar !== undefined) metaUpdates.avatar = avatar;
       if (accentColor !== undefined) metaUpdates.accentColor = accentColor || null;
       if (favoriteGenres !== undefined) metaUpdates.favoriteGenres = favoriteGenres;
       if (adultEnabled !== undefined) metaUpdates.adultEnabled = adultEnabled;
@@ -97,7 +123,7 @@ export async function PUT(req: Request) {
       id: user!.id,
       email: user!.email,
       name: name !== undefined ? (name || null) : user!.name,
-      avatar: avatar !== undefined ? (avatar || 'hero') : (user!.avatar || 'hero'),
+      avatar: avatar !== undefined ? avatar : (user!.avatar || 'hero'),
       bio: bio !== undefined ? (bio || null) : user!.bio,
       accentColor: accentColor !== undefined ? (accentColor || null) : ((user as Record<string, unknown>).accentColor as string | null ?? null),
       favoriteGenres: favoriteGenres !== undefined ? favoriteGenres : ((user as Record<string, unknown>).favoriteGenres as string[] ?? []),

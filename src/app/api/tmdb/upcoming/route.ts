@@ -5,8 +5,9 @@ import type { PaginatedResponse, Movie } from '@/lib/types';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const page = searchParams.get('page') || '1';
-    const data = await tmdbFetch<PaginatedResponse<Movie>>('/movie/upcoming', { page, region: 'IN' });
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isNaN(rawPage) ? 1 : Math.max(1, Math.min(rawPage, 500));
+    const data = await tmdbFetch<PaginatedResponse<Movie>>('/movie/upcoming', { page: String(page), region: 'IN' });
     return NextResponse.json(data);
   } catch {
     return NextResponse.json({ error: 'Failed to fetch upcoming movies' }, { status: 500 });

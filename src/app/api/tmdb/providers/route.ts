@@ -5,11 +5,16 @@ import type { PaginatedResponse } from '@/lib/types';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const providerId = searchParams.get('provider_id');
-  const page = searchParams.get('page') || '1';
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
+  const page = Number.isNaN(rawPage) ? 1 : Math.max(1, Math.min(rawPage, 500));
   const type = searchParams.get('type') || 'movie';
 
   if (!providerId) {
     return NextResponse.json({ error: 'provider_id is required' }, { status: 400 });
+  }
+
+  if (!/^\d+$/.test(providerId)) {
+    return NextResponse.json({ error: 'Invalid provider_id format' }, { status: 400 });
   }
 
   if (type && type !== 'movie' && type !== 'tv') {
@@ -26,7 +31,7 @@ export async function GET(req: NextRequest) {
       with_watch_providers: providerId,
       watch_region: 'US',
       sort_by: 'popularity.desc',
-      page,
+      page: String(page),
     });
 
     // Normalize results

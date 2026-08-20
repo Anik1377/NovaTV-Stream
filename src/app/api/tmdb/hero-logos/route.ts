@@ -44,6 +44,9 @@ export async function GET(req: NextRequest) {
     const ids = idsParam.split(',');
     const types = typesParam.split(',');
 
+    if (ids.length > 20) { return NextResponse.json({ error: 'Too many IDs requested' }, { status: 400 }); }
+    const validTypes = types.every((t: string) => t === 'movie' || t === 'tv');
+    if (!validTypes) { return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 }); }
     const results: Record<string, LogoResult> = {};
 
     // Fetch in parallel batches of 4 to avoid rate limiting

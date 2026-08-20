@@ -9,6 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    if (!/^\d+$/.test(id)) { return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 }); }
     const data = await getCached(`tmdb-movie-${id}`, 5 * 60 * 1000, () =>
       Promise.all([
         tmdbFetch<MovieDetails>(`/movie/${id}`),

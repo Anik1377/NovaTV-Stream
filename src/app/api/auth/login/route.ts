@@ -10,6 +10,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
@@ -30,7 +35,7 @@ export async function POST(req: Request) {
       if (msg.includes('email not confirmed')) {
         return NextResponse.json({ error: 'Please confirm your email first' }, { status: 403 });
       }
-      return NextResponse.json({ error: error.message }, { status: 401 });
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
     }
 
     // Ensure local user record exists
@@ -50,8 +55,8 @@ export async function POST(req: Request) {
           email: authUser.email!,
         },
       });
-    } catch {
-      // Prisma unavailable — continue anyway
+    } catch (err) {
+      console.error('Prisma upsert failed during login:', err);
     }
 
     return NextResponse.json({

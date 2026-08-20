@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const pageParam = searchParams.get('page') || '1';
     const category = searchParams.get('category') || 'popular';
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const rawLimit = parseInt(searchParams.get('limit') || '50', 10); const limit = Math.min(Number.isNaN(rawLimit) ? 50 : Math.max(1, rawLimit), 100);
 
     let endpoint = '/person/popular';
     if (category === 'trending') endpoint = '/trending/person/week';
@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
     // TMDB returns 20 per page, so we may need multiple pages to fill the limit
     const tmdbPerPage = 20;
     const pagesNeeded = Math.ceil(limit / tmdbPerPage);
-    const effectivePage = parseInt(pageParam, 10);
+    const page = Math.max(1, parseInt(pageParam, 10) || 1);
     // Map our logical page to TMDB pages (page 1 → TMDB 1-3, page 2 → TMDB 4-6, etc.)
-    const tmdbStartPage = (effectivePage - 1) * pagesNeeded + 1;
+    const tmdbStartPage = (page - 1) * pagesNeeded + 1;
 
     const allResults: Person[] = [];
     let totalPages = 500;
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const effectiveTotalPages = Math.ceil(totalPages / pagesNeeded);
 
     return NextResponse.json({
-      page: effectivePage,
+      page: page,
       results,
       total_results: totalResults,
       total_pages: effectiveTotalPages,

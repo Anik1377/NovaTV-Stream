@@ -10,8 +10,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
+    if (typeof password !== 'string') {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 400 });
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -38,7 +47,7 @@ export async function POST(req: Request) {
       if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already')) {
         return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
       }
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: 'Registration failed' }, { status: 400 });
     }
 
     const authUser = data.user;
@@ -57,8 +66,8 @@ export async function POST(req: Request) {
         },
         update: { email: authUser.email! },
       });
-    } catch {
-      // Prisma unavailable — continue anyway
+    } catch (err) {
+      console.error('Prisma upsert failed during register:', err);
     }
 
     // If email confirmation is required, user won't have a session yet

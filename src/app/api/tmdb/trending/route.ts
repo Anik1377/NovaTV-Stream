@@ -23,13 +23,19 @@ interface TrendingItem {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const page = searchParams.get('page') || '1';
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = Number.isNaN(rawPage) ? 1 : Math.max(1, Math.min(rawPage, 500));
     const timeWindow = searchParams.get('time_window') || 'week';
+
+    const validWindows = ['day', 'week'];
+    if (!validWindows.includes(timeWindow)) {
+      return NextResponse.json({ error: 'Invalid time window' }, { status: 400 });
+    }
 
     // Use TMDB's trending endpoint — always returns 20 popular items
     const data = await tmdbFetch<{ results: TrendingItem[] }>(
       `/trending/all/${timeWindow}`,
-      { page },
+      { page: String(page) },
     );
 
     const results: Movie[] = data.results.map((r) => ({
@@ -40,7 +46,7 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({
-      page: parseInt(page),
+      page,
       results,
       total_results: results.length,
       total_pages: 1,

@@ -1352,3 +1352,144 @@ Stage Summary:
 - **No hardcoded secrets** found (removed in prior audit)
 - **SPA with 21+ public views**, no server-side route guards
 - **Key risks**: Caddy XTransformPort SSRF, third-party iframe XSS surface, no rate limiting, no CSP, Prisma query logging in production, unused security packages, cache flooding DoS potential
+---
+Task ID: fix-c2-c4-h3
+Agent: security-fixer
+Task: Fix fake auth, add CSP/HSTS, disable Prisma query logging
+
+Work Log:
+- FIX C2: Replaced fake Authorization header check in /api/tmdb/adult/route.ts with real Supabase JWT verification using `createClient` from `@/utils/supabase/server` and `cookies` from `next/headers`. Now calls `getUser()` to verify the session, then queries the `profiles` table for `adult_enabled: true`. Returns 401 if unauthenticated, 403 if adult not enabled.
+- FIX C2: Changed error response on catch block to return generic 'Internal server error' instead of leaking `err.message`.
+- FIX C4+M1: Added Content-Security-Policy header to middleware with restrictive allowlists for script-src, frame-src, img-src, style-src, font-src, connect-src, and media-src directives.
+- FIX C4+M1: Added Strict-Transport-Security header (max-age=31536000; includeSubDomains) to middleware.
+- FIX C4+M1: Changed X-Frame-Options from DENY to SAMEORIGIN to allow iframe-based video playback.
+- FIX C4+M1: Kept existing X-Content-Type-Options, Referrer-Policy, and Permissions-Policy headers.
+- FIX H3: Changed Prisma query logging from unconditional `log: ['query']` to `log: process.env.NODE_ENV === 'development' ? ['query'] : []` in src/lib/db.ts.
+- All changes pass ESLint with zero errors.
+
+Stage Summary:
+- 3 files changed: src/app/api/tmdb/adult/route.ts, src/middleware.ts, src/lib/db.ts
+- Adult content endpoint now requires real Supabase session + adult_enabled profile flag
+- Error messages no longer leak internal details
+- Middleware now sets CSP, HSTS, SAMEORIGIN X-Frame-Options, plus existing headers
+- Prisma query logging disabled in production
+
+---
+Task ID: fix-c3-h4-h5
+Agent: security-fixer
+Task: Fix unbounded API calls, validate path params
+
+Work Log:
+- FIX C3: Capped `limit` param to max 100 in src/app/api/tmdb/people/route.ts; validated `page` as positive integer with `Math.max(1, ...)`
+- FIX H4: Added ids count validation (max 20) and type validation (must be 'movie' or 'tv') in src/app/api/tmdb/hero-logos/route.ts
+- FIX H5: Added `/^\d+$/` regex validation for `id` path param in src/app/api/tmdb/movie/[id]/route.ts
+- FIX H5: Added `/^\d+$/` regex validation for `id` path param in src/app/api/tmdb/tv/[id]/route.ts
+- FIX H5: Added `/^\d+$/` regex validation for both `id` and `season` path params in src/app/api/tmdb/tv/[id]/season/[season]/route.ts
+- FIX H5: Added `/^\d+$/` regex validation for `id` path param in src/app/api/tmdb/people/[id]/route.ts
+- FIX H5: Added `/^\d+$/` regex validation for `provider_id` query param in src/app/api/tmdb/providers/route.ts
+
+Stage Summary:
+- 7 files changed with input validation hardening
+- Unbounded `limit` parameter now capped at 100; `page` guaranteed positive
+- Hero-logos batch endpoint limited to 20 IDs with strict type checking
+- All [id] and [season] path params validated as numeric before use
+- provider_id query param validated as numeric
+- All changes pass ESLint with zero errors
+
+---
+Task ID: fix-h1-h2-m11
+Agent: security-fixer
+Task: Add sandbox to all iframes, validate trailer keys
+
+Work Log:
+- H1: Added `sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"` and `referrerPolicy="no-referrer"` to the iframe in src/components/movie/VideoPlayer.tsx (line ~391)
+- H2: Added `sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"` and `referrerPolicy="no-referrer"` to YouTube iframe in src/components/movie/MovieDetail.tsx
+- H2: Added trailer key validation (`/^[A-Za-z0-9_-]{11}$/`) before rendering iframe in MovieDetail.tsx
+- H2: Added `sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"` and `referrerPolicy="no-referrer"` to YouTube iframe in src/components/movie/TvDetail.tsx
+- H2: Added trailer key validation (`/^[A-Za-z0-9_-]{11}$/`) before rendering iframe in TvDetail.tsx
+- H2: Added `sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"` and `referrerPolicy="no-referrer"` to YouTube iframe in src/components/showreel/ShowReelDetail.tsx
+- H2: Added `sandbox="allow-scripts allow-same-origin allow-presentation allow-autoplay"` and `referrerPolicy="no-referrer"` to YouTube iframe in src/components/movie/HoverPreviewCard.tsx
+- M11: Changed GameRenderer.tsx sandbox from `"allow-scripts allow-same-origin"` to `"allow-scripts allow-presentation"` (removed allow-same-origin to prevent games from accessing parent cookies/storage)
+
+Stage Summary:
+- 6 files changed: VideoPlayer.tsx, MovieDetail.tsx, TvDetail.tsx, ShowReelDetail.tsx, HoverPreviewCard.tsx, GameRenderer.tsx
+- All YouTube iframes now have restrictive sandbox and no-referrer policy
+- Trailer keys validated against YouTube's 11-char alphanumeric pattern in MovieDetail and TvDetail
+- Game iframe no longer has allow-same-origin, preventing access to parent origin's cookies/storage
+
+---
+Task ID: fix-h6-h7-m7
+Agent: security-fixer
+Task: Fix manga proxy, sanitize errors, fix caches
+
+Work Log:
+- H6: Added Content-Length check (max 10MB) before reading response body in src/app/api/manga/proxy/route.ts
+- H6: Added HTTPS-only protocol validation after URL parsing in manga proxy
+- H6: Reduced manga proxy imageCache max from 500 to 100 entries
+- H6: Removed x-cache HIT/MISS headers from manga proxy responses
+- H7: Sanitized login error fallback (error.message → 'Authentication failed') in src/app/api/auth/login/route.ts
+- H7: Sanitized register error fallback (error.message → 'Registration failed') in src/app/api/auth/register/route.ts
+- H7: Sanitized profile history error (error.message → 'Failed to record watch history') in src/app/api/profile/history/route.ts
+- H7: Removed `details` field from error responses in src/app/api/youtube/search/route.ts
+- H7: Removed `details` field from error responses in src/app/api/youtube/trending/route.ts
+- H7: Removed `details` field from error responses in src/app/api/youtube/related/route.ts
+- H7: Removed `details` field from error responses in src/app/api/youtube/playlists/route.ts
+- M7: Added max 200 entries eviction to youtube.ts setCache (deletes oldest entry before insert)
+- M7: Added max 100 entries eviction to tmdb adult route cache (deletes oldest entry before insert)
+
+Stage Summary:
+- 10 files changed: manga/proxy/route.ts, auth/login/route.ts, auth/register/route.ts, profile/history/route.ts, youtube/search/route.ts, youtube/trending/route.ts, youtube/related/route.ts, youtube/playlists/route.ts, lib/youtube.ts, tmdb/adult/route.ts
+- Manga proxy now validates HTTPS protocol, enforces 10MB response size limit, and has reduced cache (100 max)
+- All API error responses sanitized — no internal error messages or stack traces leaked to clients
+- YouTube lib cache and TMDB adult route cache are now bounded (200 and 100 entries respectively)
+
+---
+Task ID: fix-medium
+Agent: security-fixer
+Task: Fix CORS, mass assignment, OG route, NaN, select(*), tmdbId, logout CSRF, accentColor
+
+Work Log:
+- M3 (CORS): Added CORS headers block to Caddyfile before the handle block — Access-Control-Allow-Origin, Methods, Headers, Credentials
+- M4 (Mass assignment): Replaced weak bio/genres checks in profile/route.ts PUT with strict per-field validation: name (string, max 100), bio (string, max 200), avatar (allowlist of 6 values), accentColor (hex regex), favoriteGenres (array of strings, max 20 items, each max 50 chars), adultEnabled (boolean)
+- M5 (OG route): Added poster/backdrop path validation via regex and IP-based rate limiting (10 req/min) in share/og/route.ts
+- M6 (NaN propagation): Replaced parseInt() with Number() || default in profile/history/route.ts (limit) and history/route.ts (limit, offset) to prevent NaN
+- M8 (select('*')): Replaced .select('*') with explicit column list in auth/me/route.ts and lib/auth.ts
+- M9 (tmdbId validation): Added integer type check for tmdbId and mediaType allowlist validation in both profile/history/route.ts (movie/tv) and history/route.ts (movie/tv/person)
+- M10 (Logout CSRF): Added Origin header check in auth/logout/route.ts — rejects requests with mismatched origin (403)
+- All changes pass ESLint with zero errors
+
+Stage Summary:
+- 8 files changed: Caddyfile, profile/route.ts, share/og/route.ts, profile/history/route.ts, history/route.ts, auth/me/route.ts, lib/auth.ts, auth/logout/route.ts
+- CORS restricted to streamvault.app origin
+- Mass assignment fully mitigated with strict type + format + range validation on all profile fields
+- OG image route hardened with path validation and rate limiting
+- NaN propagation eliminated from pagination parameters
+- Database queries use explicit column selection instead of SELECT *
+- tmdbId validated as integer, mediaType validated against allowlist
+- Logout endpoint protected against cross-origin CSRF attacks
+
+---
+Task ID: fix-low
+Agent: security-fixer
+Task: Fix password policy, email validation, Prisma errors, dead models, page validation, build config
+
+Work Log:
+- L1: Strengthened password policy in src/app/api/auth/register/route.ts — added typeof check for password, raised minimum length from 6 to 8 characters
+- L2: Added email format validation (regex /^[^\s@]+@[^\s@]+\.[^\s@]+$/) in both src/app/api/auth/register/route.ts and src/app/api/auth/login/route.ts
+- L3: Replaced silent catch blocks in Prisma upsert in register/route.ts and login/route.ts with console.error logging including descriptive messages
+- L5: Changed next.config.ts: ignoreBuildErrors true→false, reactStrictMode false→true
+- Page validation: Added parseInt + NaN guard + clamping (1–500) to all TMDB routes: trending, discover, upcoming, anime, providers; converted page to String() when passed as query param
+- Added timeWindow validation (allowlist: day, week) in trending/route.ts
+- Added mediaType validation (allowlist: movie, tv) in discover/route.ts
+- L7: Removed unused passwordHash field from User model and entire Session model from prisma/schema.prisma; ran db push to sync
+- All changes pass ESLint with zero errors
+
+Stage Summary:
+- 9 files changed: register/route.ts, login/route.ts, next.config.ts, trending/route.ts, discover/route.ts, upcoming/route.ts, anime/route.ts, providers/route.ts, schema.prisma
+- Password minimum length raised to 8 with type guard
+- Email format validated on both auth endpoints
+- Prisma errors now logged instead of silently swallowed
+- Build config hardened (strict TS, strict mode)
+- Page parameter validated and clamped across 5 TMDB API routes
+- timeWindow and mediaType validated against allowlists
+- Dead Prisma fields (passwordHash) and models (Session) removed from schema

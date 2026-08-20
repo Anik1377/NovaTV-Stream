@@ -1,5 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const ogRateLimit = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const windowMs = 60_000;
+  const maxRequests = 10;
+  const timestamps = ogRateLimit.get(ip) || [];
+  const recent = timestamps.filter((t) => now - t < windowMs);
+  if (recent.length >= maxRequests) {
+    ogRateLimit.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  ogRateLimit.set(ip, recent);
+  return false;
+}
+
+const POSTER_PATH_REGEX = /^(?:\/)?[A-Za-z0-9_/-]+\.(jpg|jpeg|png|webp)$/;
+
 async function proxyImage(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url, { redirect: 'follow' });
@@ -15,6 +34,12 @@ function esc(s: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting by IP
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (isRateLimited(ip)) {
+    return new Response('Too many requests', { status: 429 });
+  }
+
   const sp = req.nextUrl.searchParams;
   const title = sp.get('title') || 'StreamVault';
   const year = sp.get('year') || '';
@@ -26,6 +51,14 @@ export async function GET(req: NextRequest) {
   const backdrop = sp.get('backdrop') || '';
   const runtime = sp.get('runtime') || '';
   const mediaType = sp.get('type') || 'movie';
+
+  // Validate poster and backdrop paths
+  if (poster && !POSTER_PATH_REGEX.test(poster)) {
+    return new Response('Invalid poster path', { status: 400 });
+  }
+  if (backdrop && !POSTER_PATH_REGEX.test(backdrop)) {
+    return new Response('Invalid backdrop path', { status: 400 });
+  }
 
   const genres = [g1, g2, g3].filter(Boolean);
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 import { tmdbFetch } from '@/lib/tmdb';
 import type { Movie, PaginatedResponse } from '@/lib/types';
 
@@ -34,10 +36,26 @@ function toMovie(r: DiscoverResult, mediaType: 'movie' | 'tv'): Movie {
 }
 
 export async function GET(req: NextRequest) {
-  // Auth check: require Authorization header (Supabase JWT)
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader) {
+  // Auth check: verify Supabase session and adult_enabled profile flag
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  if (!supabase) {
+    return NextResponse.json({ error: 'Authentication service unavailable' }, { status: 500 });
+  }
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('adult_enabled')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !profile.adult_enabled) {
+    return NextResponse.json({ error: 'Adult content access is not enabled for this account' }, { status: 403 });
   }
 
   try {
@@ -104,10 +122,14 @@ export async function GET(req: NextRequest) {
       totalPages = Math.max(mRes.total_pages, tRes.total_pages, 1);
     }
 
+    if (cache.size > 100) {
+      const firstKey = cache.keys().next().value;
+      cache.delete(firstKey);
+    }
     cache.set(cacheKey, { data: movies, total: totalPages, expiry: Date.now() + CACHE_TTL });
     return NextResponse.json(movies);
   } catch (err: any) {
-    console.error('Adult API error:', err.message);
-    return NextResponse.json({ error: err.message || 'Failed' }, { status: 500 });
+    console.error('Adult API error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
