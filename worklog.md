@@ -977,3 +977,378 @@ Stage Summary:
 - Share button appears on both movie and TV show detail pages
 - Share modal features: native share, copy link, X, WhatsApp, Telegram, download as image
 - OG image API for social media link previews
+
+---
+Task ID: 1
+Agent: security-surface-mapper
+Task: Build attack surface map
+
+Work Log:
+## 1. API ROUTES — Complete Inventory
+
+### Auth Routes (src/app/api/auth/)
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/auth/login | POST | NO | Public. Accepts email+password, delegates to Supabase signInWithPassword. Upserts user to local Prisma DB. |
+| /api/auth/register | POST | NO | Public. Password min 6 chars. Delegates to Supabase signUp. |
+| /api/auth/logout | POST | NO | Clears Supabase session cookies. No auth check. |
+| /api/auth/me | GET | NO (returns null if unauth) | Returns user profile or {user: null}. No 401 gate — just returns null. |
+
+### User Data Routes (src/app/api/profile/, src/app/api/history/, src/app/api/profile/history/)
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/profile | GET, PUT | YES (getSessionUser) | Reads/writes user profile (name, bio, avatar, accentColor, favoriteGenres, adultEnabled). Bio limited to 200 chars. |
+| /api/profile/history | GET, POST, DELETE | YES (getSessionUser) | Watch history CRUD. Scoped to user_id. |
+| /api/history | GET, POST, DELETE | YES (supabase.auth.getUser) | Browse history CRUD via Prisma SQLite. Scoped to userId. MediaType validated to movie/tv/person. |
+
+### TMDB Routes (src/app/api/tmdb/) — ALL PUBLIC, NO AUTH
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/tmdb/search | GET | NO | Multi-search (movies+tv+people). In-memory 5min cache. |
+| /api/tmdb/movie/[id] | GET | NO | Movie details + credits + similar + videos. |
+| /api/tmdb/tv/[id] | GET | NO | TV show details + credits + similar + videos. |
+| /api/tmdb/tv/[id]/season/[season] | GET | NO | Season details + episode list. |
+| /api/tmdb/trending | GET | NO | Trending movies+tv. Page + time_window params. |
+| /api/tmdb/popular-movies | GET | NO | Popular movies (region=IN). |
+| /api/tmdb/popular-tv | GET | NO | Popular TV shows (global). |
+| /api/tmdb/top-rated | GET | NO | Top rated movies (region=IN). |
+| /api/tmdb/top-rated-tv | GET | NO | Top rated TV shows (global). |
+| /api/tmdb/genres | GET | NO | All movie+tv genres. |
+| /api/tmdb/discover | GET | NO | Discover with genre_id, media_type, sort_by, region, language filters. |
+| /api/tmdb/upcoming | GET | NO | Upcoming movies (region=IN). |
+| /api/tmdb/adult | GET | YES (Authorization header) | Adult content discover+search. Only route with explicit auth. |
+| /api/tmdb/hero-logos | GET | NO | Batch logo fetch for multiple IDs. |
+| /api/tmdb/desi | GET | NO | Indian language content (Hindi, Tamil, Telugu, etc.). |
+| /api/tmdb/indian-boost | GET | NO | Hindi+Tamil+Telugu movies+tv. |
+| /api/tmdb/anime | GET | NO | Anime browse (trending/popular/top-rated/airing/upcoming/movies). |
+| /api/tmdb/anime/all | GET | NO | Batch fetch all anime categories. |
+| /api/tmdb/people | GET | NO | Popular/trending people. Paginated. |
+| /api/tmdb/people/[id] | GET | NO | Person details + credits + images. |
+| /api/tmdb/providers | GET | NO | Movies/shows by provider ID (type param validated to movie/tv). |
+| /api/tmdb/providers-list | GET | NO | Cached (24hr) list of 10 OTT provider logos (region=IN). |
+| /api/tmdb/preview | GET | NO | Quick movie/tv preview (type param validated to movie/tv). |
+
+### Manga Routes (src/app/api/manga/) — ALL PUBLIC, NO AUTH
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/manga/search | GET | NO | MangaDex search. |
+| /api/manga/detail | GET | NO | Manga detail + chapter list. |
+| /api/manga/chapter | GET | NO | Chapter page URLs from MangaDex. |
+| /api/manga/trending | GET | NO | Trending manga. |
+| /api/manga/proxy | GET | NO | Image proxy for MangaDex CDN. Host validation (mangadex.org, uploads.mangadex.org, mangadex.network). Manual redirect validation (max 5 hops). |
+
+### YouTube Routes (src/app/api/youtube/) — ALL PUBLIC, NO AUTH
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/youtube/search | GET | NO | Music video search via YouTube Data API. |
+| /api/youtube/trending | GET | NO | Trending music (US region). |
+| /api/youtube/related | GET | NO | Related music videos. |
+| /api/youtube/playlists | GET | NO | Playlist search. |
+
+### Music Route
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/music/search | GET | NO | JioSaavn music search (unofficial API). |
+
+### Other Routes
+| Route | Methods | Auth Required | Notes |
+|---|---|---|---|
+| /api/home | GET | NO | Aggregated home page data (9+ TMDB calls). 5min cache. |
+| /api/home/categories | GET | NO | Genre-based category data. |
+| /api/showreels | GET | NO | Movie trailers with hype scores. |
+| /api/showreels/buzz | GET | NO | YouTube buzz for a movie. |
+| /api/supabase/setup | POST | DISABLED (403) | SQL setup endpoint. Returns 403 in production. SQL exported as constant. |
+| /api/share/og | GET | NO | Generates OG image SVG for social sharing. Proxies TMDB images. |
+| /api/live-tv/channels | GET | NO | Fetches IPTV channels from iptv-org. Country param sanitized to /^[a-zA-Z0-9-]{1,3}$/. |
+| /api | GET | NO | Returns {message: "Hello, world!"}. |
+
+**TOTAL API ROUTES: 40 endpoints**
+**Routes WITH authentication: 4 (/api/profile GET+PUT, /api/profile/history, /api/history, /api/tmdb/adult)**
+**Routes WITHOUT authentication: 36**
+
+## 2. ENVIRONMENT VARIABLES
+
+| Variable | File | Purpose | Exposure |
+|---|---|---|---|
+| DATABASE_URL | .env | SQLite connection string | Server-only |
+| TMDB_API_KEY | (expected in env) | TMDB API authentication | Server-only (used in tmdb.ts getTmdbKey()) |
+| YOUTUBE_API_KEY | (expected in env) | YouTube Data API v3 key | Server-only (used in youtube.ts) |
+| NEXT_PUBLIC_SUPABASE_URL | (expected in env) | Supabase project URL | **EXPOSED TO CLIENT** (NEXT_PUBLIC_ prefix) |
+| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | (expected in env) | Supabase anon/public key | **EXPOSED TO CLIENT** (NEXT_PUBLIC_ prefix) |
+
+**Only .env file found** — no .env.local, .env.example, or .env.production.
+Current .env contains only: `DATABASE_URL=file:/home/z/my-project/db/custom.db`
+
+## 3. THIRD-PARTY INTEGRATIONS
+
+### Active (Production)
+1. **Supabase** (@supabase/ssr, @supabase/supabase-js) — Authentication, profiles table, watch_history table. Used via SSR cookie-based auth.
+2. **TMDB API** (api.themoviedb.org/3) — Movie/TV metadata, search, discover. API key in server env.
+3. **YouTube Data API v3** (googleapis.com/youtube/v3) — Music video search, trending, playlists. API key in server env.
+4. **MangaDex API** (api.mangadex.org) — Manga search, detail, chapter pages. No auth required. Image proxy for CDN.
+5. **JioSaavn** (www.jiosaavn.com/api.php) — Unofficial music search API. No auth required. Spoofed User-Agent.
+6. **IPTV-org** (iptv-org.github.io) — Public M3U playlists for Live TV. No auth required.
+7. **Video Streaming Providers** (vidsrc.cc, videasy.net, vidsrc.icu, vidsrc.sbs, vidsrc.pm, vidsrc.pro, vidlink.pro, embed.su, multiembed.mov, playembeds.com) — Third-party video embeds. URLs constructed in src/lib/providers.ts. Loaded in iframes.
+8. **TMDB Image CDN** (image.tmdb.org) — Poster/backdrop images. Proxied in /api/share/og.
+
+### In examples/ (NOT in production)
+9. **Socket.IO** — Chat server example in examples/websocket/server.ts (port 3003). CORS origin: "*". NOT used in production Next.js app.
+
+## 4. AUTHENTICATION MECHANISM
+
+- **Provider**: Supabase Auth (email+password)
+- **Session Management**: Cookie-based via @supabase/ssr. Supabase middleware refreshes sessions on every request.
+- **Auth config file**: src/lib/auth.ts — exports getSessionUser(), unauthorized(), ok(), badRequest()
+- **No NextAuth config found** (next-auth is in package.json deps but NOT used — Supabase replaces it)
+- **No JWT verification in API routes** — routes call supabase.auth.getUser() which validates the session cookie server-side
+- **Password policy**: Minimum 6 characters (enforced in /api/auth/register only)
+- **Email confirmation**: Optional (controlled by Supabase project settings)
+- **No rate limiting** on login, register, or any auth endpoints
+- **No CSRF protection** beyond Supabase's built-in cookie handling
+- **No account lockout** after failed attempts
+- **No password complexity requirements** beyond length >= 6
+
+## 5. DATABASE SCHEMA (Prisma + SQLite)
+
+**Database**: SQLite (file:/home/z/my-project/db/custom.db)
+**ORM**: Prisma (prisma-client-js)
+
+### Models:
+1. **User** — id (PK, String), email (unique), passwordHash (optional), name, avatar, bio, createdAt, updatedAt. Relations: Session[], WatchHistory[], BrowseHistory[]
+2. **Session** — id (PK, CUID), token (unique), userId (FK→User), expiresAt, createdAt
+3. **WatchHistory** — id (PK, CUID), userId (FK→User), tmdbId (Int), title, posterPath, mediaType, season, episode, watchedAt. Index: [userId, watchedAt]
+4. **BrowseHistory** — id (PK, CUID), userId (FK→User), tmdbId (Int), title, posterPath, mediaType, subtitle, visitedAt. Index: [userId, visitedAt], Unique: [userId, tmdbId, mediaType]
+
+**NOTE**: Session model exists in schema but is NOT used anywhere in the codebase — Supabase handles sessions.
+**NOTE**: User.passwordHash exists in schema but is NOT populated — auth is fully delegated to Supabase.
+
+### Supabase Tables (created via SQL in supabase/setup/route.ts):
+- **profiles** — id (UUID FK→auth.users), email, name, avatar, bio, created_at, updated_at. RLS enabled.
+- **watch_history** — id (UUID), user_id (UUID FK→auth.users), tmdb_id, title, poster_path, media_type, season, episode, watched_at. RLS enabled.
+- **handle_new_user()** trigger on auth.users for auto profile creation.
+
+## 6. WEBSOCKET/SOCKET.IO USAGE
+
+- **NOT used in production**. No socket.io import in src/.
+- Example WebSocket chat server exists at **examples/websocket/server.ts** (port 3003, Socket.IO with CORS origin: "*"). This is a development example, not part of the Next.js build.
+- No WebSocket connections in any client-side code.
+
+## 7. PACKAGE.JSON DEPENDENCIES
+
+### Production Dependencies (37):
+@supabase/ssr, @supabase/supabase-js, @prisma/client, @radix-ui/* (19 UI components), @hookform/resolvers, @tanstack/react-query, @tanstack/react-table, @dnd-kit/core+sortable+utilities, @mdxeditor/editor, @reactuses/core, bcryptjs, class-variance-authority, clsx, cmdk, date-fns, embla-carousel-react, framer-motion, hls.js, html-to-image, input-otp, lucide-react, next (16.1.1), next-auth (4.24.11 — UNUSED), next-intl, next-themes, prisma, react (19), react-dom (19), react-day-picker, react-hook-form, react-markdown, react-resizable-panels, react-syntax-highlighter, recharts, sharp, sonner, tailwind-merge, tailwindcss-animate, uuid, z-ai-web-dev-sdk, zod, zustand
+
+### Dev Dependencies (10):
+@resvg/resvg-js, @tailwindcss/postcss, @types/bcryptjs, @types/react, @types/react-dom, bun-types, eslint, eslint-config-next, tailwindcss, tw-animate-css, typescript
+
+### Security-Relevant Packages:
+- **bcryptjs** — imported but NOT used in any route (auth is Supabase-only)
+- **next-auth** — in deps but NOT configured or used
+- **zod** — imported but NOT used for input validation in any API route
+- **sharp** — used for image processing (likely OG image generation)
+- **z-ai-web-dev-sdk** — AI SDK (development tool, likely not in production paths)
+
+## 8. MIDDLEWARE (src/middleware.ts)
+
+- **Matcher**: All paths except _next/static, _next/image, favicon.ico, logos/, icon-*, logo, manifest, robots.txt, games/
+- **Behavior**: Refreshes Supabase session via getUser(). Adds security headers to ALL responses.
+- **No route protection** — middleware does NOT block any routes based on auth status. All routes accessible regardless of login.
+- **No rate limiting** in middleware.
+- **Error handling**: On any error, passes through with security headers (fails open).
+
+## 9. REVERSE PROXY CONFIG (Caddyfile)
+
+```
+:81 {
+    @transform_port_query { query XTransformPort=* }
+    handle @transform_port_query {
+        reverse_proxy localhost:{query.XTransformPort} {
+            header_up Host {host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    handle {
+        reverse_proxy localhost:3000 {
+            header_up Host {host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+}
+```
+
+**CRITICAL FINDING**: The XTransformPort query parameter allows routing to ANY local port. If a query parameter `?XTransformPort=3003` is present, Caddy proxies to that port. This could expose the WebSocket example server or any other local service.
+
+**No TLS** configured in Caddyfile (HTTP only on port 81).
+**No rate limiting** in Caddy.
+**No security headers** at Caddy level (handled by Next.js middleware).
+**No request body size limits**.
+
+## 10. FILE UPLOAD ENDPOINTS
+
+**NONE found.** No multer, formidable, or any file upload handling in any API route. The /api/manga/proxy is an image fetch/proxy endpoint (GET only), not an upload endpoint.
+
+## 11. CORS CONFIGURATION
+
+- **Next.js app**: No explicit CORS configuration in next.config.ts or any API route. Next.js API routes do not set Access-Control-Allow-Origin headers by default.
+- **WebSocket example**: CORS origin: "*" (in examples/websocket/server.ts, NOT production).
+- **Caddy**: No CORS headers configured.
+- **Effective CORS**: Browser Same-Origin Policy applies. API routes are same-origin. No cross-origin API access configured.
+
+## 12. SECURITY HEADERS CONFIGURATION
+
+Set in middleware.ts addSecurityHeaders():
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+**Missing headers**:
+- No `Content-Security-Policy` (CSP)
+- No `Strict-Transport-Security` (HSTS)
+- No `X-XSS-Protection`
+- No `Access-Control-Allow-Origin` (needed for any cross-origin API use)
+- No `Cross-Origin-Opener-Policy`
+- No `Cross-Origin-Resource-Policy`
+
+**CONFLICT**: X-Frame-Options: DENY will block iframe embedding of third-party video players (vidsrc.cc, etc.) loaded in the VideoPlayer component. This may be intentionally bypassed or may break functionality.
+
+## 13. ZUSTAND STORES
+
+### auth-store.ts (src/store/auth-store.ts)
+- **State**: user (AuthUser | null), loading (boolean)
+- **Actions**: fetchUser(), login(), register(), logout(), updateProfile()
+- **Data managed**: User session state, auth credentials (email+password passed to API), profile data
+- **Persistence**: No Zustand persist middleware — state resets on page reload. Auth restored via fetchUser() on mount.
+
+### app-store.ts (src/store/app-store.ts)
+- **State**: view, mediaFilter, selectedMovie, selectedTv, searchQuery, searchResults, searchPeople, selectedSeason, selectedEpisode, selectedGenreId, selectedGenreName, selectedCategory, navHistory, selectedProvider, selectedShowreel, selectedManga, selectedChapterId, selectedPerson, watchlist, navCounter
+- **Actions**: Navigation (setView, goHome, showMovies, etc.), selection (selectMovie, selectTv, etc.), watchlist (toggleWatchlist, isInWatchlist)
+- **Data managed**: UI navigation state, search state, user preferences (selectedProvider)
+- **Persistence**: watchlist saved to localStorage as 'streamvault-watchlist'. All other state is ephemeral.
+
+## 14. UTILITY/LIB FILES — Sensitive Operations
+
+| File | Sensitive Operations | Risk |
+|---|---|---|
+| src/lib/auth.ts | getSessionUser() — validates Supabase session. Exports auth helpers. | Core auth — well-structured |
+| src/lib/db.ts | PrismaClient initialization. Logs all queries in dev. | Query logging in non-production |
+| src/lib/tmdb.ts | tmdbFetch() — appends API key to all TMDB requests. | Key exposure if server-side rendering leaks |
+| src/lib/youtube.ts | ytFetch() — appends API key to YouTube requests. In-memory cache. | Key exposure if server-side rendering leaks |
+| src/lib/mangadex.ts | SimpleCache class, URL builder. No auth. | Low risk |
+| src/lib/cache.ts | Generic in-memory cache (max 200 entries). | Memory leak if evictions insufficient |
+| src/lib/providers.ts | Constructs iframe URLs for 10 video streaming providers. | Loads third-party iframes — XSS surface |
+| src/lib/api-response.ts | Response helpers. Hides internal errors in production. | Good practice |
+| src/lib/watch-history.ts | Client-side localStorage watch history. | Client-only, no server risk |
+| src/lib/useRecordHistory.ts | Browse history recording. Syncs localStorage to server on login. | Unauthenticated fire-and-forget POSTs |
+| src/lib/live-tv.ts | Live TV channel fetching and filtering. | Fetches untrusted M3U data |
+| src/lib/games-data.ts | Static game definitions. No sensitive data. | Low risk |
+| src/lib/ott-platforms.ts | Static OTT platform list. No sensitive data. | Low risk |
+| src/lib/content-split.ts | Content splitting utility. No sensitive data. | No risk |
+| src/lib/avatars.tsx | SVG avatar components. No sensitive data. | No risk |
+| src/utils/supabase/server.ts | Creates server-side Supabase client with cookies. | Core auth |
+| src/utils/supabase/client.ts | Creates browser-side Supabase client. | Exposes NEXT_PUBLIC_ vars to client |
+| src/utils/supabase/middleware.ts | Creates middleware Supabase client for session refresh. | Core auth |
+
+## 15. HARDCODED SECRETS
+
+**No hardcoded API keys found in source code.** Previous audit removed them (confirmed in worklog). Keys are expected from environment variables:
+- TMDB_API_KEY — process.env.TMDB_API_KEY (throws if missing)
+- YOUTUBE_API_KEY — process.env.YOUTUBE_API_KEY (throws if missing at call time)
+
+**No .env.example file exists** — no documentation of required environment variables.
+
+## 16. PUBLIC ROUTES AND PAGES
+
+The application is a **Single Page App (SPA)** using Zustand for client-side routing. All views render from a single page.tsx:
+
+**Public views (all accessible without authentication):**
+- `/` — Home (movies, TV, trending, categories, genres, OTT platforms)
+- Search (inline view)
+- Movie Detail (inline view) — loads third-party video embeds
+- TV Detail (inline view) — loads third-party video embeds
+- Genre Browse (inline view)
+- Category Browse (inline view)
+- Live TV (inline view)
+- Anime (inline view)
+- Asian Content (inline view)
+- Desi/Indian Content (inline view)
+- ShowReels (inline view)
+- ShowReel Detail (inline view)
+- Manga/Read (inline view)
+- Manga Detail (inline view)
+- Manga Reader (inline view)
+- People (inline view)
+- People Detail (inline view)
+- Adult Content (inline view) — gated client-side by adultEnabled flag
+- Games (inline view) — 16 games loaded from public/games/*.html
+- Warning Page (legal)
+- Privacy Page (legal)
+- DMCA Page (legal)
+
+**Profile view** — accessible without auth, shows login prompt if unauthenticated.
+
+**Static public files:**
+- /public/games/ — 16 HTML game files (snake, tetris, 2048, etc.)
+- /public/logos/ — 10 OTT platform SVG logos
+- /public/icon-192.png, icon-512.png, logo.svg, logo.png, favicon.ico
+- /public/manifest.json — PWA manifest
+- /public/robots.txt — Allows all crawlers
+
+## 17. ADDITIONAL SECURITY OBSERVATIONS
+
+### Caddy SSRF via XTransformPort
+The Caddyfile has a dangerous routing rule: if query param `XTransformPort` is present, it proxies to `localhost:{value}`. This effectively allows any external request to reach any service running on localhost.
+
+### Third-Party iframe Embeds
+The app loads video content via iframes pointing to 10 third-party streaming services (vidsrc.cc, videasy.net, etc.). These iframes execute arbitrary JavaScript from untrusted domains — a significant XSS surface.
+
+### X-Frame-Options Conflict
+The middleware sets X-Frame-Options: DENY globally, but the app relies on iframes for video playback. This either breaks video playback or the header is ignored by browsers for same-origin frames only.
+
+### No Rate Limiting
+Zero rate limiting on any endpoint — API routes, auth endpoints, and the Caddy reverse proxy are all unlimited.
+
+### Prisma Query Logging
+src/lib/db.ts enables `log: ['query']` which logs all database queries. In production this could leak sensitive data to logs.
+
+### Unused Security Packages
+- `bcryptjs` — imported but unused (auth is Supabase-only)
+- `next-auth` — in dependencies but not configured
+- `zod` — available but not used for input validation
+
+### Database at Known Path
+The SQLite database is at a known path: `file:/home/z/my-project/db/custom.db`. If the server has any path traversal or file serving vulnerability, the database could be downloaded.
+
+### In-Memory Caching
+Multiple routes implement ad-hoc in-memory caches (Map-based) with varying TTLs. No cache key validation — user-controlled parameters (search queries, etc.) are used directly as cache keys. In extreme cases, an attacker could flood the cache with many unique keys to cause memory exhaustion (cache flooding DoS).
+
+### JioSaavn Unofficial API
+The music search endpoint scrapes jiosaavn.com/api.php with a spoofed User-Agent. This may violate ToS and could be blocked at any time.
+
+### No .gitignore Check
+The .env file with DATABASE_URL exists in the project. A .gitignore file should be verified to ensure .env is not committed.
+
+### PWA Installable
+The app has a full PWA manifest (manifest.json) and install prompts. Once installed as a PWA, it runs with elevated capabilities.
+
+Stage Summary:
+- **40 API routes** mapped (4 with auth, 36 public)
+- **5 environment variables** identified (2 client-exposed via NEXT_PUBLIC_ prefix)
+- **8 third-party integrations** in production (Supabase, TMDB, YouTube, MangaDex, JioSaavn, IPTV-org, TMDB Image CDN, 10 video embed providers)
+- **Authentication**: Supabase email+password, cookie-based, no rate limiting, min 6-char password
+- **Database**: SQLite via Prisma (User, Session, WatchHistory, BrowseHistory) + Supabase Postgres (profiles, watch_history with RLS)
+- **WebSocket**: NOT used in production (example only)
+- **37 production + 10 dev dependencies**; 3 security-relevant packages unused (bcryptjs, next-auth, zod)
+- **Middleware**: Session refresh + security headers; NO route protection or rate limiting
+- **Caddy reverse proxy** on port 81 with **critical XTransformPort SSRF vulnerability**
+- **No file upload endpoints**
+- **No explicit CORS** configuration
+- **Security headers**: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (missing CSP, HSTS, COOP, CORP)
+- **2 Zustand stores**: auth-store (session), app-store (UI state + localStorage watchlist)
+- **No hardcoded secrets** found (removed in prior audit)
+- **SPA with 21+ public views**, no server-side route guards
+- **Key risks**: Caddy XTransformPort SSRF, third-party iframe XSS surface, no rate limiting, no CSP, Prisma query logging in production, unused security packages, cache flooding DoS potential
