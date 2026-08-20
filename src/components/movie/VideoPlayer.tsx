@@ -13,7 +13,7 @@ import {
   Loader2,
   ArrowRight,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { providers, getProvider, getEmbedUrl, type Provider } from '@/lib/providers';
 import { getRankedProviderIds, getServerScore, recordServerPick } from '@/lib/server-rankings';
 import { useAppStore } from '@/store/app-store';
@@ -71,10 +71,6 @@ export function VideoPlayer({
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
-  const [isLandscape, setIsLandscape] = useState(false);
-  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchStartRef = useRef<{ y: number; time: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -83,25 +79,10 @@ export function VideoPlayer({
   const isIOS = useIsIOS();
   const isMobile = useIsMobile();
 
-  /* ---------------------------------------------------------------- */
-  /*  Landscape detection                                               */
-  /* ---------------------------------------------------------------- */
-  useEffect(() => {
-    const check = () => setIsLandscape(window.innerHeight < window.innerWidth);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  /* ---------------------------------------------------------------- */
-  /*  Memory cleanup: stop iframe on unmount                              */
-  /* ---------------------------------------------------------------- */
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    return () => {
-      if (iframe) iframe.src = 'about:blank';
-    };
-  }, []);
+  // Swipe-to-dismiss (mobile only)
+  const dragY = useMotionValue(0);
+  const iframeScale = useTransform(dragY, [0, 250], [1, 0.92]);
+  const iframeRadius = useTransform(dragY, [0, 250], [8, 24]);
 
   /* ---------------------------------------------------------------- */
   /*  Ranked provider list                                              */
@@ -120,22 +101,23 @@ export function VideoPlayer({
   const activeProvider = getProvider(selectedProvider);
 
   /* ---------------------------------------------------------------- */
-  /*  Swipe-down on top bar to dismiss (Android only, touch area limited   */
-  /*  to top bar so iframe touches are never intercepted)                 */
+  /*  Drag end handler                                                  */
   /* ---------------------------------------------------------------- */
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button')) return;
-    touchStartRef.current = { y: e.touches[0].clientY, time: Date.now() };
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-    const dt = Date.now() - touchStartRef.current.time;
-    touchStartRef.current = null;
-    if (dy > 80 || (dy > 40 && dy / dt > 0.5)) onClose();
-  }, [onClose]);
+  const handleDragEnd = useCallback(
+    (_: unknown, info: { offset: { y: number }; velocity: { y: number } }) => {
+      const shouldClose = info.offset.y > 120 || info.velocity.y > 500;
+      if (shouldClose) {
+        animate(dragY, 600, {
+          duration: 0.25,
+          ease: 'easeOut',
+          onComplete: onClose,
+        });
+      } else {
+        animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
+      }
+    },
+    [dragY, onClose],
+  );
 
   /* ---------------------------------------------------------------- */
   /*  Record watch history                                              */
@@ -167,36 +149,6 @@ export function VideoPlayer({
       }).catch(() => {});
     }
   }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
-
-  /* ---------------------------------------------------------------- */
-  /*  Loading timeout — mobile iframes may never fire onLoad            */
-  /* ---------------------------------------------------------------- */
-  useEffect(() => {
-    // Clear any previous timeouts
-    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
-
-    // On mobile, auto-dismiss loading overlay after 5s so user can interact
-    // Desktop gives more time since onLoad usually fires reliably
-    const dismissDelay = isMobile ? 5000 : 10000;
-
-    dismissTimeoutRef.current = setTimeout(() => {
-      setLoading(false);
-    }, dismissDelay);
-
-    // On mobile, if still loading after 15s, show error with next server option
-    if (isMobile) {
-      loadTimeoutRef.current = setTimeout(() => {
-        setLoading(false);
-        setError(true);
-      }, 15000);
-    }
-
-    return () => {
-      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-      if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
-    };
-  }, [currentSrc, isMobile]);
 
   /* ---------------------------------------------------------------- */
   /*  Body scroll lock                                                  */
@@ -405,52 +357,71 @@ export function VideoPlayer({
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        className="fixed inset-0 z-[100] bg-black flex flex-col ios-player-container"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 60 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
+        style={{ y: dragY }}
+        drag={isMobile ? 'y' : false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0.1, bottom: 0.4 }}
+        onDragEnd={handleDragEnd}
+        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col ios-player-container"
       >
+        {/* iOS: translucent status bar spacer */}
+        <div
+          className="shrink-0 w-full"
+          style={{ height: isIOS ? 'env(safe-area-inset-top, 0px)' : 0 }}
+        />
+
         {/* ==================== TOP BAR ==================== */}
         <div
-          className="flex items-center justify-between shrink-0 z-10"
+          className="flex items-center gap-3 px-3 md:px-5 h-12 shrink-0 z-10 justify-between"
           style={{
-            paddingTop: isIOS ? 'env(safe-area-inset-top, 0px)' : 0,
-            height: isMobile ? 40 : 48,
-            paddingLeft: isMobile ? 8 : 20,
-            paddingRight: isMobile ? 8 : 20,
+            paddingTop: isIOS
+              ? 'max(2px, env(safe-area-inset-top, 0px) - 10px)'
+              : 0,
           }}
-          onTouchStart={isMobile && !isIOS ? handleTouchStart : undefined}
-          onTouchEnd={isMobile && !isIOS ? handleTouchEnd : undefined}
         >
-          {/* Left: Close button — works on ALL devices */}
-          {isMobile ? (
+          {/* Left: iOS Done button or empty spacer */}
+          {isIOS ? (
             <button
               onClick={onClose}
-              className="flex items-center gap-0.5 rounded-full text-white/80 active:text-white active:scale-95 transition-all"
-              style={isIOS ? {
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-white/80 hover:text-white text-sm font-semibold transition-colors active:scale-95"
+              style={{
                 background: 'rgba(255,255,255,0.12)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                paddingLeft: 10, paddingRight: 10, paddingTop: 4, paddingBottom: 4,
-                fontSize: 12, fontWeight: 600,
-              } : {
-                background: 'rgba(255,255,255,0.1)',
-                width: 32, height: 32, justifyContent: 'center',
               }}
-              aria-label="Close player"
+              aria-label="Done"
             >
-              {isIOS ? (
-                <>
-                  <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  <span>Done</span>
-                </>
-              ) : (
-                <X className="w-4 h-4" />
-              )}
+              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+              <span>Done</span>
             </button>
           ) : (
-            <div className="flex items-center gap-1">
+            <div className="w-16" />
+          )}
+
+          {/* Center: title + active server pill */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+            <h3 className="text-white/70 font-medium text-sm truncate">
+              {title || 'Now Playing'}
+            </h3>
+            <span
+              className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{
+                backgroundColor: activeProvider.color + '20',
+                color: activeProvider.color,
+              }}
+            >
+              {isTopRanked && <ShieldCheck className="w-3 h-3" />}
+              {activeProvider.name}
+            </span>
+          </div>
+
+          {/* Right: fullscreen + close (desktop) */}
+          <div className="flex items-center gap-1 shrink-0">
+            {!isIOS && (
               <button
                 onClick={toggleFullscreen}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -458,6 +429,8 @@ export function VideoPlayer({
               >
                 {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
+            )}
+            {!isIOS && (
               <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -465,47 +438,42 @@ export function VideoPlayer({
               >
                 <X className="w-5 h-5" />
               </button>
-            </div>
-          )}
-
-          {/* Center: title + active server pill */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center mx-2">
-            <h3 className={isMobile ? 'text-white/60 font-medium text-xs truncate' : 'text-white/70 font-medium text-sm truncate'}>
-              {title || 'Now Playing'}
-            </h3>
-            <span
-              className="shrink-0 inline-flex items-center gap-1 rounded-full font-semibold"
-              style={{
-                backgroundColor: activeProvider.color + '20',
-                color: activeProvider.color,
-                fontSize: isMobile ? 9 : 10,
-                paddingLeft: isMobile ? 4 : 8,
-                paddingRight: isMobile ? 4 : 8,
-                paddingTop: 2,
-                paddingBottom: 2,
-              }}
-            >
-              {isTopRanked && <ShieldCheck className="w-2.5 h-2.5" />}
-              {activeProvider.name}
-            </span>
+            )}
           </div>
-
-          {/* Right: spacer to balance left button */}
-          <div style={{ width: isMobile ? 32 : 76 }} />
         </div>
+
+        {/* iOS swipe hint */}
+        {isIOS && (
+          <motion.div
+            initial={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 0, y: -10 }}
+            transition={{ delay: 2.5, duration: 1 }}
+            className="flex justify-center pb-1"
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08]">
+              <div className="w-1 h-1 rounded-full bg-white/30" />
+              <span className="text-white/50 text-[10px] font-medium">Swipe down to close</span>
+              <div className="w-1 h-1 rounded-full bg-white/30" />
+            </div>
+          </motion.div>
+        )}
 
         {/* ==================== VIDEO AREA ==================== */}
         <div
-          className={isMobile ? 'flex-1 relative overflow-hidden' : 'flex-1 flex items-center justify-center p-3 md:p-8 relative overflow-hidden'}
+          className="flex-1 flex items-center justify-center p-3 md:p-8 relative overflow-hidden"
         >
-          <div
+          <motion.div
             ref={containerRef}
-            className={isMobile
-              ? 'relative bg-black overflow-hidden w-full h-full'
-              : 'relative bg-black overflow-hidden w-full max-w-6xl aspect-video shadow-2xl shadow-black/80 rounded-lg'
+            style={{
+              scale: isMobile ? iframeScale : 1,
+              borderRadius: isMobile ? iframeRadius : 8,
+            }}
+            className={
+              'relative bg-black overflow-hidden shadow-2xl shadow-black/80 ' +
+              (!isMobile ? 'w-full max-w-6xl aspect-video' : 'w-full h-full')
             }
           >
-            {/* Loading state — lightweight, no CPU-heavy animations */}
+            {/* Loading state: animated pulsing ring */}
             <AnimatePresence>
               {loading && !error && (
                 <motion.div
@@ -513,13 +481,26 @@ export function VideoPlayer({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/70 pointer-events-none"
+                  className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-4"
                 >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
-                    style={{ backgroundColor: activeProvider.color + '20' }}
-                  >
-                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: activeProvider.color }} />
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <div
+                      className="absolute inset-0 rounded-full animate-ping opacity-30"
+                      style={{ backgroundColor: activeProvider.color }}
+                    />
+                    <div
+                      className="absolute inset-1 rounded-full animate-pulse opacity-60"
+                      style={{ backgroundColor: activeProvider.color }}
+                    />
+                    <div
+                      className="relative w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: activeProvider.color + '25' }}
+                    >
+                      <Loader2
+                        className="w-5 h-5 animate-spin"
+                        style={{ color: activeProvider.color }}
+                      />
+                    </div>
                   </div>
                   <p className="text-white/50 text-xs font-medium">
                     Connecting to {activeProvider.name}...
@@ -543,11 +524,6 @@ export function VideoPlayer({
                     onClick={() => {
                       setError(false);
                       setLoading(true);
-                      // Reset the iframe by changing key (force re-render)
-                      const newSrc = currentSrc.includes('?') 
-                        ? currentSrc + '&_retry=' + Date.now() 
-                        : currentSrc + '?_retry=' + Date.now();
-                      setCurrentSrc(newSrc);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/12 text-white/80 text-sm font-medium transition-colors active:scale-95"
                   >
@@ -565,39 +541,32 @@ export function VideoPlayer({
               </div>
             )}
 
-            {/* Iframe — always rendered and interactive */}
+            {/* Iframe */}
             <iframe
               ref={iframeRef}
               key={currentSrc}
               src={currentSrc}
-              className="w-full h-full absolute inset-0"
+              className="w-full h-full"
               referrerPolicy="no-referrer"
               allowFullScreen
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               playsInline
-              style={{ borderRadius: 0, zIndex: 0 }}
-              onLoad={() => {
-                setLoading(false);
-                if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current);
-                if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-              }}
+              style={{ borderRadius: 0 }}
+              onLoad={() => setLoading(false)}
               onError={() => {
                 setLoading(false);
                 setError(true);
               }}
               title={title || 'Video Player'}
             />
-          </div>
+          </motion.div>
 
         </div>
 
         {/* ==================== MOBILE SERVER STRIP ==================== */}
-        {isMobile && !isLandscape && (
-          <div
-            className="shrink-0 border-t border-white/[0.06] bg-black/90"
-            style={{ paddingBottom: isIOS ? 'env(safe-area-inset-bottom, 8px)' : 8 }}
-          >
-            <div className="flex items-center gap-1.5 px-2 pt-2 pb-1 overflow-x-auto scrollbar-none">
+        {isMobile && (
+          <div className="shrink-0 border-t border-white/[0.06] bg-black/80 backdrop-blur-md">
+            <div className="flex items-center gap-2 px-3 py-2.5 overflow-x-auto scrollbar-none">
               {sortedProviders.map((p) => {
                 const isActive = p.id === selectedProvider;
                 const score = getServerScore(p.id);
@@ -618,21 +587,28 @@ export function VideoPlayer({
                     }}
                     disabled={isSwitching}
                     className={
-                      'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95 border ' +
+                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ' +
                       (isActive
-                        ? 'border-white/15 bg-white/[0.08] text-white/90'
-                        : 'border-transparent bg-white/[0.04] text-white/50 active:bg-white/[0.08] active:text-white/70')
+                        ? 'border-white/20 bg-white/[0.08] text-white/90'
+                        : 'border-white/[0.06] bg-white/[0.03] text-white/50 hover:bg-white/[0.06] hover:text-white/70')
                     }
                   >
                     {isSwitching ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: p.color }}
+                      />
                     )}
-                    <span className="truncate max-w-[60px]">{p.name}</span>
-                    {isTop && !isSwitching && <ShieldCheck className="w-2.5 h-2.5 text-emerald-400 shrink-0" />}
+                    <span className="truncate max-w-[70px]">{p.name}</span>
+                    {isTop && !isSwitching && (
+                      <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                    )}
                     {badge && !isSwitching && (
-                      <span className={badge.cls + ' px-1 py-0 rounded text-[7px] font-bold'}>{badge.label}</span>
+                      <span className={badge.cls + ' px-1 py-0 rounded text-[8px] font-bold'}>
+                        {badge.label}
+                      </span>
                     )}
                   </button>
                 );
@@ -703,6 +679,14 @@ export function VideoPlayer({
 
         {/* ==================== MOBILE BOTTOM SHEET ==================== */}
         {isMobile && mobileSheet}
+
+        {/* ==================== iOS BOTTOM SAFE AREA ==================== */}
+        {isIOS && !isMobile && (
+          <div
+            className="shrink-0 w-full"
+            style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+          />
+        )}
       </motion.div>
     </AnimatePresence>
   );
