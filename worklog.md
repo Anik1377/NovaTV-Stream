@@ -1630,3 +1630,21 @@ Stage Summary:
 - iPhone fix: removed referrerPolicy no-referrer from all iframes
 - CSP updated with Videasy API domains
 - Commit 10b34d6 pushed to main
+---
+Task ID: 4
+Agent: Main Agent
+Task: Fix Videasy not loading - domain redirect + CSP block
+
+Work Log:
+- curl -sI player.videasy.net/movie/299534 -> 301 redirect to player.videasy.to
+- player.videasy.to was NOT in CSP frame-src -> browser blocked the iframe after redirect
+- Verified player.videasy.to returns 200, no X-Frame-Options, DDoS Guard passes iframe requests
+- Changed providers.ts URLs from player.videasy.net to player.videasy.to (direct, no redirect)
+- Added player.videasy.to + *.videasy.to to CSP frame-src and connect-src
+- Verified Videasy player only loads from: player.videasy.to, fonts.googleapis.com, fonts.gstatic.com
+- Pushed commit 481474d
+
+Stage Summary:
+- Root cause: player.videasy.net 301->player.videasy.to but .to domain was missing from CSP frame-src
+- Fix: Use .to directly + add to CSP
+- Commit 481474d pushed to main
