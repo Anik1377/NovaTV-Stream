@@ -168,23 +168,22 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
         className="fixed inset-0 z-[100] bg-[#0a0a0a] flex flex-col overflow-hidden"
       >
         {/* ═══════ HEADER ═══════ */}
-        <div className="flex items-center justify-between px-3 h-11 shrink-0 border-b border-white/[0.06] bg-[#0a0a0a]">
+        <div className="flex items-center justify-between px-2 sm:px-3 h-12 sm:h-11 shrink-0 border-b border-white/[0.06] bg-[#0a0a0a]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors"
+            className="flex items-center justify-center w-10 h-10 -ml-1 rounded-lg text-white/60 hover:text-white active:bg-white/10 transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium hidden sm:inline">Back</span>
           </button>
 
-          <h3 className="text-white/70 text-sm font-medium truncate max-w-[60%] text-center">
+          <h3 className="text-white/70 text-sm font-medium truncate max-w-[50%] text-center">
             {title || 'Now Playing'}
           </h3>
 
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors p-1"
+            className="flex items-center justify-center w-10 h-10 -mr-1 rounded-lg text-white/50 hover:text-white active:bg-white/10 transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -193,8 +192,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
 
         {/* ═══════ SERVER TABS ═══════ */}
         <div className="shrink-0 border-b border-white/[0.06] bg-[#0a0a0a]">
-          <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto no-scrollbar">
-            <span className="text-white/30 text-[11px] font-medium shrink-0 mr-1">Server:</span>
+          <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto no-scrollbar">
             {providers.map((p) => {
               const isActive = p.id === selectedProvider;
               return (
@@ -202,15 +200,15 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                   key={p.id}
                   onClick={() => switchProvider(p.id)}
                   className={
-                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 border ' +
+                    'shrink-0 flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-lg text-xs sm:text-[11px] font-medium transition-all duration-150 border min-h-[36px] sm:min-h-0 ' +
                     (isActive
                       ? 'border-white/10 text-white bg-white/10'
-                      : 'border-transparent text-white/40 hover:text-white/70 hover:bg-white/[0.04]')
+                      : 'border-transparent text-white/40 active:text-white/70 active:bg-white/[0.06]')
                   }
                 >
                   <span
                     className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: isActive ? p.color : p.color + '60' }}
+                    style={{ backgroundColor: isActive ? p.color : p.color + '50' }}
                   />
                   <span>{p.name}</span>
                 </button>
@@ -267,25 +265,25 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
         </div>
 
         {/* ═══════ STATUS BAR ═══════ */}
-        <div className="shrink-0 flex items-center justify-between px-3 h-9 border-t border-white/[0.06] bg-[#0a0a0a]">
+        <div className="shrink-0 flex items-center justify-between px-3 h-10 sm:h-9 border-t border-white/[0.06] bg-[#0a0a0a]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="flex items-center gap-2 min-w-0">
             {loading && !error && (
-              <Loader2 className="w-3 h-3 animate-spin shrink-0" style={{ color: activeProvider.color }} />
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" style={{ color: activeProvider.color }} />
             )}
-            <span className="text-white/30 text-[11px] truncate">
+            <span className="text-white/30 text-xs sm:text-[11px] truncate">
               {error ? 'Failed to load' : loading ? `Connecting to ${activeProvider.name}...` : epLabel || `Playing on ${activeProvider.name}`}
             </span>
             {currentEp && !loading && !error && (
-              <span className="text-white/20 text-[11px] truncate hidden sm:inline">• {currentEp.name}</span>
+              <span className="text-white/20 text-xs sm:text-[11px] truncate hidden sm:inline">• {currentEp.name}</span>
             )}
           </div>
           {mediaType === 'tv' && (
             <button
               onClick={() => setShowEpisodes(!showEpisodes)}
-              className="flex items-center gap-1 text-white/40 hover:text-white/70 text-[11px] font-medium transition-colors shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 -mr-1 rounded-lg text-white/50 active:text-white active:bg-white/10 text-xs font-medium transition-colors shrink-0"
             >
               {showEpisodes ? 'Hide' : 'Episodes'}
-              <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${showEpisodes ? 'rotate-90' : ''}`} />
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${showEpisodes ? 'rotate-90' : ''}`} />
             </button>
           )}
         </div>
@@ -303,16 +301,16 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               <div className="max-h-[40vh] overflow-y-auto content-scroll">
                 {/* Season tabs */}
                 <div className="flex items-center gap-1 px-3 py-2 border-b border-white/[0.04] overflow-x-auto no-scrollbar">
-                  <Tv className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                  <Tv className="w-3.5 h-3.5 text-white/30 shrink-0 mr-0.5" />
                   {Array.from({ length: 20 }, (_, i) => i + 1).map((s) => (
                     <button
                       key={s}
                       onClick={() => switchSeason(s)}
                       className={
-                        'shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ' +
+                        'shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors min-h-[36px] ' +
                         (activeSeason === s
                           ? 'bg-white/10 text-white'
-                          : 'text-white/30 hover:text-white/60 hover:bg-white/[0.04]')
+                          : 'text-white/30 active:text-white/60 active:bg-white/[0.06]')
                       }
                     >
                       S{s}
@@ -332,7 +330,7 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                     No episodes found
                   </div>
                 ) : (
-                  <div className="p-2 space-y-1">
+                  <div className="p-2 sm:p-2 space-y-1">
                     {episodes.map((ep) => {
                       const isCurrent = ep.episode_number === episode;
                       return (
@@ -340,14 +338,14 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                           key={ep.id}
                           onClick={() => playEpisode(ep)}
                           className={
-                            'w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-colors group ' +
+                            'w-full flex items-center gap-3 p-2.5 sm:p-2 rounded-xl text-left transition-colors group ' +
                             (isCurrent
                               ? 'bg-white/[0.06]'
-                              : 'hover:bg-white/[0.03]')
+                              : 'active:bg-white/[0.04]')
                           }
                         >
                           {/* Thumbnail */}
-                          <div className="relative w-20 sm:w-24 aspect-video rounded overflow-hidden bg-white/[0.04] shrink-0">
+                          <div className="relative w-24 sm:w-24 aspect-video rounded-lg overflow-hidden bg-white/[0.04] shrink-0">
                             {ep.still_path ? (
                               <img
                                 src={getImageUrl(ep.still_path, 'w300')}
@@ -375,16 +373,16 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                           </div>
 
                           {/* Info */}
-                          <div className="flex-1 min-w-0 py-0.5">
+                          <div className="flex-1 min-w-0 py-1">
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-[11px] font-mono ${isCurrent ? 'text-white/60' : 'text-white/30'}`}>
+                              <span className={`text-xs font-mono ${isCurrent ? 'text-white/60' : 'text-white/30'}`}>
                                 E{String(ep.episode_number).padStart(2, '0')}
                               </span>
                               {ep.runtime && (
                                 <span className="text-white/20 text-[10px]">{ep.runtime}m</span>
                               )}
                             </div>
-                            <p className={`text-xs font-medium truncate mt-0.5 ${isCurrent ? 'text-white' : 'text-white/60'}`}>
+                            <p className={`text-[13px] sm:text-xs font-medium truncate mt-0.5 ${isCurrent ? 'text-white' : 'text-white/60'}`}>
                               {ep.name}
                             </p>
                           </div>
