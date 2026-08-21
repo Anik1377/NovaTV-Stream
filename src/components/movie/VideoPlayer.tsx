@@ -556,6 +556,23 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               />
             </div>
 
+            {/* Server hint bar — always visible so users know to switch if video is dead */}
+            {!error && (
+              <div className="shrink-0 flex items-center justify-center gap-1.5 py-1.5 bg-white/[0.02] border-t border-white/[0.03]">
+                <Minus className="w-3 h-3 text-white/15" />
+                <p className="text-white/25 text-[10px] leading-none">
+                  If the video isn't loading, please{' '}
+                  <button
+                    onClick={() => setShowServerMenu(true)}
+                    className="text-white/40 hover:text-white/60 underline underline-offset-2 decoration-white/15 hover:decoration-white/30 transition-colors duration-200"
+                  >
+                    try another server
+                  </button>
+                </p>
+                <Minus className="w-3 h-3 text-white/15" />
+              </div>
+            )}
+
             {/* ── Bottom controls bar ── */}
             <div
               className="shrink-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/[0.05]"
