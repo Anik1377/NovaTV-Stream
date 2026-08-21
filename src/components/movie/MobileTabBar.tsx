@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen, Users, ShieldOff } from 'lucide-react';
+import { Home, Film, Tv, User, Gamepad2, Radio, MoreHorizontal, Globe, Clapperboard, BookOpen, Users, Flame } from 'lucide-react';
 import { ProfileAvatar } from '@/lib/avatars';
 import { useAppStore } from '@/store/app-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -35,7 +35,7 @@ export function MobileTabBar() {
     view, mediaFilter,
     goHome, showMovies, showTvShows, showAnime,
     showAsian, showGames, showShowreels, showRead,
-    showLiveTV, showProfile, showPeople, showAdult,
+    showLiveTV, showProfile, showPeople, showDesi,
   } = useAppStore();
   const authUser = useAuthStore((s) => s.user);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -55,11 +55,12 @@ export function MobileTabBar() {
     { key: 'games', label: 'Games', icon: Gamepad2, action: showGames, color: 'text-emerald-400' },
     { key: 'livetv', label: 'Live TV', icon: Radio, action: showLiveTV, color: 'text-blue-400' },
     { key: 'asian', label: 'Asian Cinema', icon: Globe, action: showAsian, color: 'text-rose-400' },
+    { key: 'desi', label: 'Desi Cinema', icon: Flame, action: showDesi, color: 'text-orange-400' },
     { key: 'showreels', label: 'ShowReels', icon: Clapperboard, action: showShowreels, color: 'text-amber-400' },
     { key: 'read', label: 'Read', icon: BookOpen, action: showRead, color: 'text-sky-400' },
     { key: 'people', label: 'People', icon: Users, action: showPeople, color: 'text-lime-400' },
-    ...(authUser?.adultEnabled ? [{ key: 'adult', label: '18+', icon: ShieldOff, action: showAdult, color: 'text-red-400' }] : []),
-  ], [showGames, showLiveTV, showAsian, showShowreels, showRead, showPeople, showAdult, authUser?.adultEnabled]);
+
+  ], [showGames, showLiveTV, showAsian, showDesi, showShowreels, showRead, showPeople]);
 
   /* ── Active state ── */
   const isActive = useCallback((key: string) => {
@@ -68,7 +69,7 @@ export function MobileTabBar() {
       case 'movies': return view === 'home' && mediaFilter === 'movie' && !isSpecialView;
       case 'tvshows': return view === 'home' && mediaFilter === 'tv' && !isSpecialView;
       case 'anime': return view === 'anime';
-      case 'more': return ['games','livetv','asian','showreels','showreel-detail','read','manga-detail','manga-reader','people','people-detail','adult'].includes(view);
+      case 'more': return ['games','livetv','asian','desi','showreels','showreel-detail','read','manga-detail','manga-reader','people','people-detail'].includes(view);
       case 'profile': return view === 'profile';
       default: return false;
     }
@@ -187,7 +188,7 @@ export function MobileTabBar() {
                     item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail') :
                     item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader') :
                     item.key === 'people' ? (view === 'people' || view === 'people-detail') :
-                    item.key === 'adult' ? view === 'adult' :
+                    item.key === 'desi' ? view === 'desi' :
                     false;
                   const IconComp = item.icon;
                   return (
