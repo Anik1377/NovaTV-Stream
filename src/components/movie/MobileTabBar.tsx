@@ -186,7 +186,7 @@ export function MobileTabBar() {
                     item.key === 'livetv' ? view === 'livetv' :
                     item.key === 'asian' ? view === 'asian' :
                     item.key === 'showreels' ? (view === 'showreels' || view === 'showreel-detail') :
-                    item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader') :
+                    item.key === 'read' ? (view === 'read' || view === 'manga-detail' || view === 'manga-reader' || view === 'comic-detail' || view === 'novel-reader') :
                     item.key === 'people' ? (view === 'people' || view === 'people-detail') :
                     item.key === 'desi' ? view === 'desi' :
                     false;

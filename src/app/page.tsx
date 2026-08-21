@@ -442,6 +442,8 @@ export default function App() {
           {view === 'read' && <ReadPage />}
           {view === 'manga-detail' && <MangaDetail />}
           {view === 'manga-reader' && <MangaReader />}
+          {view === 'comic-detail' && <ComicDetail />}
+          {view === 'novel-reader' && <NovelReader />}}
           {view === 'people' && <PeoplePage />}
           {view === 'people-detail' && <PeopleDetailPage />}
           {view === 'games' && <GamesPage key={navCounter} />}

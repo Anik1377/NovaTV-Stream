@@ -19,7 +19,7 @@ export interface SearchPerson {
   }[];
 }
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'desi' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'people' | 'people-detail' | 'warning' | 'privacy' | 'dmca';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'desi' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'comic-detail' | 'novel-reader' | 'people' | 'people-detail' | 'warning' | 'privacy' | 'dmca';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -79,6 +79,9 @@ interface AppState {
   // People
   selectedPerson: { id: number; name: string; profilePath: string | null } | null;
   selectPerson: (person: { id: number; name: string; profilePath: string | null }) => void;
+  // Novel
+  selectedNovel: { id: number; title: string; author: string; coverUrl: string; description?: string } | null;
+  selectNovel: (novel: { id: number; title: string; author: string; coverUrl: string; description?: string }) => void;
   bumpNav: () => void;
   showWarning: () => void;
   showPrivacy: () => void;
@@ -209,9 +212,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   showPrivacy: () => set({ view: 'privacy', ...resetState, navHistory: [] }),
   showDmca: () => set({ view: 'dmca', ...resetState, navHistory: [] }),
   selectedManga: null,
+  selectedNovel: null,
   selectManga: (manga) => { navigate(set, 'manga-detail'); set({ selectedManga: manga }); },
   selectedChapterId: null,
   selectChapter: (chapterId) => { navigate(set, 'manga-reader'); set({ selectedChapterId: chapterId }); },
+  selectNovel: (novel) => { navigate(set, 'novel-reader'); set({ selectedNovel: novel }); },
   selectedPerson: null,
   selectPerson: (person) => { navigate(set, 'people-detail'); set({ selectedPerson: person }); },
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),
