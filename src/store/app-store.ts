@@ -19,7 +19,7 @@ export interface SearchPerson {
   }[];
 }
 
-type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'desi' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'novel-reader' | 'people' | 'people-detail' | 'warning' | 'privacy' | 'dmca';
+type ViewType = 'home' | 'movie' | 'tv' | 'search' | 'genre' | 'category' | 'livetv' | 'anime' | 'games' | 'asian' | 'desi' | 'showreels' | 'showreel-detail' | 'profile' | 'read' | 'manga-detail' | 'manga-reader' | 'novel-reader' | 'people' | 'people-detail' | 'comic-detail' | 'warning' | 'privacy' | 'dmca';
 type MediaFilter = 'all' | 'movie' | 'tv';
 
 interface AppState {
@@ -82,6 +82,21 @@ interface AppState {
   // Novel
   selectedNovel: { id: number; title: string; author: string; coverUrl: string; description?: string } | null;
   selectNovel: (novel: { id: number; title: string; author: string; coverUrl: string; description?: string }) => void;
+  // Comic
+  selectedComic: {
+    id: number;
+    title: string;
+    publisher: string;
+    year: number;
+    description: string;
+    genres: string[];
+    slug: string;
+    coverColor: string;
+    rating: number;
+    status: string;
+    issueCount: number;
+  } | null;
+  selectComic: (comic: { id: number; title: string; publisher: string; year: number; description: string; genres: string[]; slug: string; coverColor: string; rating: number; status: string; issueCount: number; }) => void;
   bumpNav: () => void;
   showWarning: () => void;
   showPrivacy: () => void;
@@ -217,6 +232,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedChapterId: null,
   selectChapter: (chapterId) => { navigate(set, 'manga-reader'); set({ selectedChapterId: chapterId }); },
   selectNovel: (novel) => { navigate(set, 'novel-reader'); set({ selectedNovel: novel }); },
+  selectedComic: null,
+  selectComic: (comic) => { navigate(set, 'comic-detail'); set({ selectedComic: comic }); },
   selectedPerson: null,
   selectPerson: (person) => { navigate(set, 'people-detail'); set({ selectedPerson: person }); },
   showGames: () => set((s) => ({ view: 'games', ...resetState, navHistory: [], navCounter: s.navCounter + 1 })),

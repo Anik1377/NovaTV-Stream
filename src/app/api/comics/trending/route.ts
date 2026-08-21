@@ -1,74 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getCoverUrl,
-  getAuthorName,
-  getTitle,
-  SimpleCache,
-} from '@/lib/mangadex';
+import fs from 'fs';
+import path from 'path';
 
-const cache = new SimpleCache<unknown>(5 * 60 * 1000); // 5 minutes
+interface ComicItem {
+  id: number;
+  title: string;
+  publisher: string;
+  year: number;
+  description: string;
+  genres: string[];
+  slug: string;
+  coverColor: string;
+  rating: number;
+  status: string;
+  issueCount: number;
+}
 
-const COMICS_LANGUAGES = ['ko', 'zh', 'en'];
+let comicsCache: ComicItem[] | null = null;
+
+function loadComics(): ComicItem[] {
+  if (comicsCache) return comicsCache;
+  const filePath = path.join(process.cwd(), 'public', 'comics-data.json');
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  comicsCache = JSON.parse(raw) as ComicItem[];
+  return comicsCache;
+}
+
+function getAllPublishers(comics: ComicItem[]): string[] {
+  const set = new Set(comics.map(c => c.publisher));
+  return Array.from(set).sort();
+}
+
+function getAllGenres(comics: ComicItem[]): string[] {
+  const set = new Set<string>();
+  comics.forEach(c => c.genres.forEach(g => set.add(g)));
+  return Array.from(set).sort();
+}
 
 export async function GET(req: NextRequest) {
-  const offset = req.nextUrl.searchParams.get('offset') || '0';
-
-  const cacheKey = `comics:trending:${offset}`;
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    return NextResponse.json(cached);
-  }
-
-  const url = new URL('https://api.mangadex.org/manga');
-  for (const lang of COMICS_LANGUAGES) {
-    url.searchParams.append('originalLanguage[]', lang);
-  }
-  url.searchParams.append('includes[]', 'cover_art');
-  url.searchParams.append('includes[]', 'author');
-  url.searchParams.set('order[followedCount]', 'desc');
-  url.searchParams.append('contentRating[]', 'safe');
-  url.searchParams.append('contentRating[]', 'suggestive');
-  url.searchParams.set('hasAvailableChapters', 'true');
-  url.searchParams.append('availableTranslatedLanguage[]', 'en');
-  url.searchParams.set('limit', '20');
-  url.searchParams.set('offset', offset);
-
   try {
-    const res = await fetch(url.toString(), {
-      headers: { 'User-Agent': 'MangaReader/1.0' },
-    });
+    const comics = loadComics();
+    const publisher = req.nextUrl.searchParams.get('publisher') || '';
+    const genre = req.nextUrl.searchParams.get('genre') || '';
+    const q = req.nextUrl.searchParams.get('q') || '';
+    const sort = req.nextUrl.searchParams.get('sort') || 'popular';
 
-    if (!res.ok) {
-      throw new Error(`MangaDex API error: ${res.status}`);
+    let results = [...comics];
+
+    if (publisher && publisher !== 'All') {
+      results = results.filter(c => c.publisher === publisher);
     }
 
-    const manga = await res.json();
+    if (genre && genre !== 'All') {
+      results = results.filter(c => c.genres.includes(genre));
+    }
 
-    const data = {
-      results: manga.data.map((item: any) => ({
-        id: item.id,
-        title: getTitle(item),
-        coverUrl: getCoverUrl(item),
-        author: getAuthorName(item),
-        tags: item.attributes.tags
-          .map((t: any) => t.attributes.name.en)
-          .filter(Boolean)
-          .slice(0, 5),
-        status: item.attributes.status,
-        year: item.attributes.year,
-        originalLanguage: item.attributes.originalLanguage,
-      })),
-      total: manga.total,
-      hasMore: Number(offset) + (manga.data?.length || 0) < manga.total,
-    };
+    if (q.trim()) {
+      const query = q.trim().toLowerCase();
+      results = results.filter(c =>
+        c.title.toLowerCase().includes(query) ||
+        c.description.toLowerCase().includes(query)
+      );
+    }
 
-    cache.set(cacheKey, data);
+    switch (sort) {
+      case 'rating':
+        results.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'year-new':
+        results.sort((a, b) => b.year - a.year);
+        break;
+      case 'year-old':
+        results.sort((a, b) => a.year - b.year);
+        break;
+      case 'popular':
+      default:
+        results.sort((a, b) => b.issueCount * b.rating - a.issueCount * a.rating);
+        break;
+    }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      results,
+      total: results.length,
+      publishers: getAllPublishers(comics),
+      genres: getAllGenres(comics),
+    });
   } catch (error) {
     console.error('Comics trending fetch error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch trending comics' },
+      { error: 'Failed to fetch comics' },
       { status: 500 }
     );
   }

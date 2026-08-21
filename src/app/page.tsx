@@ -30,6 +30,7 @@ const ReadPage = lazy(() => import('@/components/read/ReadPage').then(m => ({ de
 const MangaDetail = lazy(() => import('@/components/read/MangaDetail').then(m => ({ default: m.MangaDetail || m.default })));
 const MangaReader = lazy(() => import('@/components/read/MangaReader').then(m => ({ default: m.MangaReader || m.default })));
 const NovelReader = lazy(() => import('@/components/read/NovelReader').then(m => ({ default: m.NovelReader || m.default })));
+const ComicDetail = lazy(() => import('@/components/read/ComicDetail').then(m => ({ default: m.ComicDetail || m.default })));
 const PeoplePage = lazy(() => import('@/components/people/PeoplePage').then(m => ({ default: m.PeoplePage || m.default })));
 const PeopleDetailPage = lazy(() => import('@/components/people/PeopleDetailPage').then(m => ({ default: m.PeopleDetailPage || m.default })));
 
@@ -444,6 +445,7 @@ export default function App() {
           {view === 'manga-detail' && <MangaDetail />}
           {view === 'manga-reader' && <MangaReader />}
           {view === 'novel-reader' && <NovelReader />}
+          {view === 'comic-detail' && <ComicDetail />}
           {view === 'people' && <PeoplePage />}
           {view === 'people-detail' && <PeopleDetailPage />}
           {view === 'games' && <GamesPage key={navCounter} />}
@@ -461,7 +463,7 @@ export default function App() {
       <MobileSearchButton key={view} />
       <MobileTabBar />
       <VisitDisclaimer />
-      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people' || view === 'games') && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people' || view === 'games' || view === 'comic-detail') && <MobileBackHome />}
     </div>
   );
 }
