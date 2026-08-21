@@ -1567,3 +1567,23 @@ Stage Summary:
 - Server selector is now tabs — zero iframe z-index conflicts
 - Works on phone, PC, and iPhone
 - Pushed as commit 3b96b95
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix missing TMDB_API_KEY environment variable causing no content to load
+
+Work Log:
+- Checked dev.log and found `TMDB_API_KEY environment variable is required` errors
+- Found that both TMDB_API_KEY and YOUTUBE_API_KEY were removed during a security audit commit (dade954)
+- Restored both keys to .env from git history
+- Killed stale process on port 3000 and restarted dev server
+- Verified /api/home returns 20 trending items, 20 popular movies, 19 genres
+- Verified /api/tmdb/providers returns 20 results (3498 total)
+- Browser-verified: homepage renders with hero section (Reacher), genre categories, navigation
+- All API responses returning 200, no TMDB errors in dev log
+- Lint passes clean
+
+Stage Summary:
+- Root cause: TMDB_API_KEY and YOUTUBE_API_KEY were removed from .env in a security audit commit
+- Fix: Restored both keys to /home/z/my-project/.env
+- Result: All content loading normally, server tabs and homepage fully functional

@@ -1,0 +1,1424 @@
+✓ StreamVault - Watch Movies & TV Shows
+  http://localhost:3000/
+✓ Done
+- generic
+  - link "Skip to content" [ref=e1]
+  - complementary
+    - button "StreamVault" [ref=e3]
+      - image "StreamVault"
+    - navigation "Main navigation" [ref=e4]
+      - button "Home" [ref=e8]
+      - button "Movies" [ref=e9]
+      - button "TV Shows" [ref=e10]
+      - button "Anime" [ref=e11]
+        - image
+      - button "Asian" [ref=e12]
+      - button "Desi Cinema" [ref=e13]
+      - button "ShowReels" [ref=e14]
+      - button "Read" [ref=e15]
+      - button "People" [ref=e16]
+      - button "Games" [ref=e17]
+      - button "Live TV" [ref=e18]
+    - button "Sign In" [ref=e5]
+    - button "Install App" [ref=e6]
+  - main
+    - generic
+      - StaticText "TV SERIES"
+      - StaticText "HD"
+      - image "Lanterns"
+      - image "DC Studios"
+      - image "HBO"
+      - image "Warner Bros. Television"
+      - StaticText "2026"
+      - StaticText "8.1"
+      - paragraph
+        - StaticText "Two intergalactic cops, new recruit John Stewart and Lantern legend Hal Jordan, are drawn into a dark, Earth-based mystery as they investigate a murder in the American heartland."
+      - button "Play Now" [ref=e37]
+      - button "More Info" [ref=e38]
+      - generic
+        - button "Slide 1" [ref=e39]
+        - button "Slide 2" [ref=e40]
+        - button "Slide 3" [ref=e41]
+        - button "Slide 4" [ref=e42]
+        - button "Slide 5" [ref=e43]
+        - button "Slide 6" [ref=e44]
+        - button "Slide 7" [ref=e45]
+        - button "Slide 8" [ref=e46]
+    - generic
+      - button "Action" [ref=e47]
+      - button "Adventure" [ref=e48]
+      - button "Animation" [ref=e49]
+      - button "Comedy" [ref=e50]
+      - button "Crime" [ref=e51]
+      - button "Documentary" [ref=e52]
+      - button "Drama" [ref=e53]
+      - button "Family" [ref=e54]
+      - button "Fantasy" [ref=e55]
+      - button "History" [ref=e56]
+      - button "Horror" [ref=e57]
+      - button "Music" [ref=e58]
+      - button "Mystery" [ref=e59]
+      - button "Romance" [ref=e60]
+      - button "Science Fiction" [ref=e61]
+    - generic
+      - StaticText "TOP"
+      - StaticText "10"
+      - StaticText "in Streaming Today"
+      - button [ref=e19]
+      - generic
+        - button "Lanterns TV SERIES Lanterns 2026 · 8.1" [ref=e62]
+          - generic
+            - generic
+              - image "Lanterns"
+              - StaticText "TV SERIES"
+          - heading "Lanterns" [level=3, ref=e88]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "8.1"
+        - button "The End of Oak Street MOVIE The End of Oak Street 2026 · 6.5" [ref=e63]
+          - generic
+            - generic
+              - image "The End of Oak Street"
+              - StaticText "MOVIE"
+          - heading "The End of Oak Street" [level=3, ref=e89]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "6.5"
+        - button "Toy Story 5 MOVIE Toy Story 5 2026 · 8.0" [ref=e64]
+          - generic
+            - generic
+              - image "Toy Story 5"
+              - StaticText "MOVIE"
+          - heading "Toy Story 5" [level=3, ref=e90]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "8.0"
+        - button "Spider-Man: Brand New Day MOVIE Spider-Man: Brand New Day 2026 · 7.9" [ref=e65]
+          - generic
+            - generic
+              - image "Spider-Man: Brand New Day"
+              - StaticText "MOVIE"
+          - heading "Spider-Man: Brand New Day" [level=3, ref=e91]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "7.9"
+        - button "Reacher TV SERIES Reacher 2022 · 8.1" [ref=e66]
+          - generic
+            - generic
+              - image "Reacher"
+              - StaticText "TV SERIES"
+          - heading "Reacher" [level=3, ref=e92]
+          - StaticText "2022"
+          - StaticText "·"
+          - StaticText "8.1"
+        - button "House of the Dragon TV SERIES House of the Dragon 2022 · 8.4" [ref=e67]
+          - generic
+            - generic
+              - image "House of the Dragon"
+              - StaticText "TV SERIES"
+          - heading "House of the Dragon" [level=3, ref=e93]
+          - StaticText "2022"
+          - StaticText "·"
+          - StaticText "8.4"
+        - button "The Odyssey MOVIE The Odyssey 2026 · 8.0" [ref=e68]
+          - generic
+            - generic
+              - image "The Odyssey"
+              - StaticText "MOVIE"
+          - heading "The Odyssey" [level=3, ref=e94]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "8.0"
+        - button "Minions & Monsters MOVIE Minions & Monsters 2026 · 7.5" [ref=e69]
+          - generic
+            - generic
+              - image "Minions & Monsters"
+              - StaticText "MOVIE"
+          - heading "Minions & Monsters" [level=3, ref=e95]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "7.5"
+        - button "Obsession MOVIE Obsession 2026 · 8.2" [ref=e70]
+          - generic
+            - generic
+              - image "Obsession"
+              - StaticText "MOVIE"
+          - heading "Obsession" [level=3, ref=e96]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "8.2"
+        - button "Mutiny MOVIE Mutiny 2026 · 7.0" [ref=e71]
+          - generic
+            - generic
+              - image "Mutiny"
+              - StaticText "MOVIE"
+          - heading "Mutiny" [level=3, ref=e97]
+          - StaticText "2026"
+          - StaticText "·"
+          - StaticText "7.0"
+    - generic
+      - heading "Browse by Platform" [level=2, ref=e20]
+        - image
+        - StaticText "Browse by Platform"
+      - button [ref=e21]
+      - generic
+        - button "Netflix" [ref=e72]
+          - StaticText "Netflix"
+        - button "Prime" [ref=e73]
+          - StaticText "Prime"
+        - button "Apple TV+" [ref=e74]
+          - StaticText "Apple TV+"
+        - button "Disney+" [ref=e75]
+          - StaticText "Disney+"
+        - button "Hulu" [ref=e76]
+          - StaticText "Hulu"
+        - button "Max" [ref=e77]
+          - StaticText "Max"
+        - button "Paramount+" [ref=e78]
+          - StaticText "Paramount+"
+        - button "Peacock" [ref=e79]
+          - StaticText "Peacock"
+        - button "Crunchyroll" [ref=e80]
+          - StaticText "Crunchyroll"
+        - button "MGM+" [ref=e81]
+          - StaticText "MGM+"
+    - generic
+      - heading "Popular Movies" [level=2, ref=e22]
+        - StaticText "Popular Movies"
+      - button "VIEW MORE" [ref=e23]
+      - generic
+        - generic
+          - generic [ref=e98] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Bhooth Bangla"
+              - generic
+                - heading "Bhooth Bangla" [level=3, ref=e298]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e198]
+              - generic
+            - paragraph
+              - StaticText "Bhooth Bangla"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e99] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Rage of Stars"
+              - generic
+                - heading "Rage of Stars" [level=3, ref=e299]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e199]
+              - generic
+            - paragraph
+              - StaticText "Rage of Stars"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e100] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Minions & Monsters"
+              - generic
+                - heading "Minions & Monsters" [level=3, ref=e300]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e200]
+              - generic
+            - paragraph
+              - StaticText "Minions & Monsters"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e101] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Last House"
+              - generic
+                - heading "The Last House" [level=3, ref=e301]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e201]
+              - generic
+            - paragraph
+              - StaticText "The Last House"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e102] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Dilwale Dulhania Le Jayenge"
+              - generic
+                - heading "Dilwale Dulhania Le Jayenge" [level=3, ref=e302]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e202]
+              - generic
+            - paragraph
+              - StaticText "Dilwale Dulhania Le Jayenge"
+            - paragraph
+              - StaticText "1995"
+          - generic [ref=e103] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Awarapan"
+              - generic
+                - heading "Awarapan" [level=3, ref=e303]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e203]
+              - generic
+            - paragraph
+              - StaticText "Awarapan"
+            - paragraph
+              - StaticText "2007"
+          - generic [ref=e104] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Spider-Man: Brand New Day"
+              - generic
+                - heading "Spider-Man: Brand New Day" [level=3, ref=e304]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e204]
+              - generic
+            - paragraph
+              - StaticText "Spider-Man: Brand New Day"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e105] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Dhurandhar"
+              - generic
+                - heading "Dhurandhar" [level=3, ref=e305]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e205]
+              - generic
+            - paragraph
+              - StaticText "Dhurandhar"
+            - paragraph
+              - StaticText "2025"
+          - generic [ref=e106] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Cocktail 2"
+              - generic
+                - heading "Cocktail 2" [level=3, ref=e306]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e206]
+              - generic
+            - paragraph
+              - StaticText "Cocktail 2"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e107] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Colony"
+              - generic
+                - heading "Colony" [level=3, ref=e307]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e207]
+              - generic
+            - paragraph
+              - StaticText "Colony"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e108] clickable [cursor:pointer, onclick]
+            - generic
+              - image "3 Idiots"
+              - generic
+                - heading "3 Idiots" [level=3, ref=e308]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e208]
+              - generic
+            - paragraph
+              - StaticText "3 Idiots"
+            - paragraph
+              - StaticText "2009"
+          - generic [ref=e109] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Batwara 1947"
+              - generic
+                - heading "Batwara 1947" [level=3, ref=e309]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e209]
+              - generic
+            - paragraph
+              - StaticText "Batwara 1947"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e110] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Odyssey"
+              - generic
+                - heading "The Odyssey" [level=3, ref=e310]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e210]
+              - generic
+            - paragraph
+              - StaticText "The Odyssey"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e111] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Spider-Man: No Way Home"
+              - generic
+                - heading "Spider-Man: No Way Home" [level=3, ref=e311]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e211]
+              - generic
+            - paragraph
+              - StaticText "Spider-Man: No Way Home"
+            - paragraph
+              - StaticText "2021"
+          - generic [ref=e112] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Main Vaapas Aaunga"
+              - generic
+                - heading "Main Vaapas Aaunga" [level=3, ref=e312]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e212]
+              - generic
+            - paragraph
+              - StaticText "Main Vaapas Aaunga"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e113] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Awarapan 2"
+              - generic
+                - heading "Awarapan 2" [level=3, ref=e313]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e213]
+            - paragraph
+              - StaticText "Awarapan 2"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e114] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Toy Story 5"
+              - generic
+                - heading "Toy Story 5" [level=3, ref=e314]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e214]
+              - generic
+            - paragraph
+              - StaticText "Toy Story 5"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e115] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Death of Robin Hood"
+              - generic
+                - heading "The Death of Robin Hood" [level=3, ref=e315]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e215]
+              - generic
+            - paragraph
+              - StaticText "The Death of Robin Hood"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e116] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Obsession"
+              - generic
+                - heading "Obsession" [level=3, ref=e316]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e216]
+              - generic
+            - paragraph
+              - StaticText "Obsession"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e117] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Dhurandhar: The Revenge"
+              - generic
+                - heading "Dhurandhar: The Revenge" [level=3, ref=e317]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e217]
+              - generic
+            - paragraph
+              - StaticText "Dhurandhar: The Revenge"
+            - paragraph
+              - StaticText "2026"
+        - button "Scroll right" [ref=e82]
+    - generic
+      - heading "Top Rated Movies" [level=2, ref=e24]
+        - StaticText "Top Rated Movies"
+      - button "VIEW MORE" [ref=e25]
+      - generic
+        - generic
+          - generic [ref=e118] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Avatar Aang: The Last Airbender"
+              - generic
+                - heading "Avatar Aang: The Last Airbender" [level=3, ref=e318]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e218]
+              - generic
+            - paragraph
+              - StaticText "Avatar Aang: The Last Airbender"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e119] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Accidental Partners"
+              - generic
+                - heading "Accidental Partners" [level=3, ref=e319]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e219]
+              - generic
+            - paragraph
+              - StaticText "Accidental Partners"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e120] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Swapped"
+              - generic
+                - heading "Swapped" [level=3, ref=e320]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e220]
+              - generic
+            - paragraph
+              - StaticText "Swapped"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e121] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Demon Slayer: Kimetsu no Yaiba Infinity Castle"
+              - generic
+                - heading "Demon Slayer: Kimetsu no Yaiba Infinity Castle" [level=3, ref=e321]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e221]
+              - generic
+            - paragraph
+              - StaticText "Demon Slayer: Kimetsu no Yaiba Infinity Castle"
+            - paragraph
+              - StaticText "2025"
+          - generic [ref=e122] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Shawshank Redemption"
+              - generic
+                - heading "The Shawshank Redemption" [level=3, ref=e322]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e222]
+              - generic
+            - paragraph
+              - StaticText "The Shawshank Redemption"
+            - paragraph
+              - StaticText "1994"
+          - generic [ref=e123] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Godfather"
+              - generic
+                - heading "The Godfather" [level=3, ref=e323]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e223]
+              - generic
+            - paragraph
+              - StaticText "The Godfather"
+            - paragraph
+              - StaticText "1972"
+          - generic [ref=e124] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Michael"
+              - generic
+                - heading "Michael" [level=3, ref=e324]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e224]
+              - generic
+            - paragraph
+              - StaticText "Michael"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e125] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Project Hail Mary"
+              - generic
+                - heading "Project Hail Mary" [level=3, ref=e325]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e225]
+              - generic
+            - paragraph
+              - StaticText "Project Hail Mary"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e126] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Godfather Part II"
+              - generic
+                - heading "The Godfather Part II" [level=3, ref=e326]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e226]
+              - generic
+            - paragraph
+              - StaticText "The Godfather Part II"
+            - paragraph
+              - StaticText "1974"
+          - generic [ref=e127] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Schindler's List"
+              - generic
+                - heading "Schindler's List" [level=3, ref=e327]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e227]
+              - generic
+            - paragraph
+              - StaticText "Schindler's List"
+            - paragraph
+              - StaticText "1993"
+          - generic [ref=e128] clickable [cursor:pointer, onclick]
+            - generic
+              - image "12 Angry Men"
+              - generic
+                - heading "12 Angry Men" [level=3, ref=e328]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e228]
+              - generic
+            - paragraph
+              - StaticText "12 Angry Men"
+            - paragraph
+              - StaticText "1957"
+          - generic [ref=e129] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Young Hearts"
+              - generic
+                - heading "Young Hearts" [level=3, ref=e329]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e229]
+              - generic
+            - paragraph
+              - StaticText "Young Hearts"
+            - paragraph
+              - StaticText "2024"
+          - generic [ref=e130] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Dark Knight"
+              - generic
+                - heading "The Dark Knight" [level=3, ref=e330]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e230]
+              - generic
+            - paragraph
+              - StaticText "The Dark Knight"
+            - paragraph
+              - StaticText "2008"
+          - generic [ref=e131] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Spirited Away"
+              - generic
+                - heading "Spirited Away" [level=3, ref=e331]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e231]
+              - generic
+            - paragraph
+              - StaticText "Spirited Away"
+            - paragraph
+              - StaticText "2001"
+          - generic [ref=e132] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Chainsaw Man - The Movie: Reze Arc"
+              - generic
+                - heading "Chainsaw Man - The Movie: Reze Arc" [level=3, ref=e332]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e232]
+              - generic
+            - paragraph
+              - StaticText "Chainsaw Man - The Movie: Reze Arc"
+            - paragraph
+              - StaticText "2025"
+          - generic [ref=e133] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Green Mile"
+              - generic
+                - heading "The Green Mile" [level=3, ref=e333]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e233]
+              - generic
+            - paragraph
+              - StaticText "The Green Mile"
+            - paragraph
+              - StaticText "1999"
+          - generic [ref=e134] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Dilwale Dulhania Le Jayenge"
+              - generic
+                - heading "Dilwale Dulhania Le Jayenge" [level=3, ref=e334]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e234]
+              - generic
+            - paragraph
+              - StaticText "Dilwale Dulhania Le Jayenge"
+            - paragraph
+              - StaticText "1995"
+          - generic [ref=e135] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Lord of the Rings: The Return of the King"
+              - generic
+                - heading "The Lord of the Rings: The Return of the King" [level=3, ref=e335]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e235]
+              - generic
+            - paragraph
+              - StaticText "The Lord of the Rings: The Return of the King"
+            - paragraph
+              - StaticText "2003"
+          - generic [ref=e136] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Parasite"
+              - generic
+                - heading "Parasite" [level=3, ref=e336]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e236]
+              - generic
+            - paragraph
+              - StaticText "Parasite"
+            - paragraph
+              - StaticText "2019"
+          - generic [ref=e137] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Interstellar"
+              - generic
+                - heading "Interstellar" [level=3, ref=e337]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e237]
+              - generic
+            - paragraph
+              - StaticText "Interstellar"
+            - paragraph
+              - StaticText "2014"
+        - button "Scroll right" [ref=e83]
+    - generic
+      - heading "Coming Soon" [level=2, ref=e26]
+        - StaticText "Coming Soon"
+      - button "VIEW MORE" [ref=e27]
+      - generic
+        - generic
+          - generic [ref=e138] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Odyssey"
+              - generic
+                - heading "The Odyssey" [level=3, ref=e338]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e238]
+              - generic
+            - paragraph
+              - StaticText "The Odyssey"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e139] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Colony"
+              - generic
+                - heading "Colony" [level=3, ref=e339]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e239]
+              - generic
+            - paragraph
+              - StaticText "Colony"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e140] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Obsession"
+              - generic
+                - heading "Obsession" [level=3, ref=e340]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e240]
+              - generic
+            - paragraph
+              - StaticText "Obsession"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e141] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Death of Robin Hood"
+              - generic
+                - heading "The Death of Robin Hood" [level=3, ref=e341]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e241]
+              - generic
+            - paragraph
+              - StaticText "The Death of Robin Hood"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e142] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The End of Oak Street"
+              - generic
+                - heading "The End of Oak Street" [level=3, ref=e342]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e242]
+              - generic
+            - paragraph
+              - StaticText "The End of Oak Street"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e143] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Backrooms"
+              - generic
+                - heading "Backrooms" [level=3, ref=e343]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e243]
+              - generic
+            - paragraph
+              - StaticText "Backrooms"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e144] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Lucky Strike"
+              - generic
+                - heading "Lucky Strike" [level=3, ref=e344]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e244]
+              - generic
+            - paragraph
+              - StaticText "Lucky Strike"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e145] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Invite"
+              - generic
+                - heading "The Invite" [level=3, ref=e345]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e245]
+              - generic
+            - paragraph
+              - StaticText "The Invite"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e146] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Shawshank Redemption"
+              - generic
+                - heading "The Shawshank Redemption" [level=3, ref=e346]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e246]
+              - generic
+            - paragraph
+              - StaticText "The Shawshank Redemption"
+            - paragraph
+              - StaticText "1994"
+          - generic [ref=e147] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Leviticus"
+              - generic
+                - heading "Leviticus" [level=3, ref=e347]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e247]
+              - generic
+            - paragraph
+              - StaticText "Leviticus"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e148] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Mutiny"
+              - generic
+                - heading "Mutiny" [level=3, ref=e348]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e248]
+              - generic
+            - paragraph
+              - StaticText "Mutiny"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e149] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Michael"
+              - generic
+                - heading "Michael" [level=3, ref=e349]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e249]
+              - generic
+            - paragraph
+              - StaticText "Michael"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e150] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Deep Water"
+              - generic
+                - heading "Deep Water" [level=3, ref=e350]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e250]
+              - generic
+            - paragraph
+              - StaticText "Deep Water"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e151] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Shelter"
+              - generic
+                - heading "Shelter" [level=3, ref=e351]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e251]
+              - generic
+            - paragraph
+              - StaticText "Shelter"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e152] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Insidious: Out of the Further"
+              - generic
+                - heading "Insidious: Out of the Further" [level=3, ref=e352]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e252]
+              - generic
+            - paragraph
+              - StaticText "Insidious: Out of the Further"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e153] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Harry Potter and the Philosopher's Stone"
+              - generic
+                - heading "Harry Potter and the Philosopher's Stone" [level=3, ref=e353]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e253]
+              - generic
+            - paragraph
+              - StaticText "Harry Potter and the Philosopher's Stone"
+            - paragraph
+              - StaticText "2001"
+          - generic [ref=e154] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Citizen Vigilante"
+              - generic
+                - heading "Citizen Vigilante" [level=3, ref=e354]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e254]
+              - generic
+            - paragraph
+              - StaticText "Citizen Vigilante"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e155] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Drama"
+              - generic
+                - heading "The Drama" [level=3, ref=e355]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e255]
+              - generic
+            - paragraph
+              - StaticText "The Drama"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e156] clickable [cursor:pointer, onclick]
+            - generic
+              - image "In the Grey"
+              - generic
+                - heading "In the Grey" [level=3, ref=e356]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e256]
+              - generic
+            - paragraph
+              - StaticText "In the Grey"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e157] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Young Washington"
+              - generic
+                - heading "Young Washington" [level=3, ref=e357]
+              - StaticText "MOVIE"
+              - button "Add to watchlist" [ref=e257]
+              - generic
+            - paragraph
+              - StaticText "Young Washington"
+            - paragraph
+              - StaticText "2026"
+        - button "Scroll right" [ref=e84]
+    - generic
+      - heading "Popular TV Shows" [level=2, ref=e28]
+        - StaticText "Popular TV Shows"
+      - button "VIEW MORE" [ref=e29]
+      - generic
+        - generic
+          - generic [ref=e158] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Kaala Teeka"
+              - generic
+                - heading "Kaala Teeka" [level=3, ref=e358]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e258]
+            - paragraph
+              - StaticText "Kaala Teeka"
+            - paragraph
+              - StaticText "2015"
+          - generic [ref=e159] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Reacher"
+              - generic
+                - heading "Reacher" [level=3, ref=e359]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e259]
+              - generic
+            - paragraph
+              - StaticText "Reacher"
+            - paragraph
+              - StaticText "2022"
+          - generic [ref=e160] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Paradise Hotel"
+              - generic
+                - heading "Paradise Hotel" [level=3, ref=e360]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e260]
+              - generic
+            - paragraph
+              - StaticText "Paradise Hotel"
+            - paragraph
+              - StaticText "2005"
+          - generic [ref=e161] clickable [cursor:pointer, onclick]
+            - generic
+              - image "C.I.D."
+              - generic
+                - heading "C.I.D." [level=3, ref=e361]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e261]
+              - generic
+            - paragraph
+              - StaticText "C.I.D."
+            - paragraph
+              - StaticText "1998"
+          - generic [ref=e162] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Devon Ke Dev...Mahadev"
+              - generic
+                - heading "Devon Ke Dev...Mahadev" [level=3, ref=e362]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e262]
+              - generic
+            - paragraph
+              - StaticText "Devon Ke Dev...Mahadev"
+            - paragraph
+              - StaticText "2011"
+          - generic [ref=e163] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Mentalist"
+              - generic
+                - heading "The Mentalist" [level=3, ref=e363]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e263]
+              - generic
+            - paragraph
+              - StaticText "The Mentalist"
+            - paragraph
+              - StaticText "2008"
+          - generic [ref=e164] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Hockey Psychology"
+              - generic
+                - heading "Hockey Psychology" [level=3, ref=e364]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e264]
+            - paragraph
+              - StaticText "Hockey Psychology"
+            - paragraph
+              - StaticText "2021"
+          - generic [ref=e165] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Paradise Hotel"
+              - generic
+                - heading "Paradise Hotel" [level=3, ref=e365]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e265]
+              - generic
+            - paragraph
+              - StaticText "Paradise Hotel"
+            - paragraph
+              - StaticText "2005"
+          - generic [ref=e166] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Balika Vadhu"
+              - generic
+                - heading "Balika Vadhu" [level=3, ref=e366]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e266]
+              - generic
+            - paragraph
+              - StaticText "Balika Vadhu"
+            - paragraph
+              - StaticText "2008"
+          - generic [ref=e167] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Lioness"
+              - generic
+                - heading "Lioness" [level=3, ref=e367]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e267]
+              - generic
+            - paragraph
+              - StaticText "Lioness"
+            - paragraph
+              - StaticText "2023"
+          - generic [ref=e168] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Law & Order: Special Victims Unit"
+              - generic
+                - heading "Law & Order: Special Victims Unit" [level=3, ref=e368]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e268]
+              - generic
+            - paragraph
+              - StaticText "Law & Order: Special Victims Unit"
+            - paragraph
+              - StaticText "1999"
+          - generic [ref=e169] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Sister-in-Law Is at Home!"
+              - generic
+                - heading "Sister-in-Law Is at Home!" [level=3, ref=e369]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e269]
+              - generic
+            - paragraph
+              - StaticText "Sister-in-Law Is at Home!"
+            - paragraph
+              - StaticText "2015"
+          - generic [ref=e170] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Meher"
+              - generic
+                - heading "Meher" [level=3, ref=e370]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e270]
+              - generic
+            - paragraph
+              - StaticText "Meher"
+            - paragraph
+              - StaticText "2004"
+          - generic [ref=e171] clickable [cursor:pointer, onclick]
+            - generic
+              - image "RadhaKrishn"
+              - generic
+                - heading "RadhaKrishn" [level=3, ref=e371]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e271]
+              - generic
+            - paragraph
+              - StaticText "RadhaKrishn"
+            - paragraph
+              - StaticText "2018"
+          - generic [ref=e172] clickable [cursor:pointer, onclick]
+            - generic
+              - image "House of the Dragon"
+              - generic
+                - heading "House of the Dragon" [level=3, ref=e372]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e272]
+              - generic
+            - paragraph
+              - StaticText "House of the Dragon"
+            - paragraph
+              - StaticText "2022"
+          - generic [ref=e173] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Silo"
+              - generic
+                - heading "Silo" [level=3, ref=e373]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e273]
+              - generic
+            - paragraph
+              - StaticText "Silo"
+            - paragraph
+              - StaticText "2023"
+          - generic [ref=e174] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Charmsukh"
+              - generic
+                - heading "Charmsukh" [level=3, ref=e374]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e274]
+              - generic
+            - paragraph
+              - StaticText "Charmsukh"
+            - paragraph
+              - StaticText "2019"
+          - generic [ref=e175] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Kyunki... Saas Bhi Kabhi Bahu Thi..."
+              - generic
+                - heading "Kyunki... Saas Bhi Kabhi Bahu Thi..." [level=3, ref=e375]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e275]
+              - generic
+            - paragraph
+              - StaticText "Kyunki... Saas Bhi Kabhi Bahu Thi..."
+            - paragraph
+              - StaticText "2000"
+          - generic [ref=e176] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Pandya Store"
+              - generic
+                - heading "Pandya Store" [level=3, ref=e376]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e276]
+              - generic
+            - paragraph
+              - StaticText "Pandya Store"
+            - paragraph
+              - StaticText "2021"
+          - generic [ref=e177] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Lanterns"
+              - generic
+                - heading "Lanterns" [level=3, ref=e377]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e277]
+              - generic
+            - paragraph
+              - StaticText "Lanterns"
+            - paragraph
+              - StaticText "2026"
+        - button "Scroll right" [ref=e85]
+    - generic
+      - heading "Top Rated TV Shows" [level=2, ref=e30]
+        - StaticText "Top Rated TV Shows"
+      - button "VIEW MORE" [ref=e31]
+      - generic
+        - generic
+          - generic [ref=e178] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Teach You a Lesson"
+              - generic
+                - heading "Teach You a Lesson" [level=3, ref=e378]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e278]
+              - generic
+            - paragraph
+              - StaticText "Teach You a Lesson"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e179] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Dutton Ranch"
+              - generic
+                - heading "Dutton Ranch" [level=3, ref=e379]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e279]
+              - generic
+            - paragraph
+              - StaticText "Dutton Ranch"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e180] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Breaking Bad"
+              - generic
+                - heading "Breaking Bad" [level=3, ref=e380]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e280]
+              - generic
+            - paragraph
+              - StaticText "Breaking Bad"
+            - paragraph
+              - StaticText "2008"
+          - generic [ref=e181] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Off Campus"
+              - generic
+                - heading "Off Campus" [level=3, ref=e381]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e281]
+              - generic
+            - paragraph
+              - StaticText "Off Campus"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e182] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The WONDERfools"
+              - generic
+                - heading "The WONDERfools" [level=3, ref=e382]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e282]
+              - generic
+            - paragraph
+              - StaticText "The WONDERfools"
+            - paragraph
+              - StaticText "2026"
+          - generic [ref=e183] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Wizards Beyond Waverly Place"
+              - generic
+                - heading "Wizards Beyond Waverly Place" [level=3, ref=e383]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e283]
+              - generic
+            - paragraph
+              - StaticText "Wizards Beyond Waverly Place"
+            - paragraph
+              - StaticText "2024"
+          - generic [ref=e184] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Frieren: Beyond Journey's End"
+              - generic
+                - heading "Frieren: Beyond Journey's End" [level=3, ref=e384]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e284]
+              - generic
+            - paragraph
+              - StaticText "Frieren: Beyond Journey's End"
+            - paragraph
+              - StaticText "2023"
+          - generic [ref=e185] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Chosen"
+              - generic
+                - heading "The Chosen" [level=3, ref=e385]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e285]
+              - generic
+            - paragraph
+              - StaticText "The Chosen"
+            - paragraph
+              - StaticText "2019"
+          - generic [ref=e186] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Avatar: The Last Airbender"
+              - generic
+                - heading "Avatar: The Last Airbender" [level=3, ref=e386]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e286]
+              - generic
+            - paragraph
+              - StaticText "Avatar: The Last Airbender"
+            - paragraph
+              - StaticText "2005"
+          - generic [ref=e187] clickable [cursor:pointer, onclick]
+            - generic
+              - image "When Life Gives You Tangerines"
+              - generic
+                - heading "When Life Gives You Tangerines" [level=3, ref=e387]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e287]
+              - generic
+            - paragraph
+              - StaticText "When Life Gives You Tangerines"
+            - paragraph
+              - StaticText "2025"
+          - generic [ref=e188] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Reply 1988"
+              - generic
+                - heading "Reply 1988" [level=3, ref=e388]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e288]
+              - generic
+            - paragraph
+              - StaticText "Reply 1988"
+            - paragraph
+              - StaticText "2015"
+          - generic [ref=e189] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Arcane"
+              - generic
+                - heading "Arcane" [level=3, ref=e389]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e289]
+              - generic
+            - paragraph
+              - StaticText "Arcane"
+            - paragraph
+              - StaticText "2021"
+          - generic [ref=e190] clickable [cursor:pointer, onclick]
+            - generic
+              - image "One Piece"
+              - generic
+                - heading "One Piece" [level=3, ref=e390]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e290]
+              - generic
+            - paragraph
+              - StaticText "One Piece"
+            - paragraph
+              - StaticText "1999"
+          - generic [ref=e191] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Heated Rivalry"
+              - generic
+                - heading "Heated Rivalry" [level=3, ref=e391]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e291]
+              - generic
+            - paragraph
+              - StaticText "Heated Rivalry"
+            - paragraph
+              - StaticText "2025"
+          - generic [ref=e192] clickable [cursor:pointer, onclick]
+            - generic
+              - image "No One Will Miss Us"
+              - generic
+                - heading "No One Will Miss Us" [level=3, ref=e392]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e292]
+              - generic
+            - paragraph
+              - StaticText "No One Will Miss Us"
+            - paragraph
+              - StaticText "2024"
+          - generic [ref=e193] clickable [cursor:pointer, onclick]
+            - generic
+              - image "The Pitt"
+              - generic
+                - heading "The Pitt" [level=3, ref=e393]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e293]
+              - generic
+            - paragraph
+              - StaticText "The Pitt"
+            - paragraph
+              - StaticText "2025"
+          - generic [ref=e194] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Chernobyl"
+              - generic
+                - heading "Chernobyl" [level=3, ref=e394]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e294]
+              - generic
+            - paragraph
+              - StaticText "Chernobyl"
+            - paragraph
+              - StaticText "2019"
+          - generic [ref=e195] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Fullmetal Alchemist: Brotherhood"
+              - generic
+                - heading "Fullmetal Alchemist: Brotherhood" [level=3, ref=e395]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e295]
+              - generic
+            - paragraph
+              - StaticText "Fullmetal Alchemist: Brotherhood"
+            - paragraph
+              - StaticText "2009"
+          - generic [ref=e196] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Better Call Saul"
+              - generic
+                - heading "Better Call Saul" [level=3, ref=e396]
+              - StaticText "TV"
+              - button "Add to watchlist" [ref=e296]
+              - generic
+            - paragraph
+              - StaticText "Better Call Saul"
+            - paragraph
+              - StaticText "2015"
+          - generic [ref=e197] clickable [cursor:pointer, onclick]
+            - generic
+              - image "Weak Hero"
+              - generic
+                - heading "Weak Hero" [level=3, ref=e397]
+              - button "Add to watchlist" [ref=e297]
+        - button "Scroll right" [ref=e86]
+    - sectionfooter
+      - button "Disclaimer" [ref=e32]
+      - button "Privacy Policy" [ref=e33]
+      - button "DMCA" [ref=e34]
+    - button "Surprise Me" [ref=e7]
+  - generic
+    - generic
+      - heading "Before you continue" [level=2, ref=e35]
+      - button "I Agree & Continue" [ref=e36]
+  - region "Notifications (F8)" [ref=e2]
+  - button "Open Next.js Dev Tools" [expanded=false, ref=e87]
+
+stderr:
+[agent-browser] launched browser
