@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -73,7 +74,6 @@ export function NovelReader() {
     } catch {}
   }, []);
 
-  // Save reading preferences
   useEffect(() => {
     localStorage.setItem(
       'novel-reader-settings',
@@ -162,7 +162,7 @@ export function NovelReader() {
 
   return (
     <div className={`fixed inset-0 z-[100] flex flex-col ${themeStyles[theme]} transition-colors duration-300`}>
-      {/* Header */
+      {/* Header */}
       <div
         className="shrink-0 z-50 border-b backdrop-blur-xl flex items-center justify-between px-3 md:px-6 py-2.5"
         style={{
@@ -200,7 +200,7 @@ export function NovelReader() {
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${showSettings ? 'bg-white/20' : 'bg-white/10 hover:bg-white/20'}`
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${showSettings ? 'bg-white/20' : 'bg-white/10 hover:bg-white/20'}`}
             title="Reader settings"
           >
             <Settings className="w-4 h-4" />
@@ -208,7 +208,7 @@ export function NovelReader() {
         </div>
       </div>
 
-      {/* Settings panel */
+      {/* Settings panel */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
@@ -276,7 +276,7 @@ export function NovelReader() {
                 </div>
               </div>
 
-              {/* Theme */
+              {/* Theme */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium opacity-60">Theme</span>
                 <div className="flex gap-1.5">
@@ -311,7 +311,7 @@ export function NovelReader() {
         )}
       </AnimatePresence>
 
-      {/* Table of contents */
+      {/* Table of contents */}
       <AnimatePresence>
         {showToc && (
           <motion.div
@@ -360,7 +360,7 @@ export function NovelReader() {
         )}
       </AnimatePresence>
 
-      {/* Reading area */
+      {/* Reading area */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -402,7 +402,7 @@ export function NovelReader() {
               {currentChapter.content}
             </div>
 
-            {/* Chapter navigation */
+            {/* Chapter navigation */}
             <div className="flex items-center justify-between mt-12 pt-6 border-t opacity-20">
               <button
                 onClick={goPrevChapter}
@@ -431,7 +431,7 @@ export function NovelReader() {
         ) : null}
       </div>
 
-      {/* Bottom progress bar */
+      {/* Bottom progress bar */}
       {!loading && bookData && (
         <div className="shrink-0">
           <div

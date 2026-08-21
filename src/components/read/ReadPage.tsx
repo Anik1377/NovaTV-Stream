@@ -310,7 +310,7 @@ export function ReadPage() {
           </div>
         </div>
 
-        {/* ── Main tabs ── */
+        {/* ── Main tabs ── */}
         <div className="flex gap-1 mb-5">
           {MAIN_TABS.map((tab) => {
             const IconComp = tab.icon;
@@ -338,7 +338,7 @@ export function ReadPage() {
           })}
         </div>
 
-        {/* ── Search ── */
+        {/* ── Search ── */}
         {mainTab !== 'comics' && (
           <div className="relative mb-5">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
@@ -352,7 +352,7 @@ export function ReadPage() {
           </div>
         )}
 
-        {/* ── Sub-tabs / filters ── */
+        {/* ── Sub-tabs / filters ── */}
         {subTabs.length > 0 && (
           <div className="flex gap-1 overflow-x-auto scrollbar-none pb-3 -mx-1 px-1">
             {subTabs.map((tab) => (
@@ -379,7 +379,7 @@ export function ReadPage() {
           </div>
         )}
 
-        {/* ── Novel genre pills ── */
+        {/* ── Novel genre pills ── */}
         {mainTab === 'novels' && (
           <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-3 -mx-1 px-1">
             {NOVEL_GENRES.map((genre) => (
@@ -401,7 +401,7 @@ export function ReadPage() {
 
       {/* ═══ Content area ═══ */}
       <div className="px-4 md:px-8">
-        {/* ── MANGA ── */
+        {/* ── MANGA ── */}
         {mainTab === 'manga' && (
           <>
             {mangaLoading && (
@@ -460,9 +460,10 @@ export function ReadPage() {
                     </div>
                   )}
                 </>
-              )}
-            </>
-          )}
+              )
+            )}
+          </>
+        )}
 
         {/* ── COMICS ── */}
         {mainTab === 'comics' && (
@@ -514,9 +515,10 @@ export function ReadPage() {
                     </motion.div>
                   ))}
                 </div>
-              )}
-            </>
-          )}
+              )
+            )}
+          </>
+        )}
 
         {/* ── NOVELS ── */}
         {mainTab === 'novels' && (
