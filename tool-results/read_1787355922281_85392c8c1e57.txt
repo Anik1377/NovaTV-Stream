@@ -1,0 +1,791 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+     4→     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→     5→import {
+     6→     6→  Loader2,
+     7→     7→  Search,
+     8→     8→  BookOpen,
+     9→     9→  ArrowLeft,
+    10→    10→  AlertCircle,
+    11→    11→  BookText,
+    12→    12→  Sparkles,
+    13→    13→  Flame,
+    14→    14→  TrendingUp,
+    15→    15→  Star,
+    16→    16→  Shield,
+    17→    17→  Zap,
+    18→    18→  Crown,
+    19→    19→  Skull,
+    20→    20→  Eye,
+    21→    21→  Star as StarIcon,
+    22→    22→  Filter,
+    23→    23→  ChevronDown,
+    24→    24→} from 'lucide-react';
+    25→    25→import { useAppStore } from '@/store/app-store';
+    26→    26→
+    27→    27→/* ── Types ── */
+    28→    28→interface MangaItem {
+    29→    29→  id: string;
+    30→    30→  title: string;
+    31→    31→  coverUrl: string;
+    32→    32→  author?: string;
+    33→    33→  tags?: string[];
+    34→    34→}
+    35→    35→
+    36→    36→interface NovelItem {
+    37→    37→  id: number;
+    38→    38→  title: string;
+    39→    39→  author: string;
+    40→    40→  genre: string[];
+    41→    41→  year: number;
+    42→    42→  coverUrl: string;
+    43→    43→  description: string;
+    44→    44→  downloadCount: number;
+    45→    45→}
+    46→    46→
+    47→    47→/* ── Tab config ── */
+    48→    48→type MainTab = 'manga' | 'comics' | 'novels';
+    49→    49→
+    50→    50→interface SubTab {
+    51→    51→  key: string;
+    52→    52→  label: string;
+    53→    53→  icon?: string;
+    54→    54→  flag?: string;
+    55→    55→}
+    56→    56→
+    57→    57→const MANGA_TABS: SubTab[] = [
+    58→    58→  { key: 'all', label: 'All' },
+    59→    59→  { key: 'manga', label: 'Manga', flag: '\u{1F1EF}\u{1F1F5}' },
+    60→    60→  { key: 'manhwa', label: 'Manhwa', flag: '\u{1F1F0}\u{1F1F7}' },
+    61→    61→  { key: 'manhua', label: 'Manhua', flag: '\u{1F1E8}\u{1F1F3}' },
+    62→    62→];
+    63→    63→
+    64→    64→const COMIC_PUBLISHERS = ['All', 'Marvel', 'DC', 'Image', 'Dark Horse', 'IDW', 'Dynamite', 'BOOM!'];
+    65→    65→const COMIC_GENRES = ['All', 'Superhero', 'Action', 'Sci-Fi', 'Fantasy', 'Horror', 'Drama', 'Crime', 'Thriller', 'Comedy', 'Mystery', 'Noir', 'Adventure'];
+    66→    66→const COMIC_SORT_OPTIONS = [
+    67→    67→  { key: 'popular', label: 'Popular' },
+    68→    68→  { key: 'rating', label: 'Top Rated' },
+    69→    69→  { key: 'year-new', label: 'Newest' },
+    70→    70→  { key: 'year-old', label: 'Oldest' },
+    71→    71→];
+    72→    72→
+    73→    73→const NOVEL_GENRES = [
+    74→    74→  'All', 'Adventure', 'Classic', 'Comedy', 'Drama', 'Fantasy',
+    75→    75→  'Gothic', 'Historical Fiction', 'Horror', 'Mystery',
+    76→    76→  'Philosophy', 'Romance', 'Science Fiction', 'Thriller',
+    77→    77→];
+    78→    78→
+    79→    79→/* ── Publisher colors ── */
+    80→    80→const PUBLISHER_COLORS: Record<string, string> = {
+    81→    81→  Marvel: 'bg-red-500/15 text-red-400 border-red-500/30',
+    82→    82→  DC: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    83→    83→  Image: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+    84→    84→  'Dark Horse': 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    85→    85→  IDW: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+    86→    86→  Dynamite: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    87→    87→  'BOOM!': 'bg-pink-500/15 text-pink-400 border-pink-500/30',
+    88→    88→  'Cartoon Books': 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    89→    89→};
+    90→    90→
+    91→    91→/* ── Main tab config ── */
+    92→    92→const MAIN_TABS: { key: MainTab; label: string; icon: typeof BookOpen; color: string }[] = [
+    93→    93→  { key: 'manga', label: 'Manga', icon: BookOpen, color: 'from-amber-500 to-orange-600' },
+    94→    94→  { key: 'comics', label: 'Comics', icon: Shield, color: 'from-red-500 to-rose-600' },
+    95→    95→  { key: 'novels', label: 'Novels', icon: BookText, color: 'from-emerald-500 to-teal-600' },
+    96→    96→];
+    97→    97→
+    98→    98→/* ── Helpers ── */
+    99→    99→function proxyCover(url?: string): string {
+   100→   100→  if (!url) return '';
+   101→   101→  if (url.includes('gutenberg.org')) return `/api/novels/proxy?url=${encodeURIComponent(url)}`;
+   102→   102→  if (url.includes('readcomicsonline.lol')) return `/api/comics/proxy?url=${encodeURIComponent(url)}`;
+   103→   103→  return `/api/manga/proxy?url=${encodeURIComponent(url)}`;
+   104→   104→}
+   105→   105→
+   106→   106→/* ── Skeleton ── */
+   107→   107→function SkeletonCard() {
+   108→   108→  return (
+   109→   109→    <div className="space-y-2">
+   110→   110→      <div className="aspect-[2/3] bg-white/5 rounded-lg animate-pulse" />
+   111→   111→      <div className="h-3.5 bg-white/5 rounded w-3/4 animate-pulse" />
+   112→   112→      <div className="h-3 bg-white/5 rounded w-1/2 animate-pulse" />
+   113→   113→    </div>
+   114→   114→  );
+   115→   115→}
+   116→   116→
+   117→   117→/* ═══════════════════════════════════════════════════ */
+   118→   118→export function ReadPage() {
+   119→   119→  const { goHome, selectManga, selectNovel, selectComic } = useAppStore();
+   120→   120→  const [mainTab, setMainTab] = useState<MainTab>('manga');
+   121→   121→
+   122→   122→  // Manga state
+   123→   123→  const [mangaList, setMangaList] = useState<MangaItem[]>([]);
+   124→   124→  const [mangaSubTab, setMangaSubTab] = useState('all');
+   125→   125→  const [mangaLoading, setMangaLoading] = useState(false);
+   126→   126→  const [mangaError, setMangaError] = useState(false);
+   127→   127→  const [mangaSearch, setMangaSearch] = useState('');
+   128→   128→  const [mangaHasMore, setMangaHasMore] = useState(false);
+   129→   129→  const [mangaTotal, setMangaTotal] = useState(0);
+   130→   130→  const [mangaOffset, setMangaOffset] = useState(0);
+   131→   131→  const mangaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   132→   132→  const mangaAbortRef = useRef<AbortController | null>(null);
+   133→   133→
+   134→   134→  // Comics state
+   135→   135→  const [comicList, setComicList] = useState<any[]>([]);
+   136→   136→  const [comicPublisher, setComicPublisher] = useState('All');
+   137→   137→  const [comicGenre, setComicGenre] = useState('All');
+   138→   138→  const [comicSort, setComicSort] = useState('popular');
+   139→   139→  const [comicSearch, setComicSearch] = useState('');
+   140→   140→  const [comicLoading, setComicLoading] = useState(true);
+   141→   141→  const [comicError, setComicError] = useState(false);
+   142→   142→  const [comicTotal, setComicTotal] = useState(0);
+   143→   143→  const [availablePublishers, setAvailablePublishers] = useState<string[]>([]);
+   144→   144→  const [availableGenres, setAvailableGenres] = useState<string[]>([]);
+   145→   145→  const [showSortDropdown, setShowSortDropdown] = useState(false);
+   146→   146→  const comicDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   147→   147→
+   148→   148→  // Novels state
+   149→   149→  const [novelList, setNovelList] = useState<NovelItem[]>([]);
+   150→   150→  const [novelGenre, setNovelGenre] = useState('All');
+   151→   151→  const [novelSearch, setNovelSearch] = useState('');
+   152→   152→  const [novelLoading, setNovelLoading] = useState(true);
+   153→   153→  const novelDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   154→   154→
+   155→   155→  /* ── Manga fetch ── */
+   156→   156→  const fetchManga = useCallback(async (tab: string, search: string, offset: number, append = false) => {
+   157→   157→    mangaAbortRef.current?.abort();
+   158→   158→    const controller = new AbortController();
+   159→   159→    mangaAbortRef.current = controller;
+   160→   160→    if (!append) { setMangaLoading(true); setMangaError(false); }
+   161→   161→
+   162→   162→    try {
+   163→   163→      const params = new URLSearchParams();
+   164→   164→      if (search.trim()) {
+   165→   165→        params.set('q', search.trim());
+   166→   166→        if (offset > 0) params.set('page', String(Math.floor(offset / 20) + 1));
+   167→   167→        const res = await fetch(`/api/manga/search?${params}`, { signal: controller.signal });
+   168→   168→        if (!res.ok) throw new Error();
+   169→   169→        const data = await res.json();
+   170→   170→        if (controller.signal.aborted) return;
+   171→   171→        const items: MangaItem[] = (data.results || []).map((m: any) => ({
+   172→   172→          id: String(m.id), title: String(m.title || 'Untitled'),
+   173→   173→          coverUrl: String(m.coverUrl || ''), author: String(m.author || ''),
+   174→   174→          tags: Array.isArray(m.tags) ? m.tags.filter(Boolean).map(String) : [],
+   175→   175→        }));
+   176→   176→        setMangaList(append ? (prev) => [...prev, ...items] : items);
+   177→   177→        setMangaHasMore(!!data.hasMore);
+   178→   178→        setMangaTotal(data.total || 0);
+   179→   179→      } else {
+   180→   180→        if (tab === 'manga' || tab === 'manhwa' || tab === 'manhua') params.set('type', tab);
+   181→   181→        if (offset > 0) params.set('offset', String(offset));
+   182→   182→        const url = `/api/manga/trending${params.toString() ? `?${params}` : ''}`;
+   183→   183→        const res = await fetch(url, { signal: controller.signal });
+   184→   184→        if (!res.ok) throw new Error();
+   185→   185→        const data = await res.json();
+   186→   186→        if (controller.signal.aborted) return;
+   187→   187→        const items: MangaItem[] = (data.results || []).map((m: any) => ({
+   188→   188→          id: String(m.id), title: String(m.title || 'Untitled'),
+   189→   189→          coverUrl: String(m.coverUrl || ''), author: String(m.author || ''),
+   190→   190→          tags: Array.isArray(m.tags) ? m.tags.filter(Boolean).map(String) : [],
+   191→   191→        }));
+   192→   192→        setMangaList(append ? (prev) => [...prev, ...items] : items);
+   193→   193→        setMangaHasMore(!!data.hasMore);
+   194→   194→        setMangaTotal(data.total || 0);
+   195→   195→      }
+   196→   196→    } catch {
+   197→   197→      if (!append) setMangaError(true);
+   198→   198→    } finally {
+   199→   199→      if (!controller.signal.aborted) setMangaLoading(false);
+   200→   200→    }
+   201→   201→  }, []);
+   202→   202→
+   203→   203→  useEffect(() => {
+   204→   204→    setMangaOffset(0); setMangaSearch('');
+   205→   205→    fetchManga(mangaSubTab, '', 0);
+   206→   206→    return () => { mangaAbortRef.current?.abort(); };
+   207→   207→  }, [mangaSubTab, fetchManga]);
+   208→   208→
+   209→   209→  const handleMangaSearch = useCallback((value: string) => {
+   210→   210→    setMangaSearch(value);
+   211→   211→    if (mangaDebounceRef.current) clearTimeout(mangaDebounceRef.current);
+   212→   212→    if (!value.trim()) { setMangaOffset(0); fetchManga(mangaSubTab, '', 0); return; }
+   213→   213→    mangaDebounceRef.current = setTimeout(() => { setMangaOffset(0); fetchManga(mangaSubTab, value, 0); }, 300);
+   214→   214→  }, [mangaSubTab, fetchManga]);
+   215→   215→
+   216→   216→  /* ── Comics fetch ── */
+   217→   217→  const fetchComics = useCallback(async (search: string) => {
+   218→   218→    setComicLoading(true);
+   219→   219→    setComicError(false);
+   220→   220→    try {
+   221→   221→      const params = new URLSearchParams();
+   222→   222→      if (comicPublisher !== 'All') params.set('publisher', comicPublisher);
+   223→   223→      if (comicGenre !== 'All') params.set('genre', comicGenre);
+   224→   224→      if (comicSort) params.set('sort', comicSort);
+   225→   225→      if (search.trim()) params.set('q', search.trim());
+   226→   226→      const res = await fetch(`/api/comics/trending?${params}`);
+   227→   227→      if (!res.ok) throw new Error();
+   228→   228→      const data = await res.json();
+   229→   229→      setComicList(data.results || []);
+   230→   230→      setComicTotal(data.total || 0);
+   231→   231→      if (data.publishers) setAvailablePublishers(data.publishers);
+   232→   232→      if (data.genres) setAvailableGenres(data.genres);
+   233→   233→    } catch {
+   234→   234→      setComicError(true);
+   235→   235→    } finally {
+   236→   236→      setComicLoading(false);
+   237→   237→    }
+   238→   238→  }, [comicPublisher, comicGenre, comicSort]);
+   239→   239→
+   240→   240→  useEffect(() => {
+   241→   241→    fetchComics(comicSearch);
+   242→   242→  }, [fetchComics]);
+   243→   243→
+   244→   244→  const handleComicSearch = useCallback((value: string) => {
+   245→   245→    setComicSearch(value);
+   246→   246→    if (comicDebounceRef.current) clearTimeout(comicDebounceRef.current);
+   247→   247→    comicDebounceRef.current = setTimeout(() => {
+   248→   248→      fetchComics(value);
+   249→   249→    }, 300);
+   250→   250→  }, [fetchComics]);
+   251→   251→
+   252→   252→  /* ── Novels fetch ── */
+   253→   253→  useEffect(() => {
+   254→   254→    setNovelLoading(true);
+   255→   255→    fetch('/novels-data.json')
+   256→   256→      .then((r) => r.json())
+   257→   257→      .then((data: NovelItem[]) => setNovelList(data))
+   258→   258→      .catch(() => {})
+   259→   259→      .finally(() => setNovelLoading(false));
+   260→   260→  }, []);
+   261→   261→
+   262→   262→  const filteredNovels = useMemo(() => {
+   263→   263→    let list = novelList;
+   264→   264→    if (novelGenre !== 'All') list = list.filter((n) => n.genre.includes(novelGenre));
+   265→   265→    if (novelSearch.trim()) {
+   266→   266→      const q = novelSearch.toLowerCase();
+   267→   267→      list = list.filter(
+   268→   268→        (n) =>
+   269→   269→          n.title.toLowerCase().includes(q) ||
+   270→   270→          n.author.toLowerCase().includes(q) ||
+   271→   271→          n.description.toLowerCase().includes(q)
+   272→   272→      );
+   273→   273→    }
+   274→   274→    return list;
+   275→   275→  }, [novelList, novelGenre, novelSearch]);
+   276→   276→
+   277→   277→  const handleNovelSearch = useCallback((value: string) => {
+   278→   278→    setNovelSearch(value);
+   279→   279→    if (novelDebounceRef.current) clearTimeout(novelDebounceRef.current);
+   280→   280→  }, []);
+   281→   281→
+   282→   282→  /* ── Shared search input ── */
+   283→   283→  const searchPlaceholder = mainTab === 'manga'
+   284→   284→    ? 'Search manga, manhwa, manhua...'
+   285→   285→    : mainTab === 'comics'
+   286→   286→    ? 'Search Marvel, DC, Image comics...'
+   287→   287→    : 'Search classic novels...';
+   288→   288→
+   289→   289→  const currentSearch = mainTab === 'manga' ? mangaSearch : mainTab === 'comics' ? comicSearch : novelSearch;
+   290→   290→  const handleSearch = mainTab === 'manga' ? handleMangaSearch : mainTab === 'comics' ? handleComicSearch : handleNovelSearch;
+   291→   291→
+   292→   292→  /* ── Active color ── */
+   293→   293→  const activeColor = mainTab === 'manga' ? 'amber' : mainTab === 'comics' ? 'red' : 'emerald';
+   294→   294→
+   295→   295→  /* ── Render sub-tabs ── */
+   296→   296→  const subTabs: SubTab[] = mainTab === 'manga' ? MANGA_TABS : [];
+   297→   297→  const activeSubTab = mainTab === 'manga' ? mangaSubTab : '';
+   298→   298→  const setActiveSubTab = mainTab === 'manga' ? setMangaSubTab : () => {};
+   299→   299→
+   300→   300→  /* ── Item count ── */
+   301→   301→  const itemCount =
+   302→   302→    mainTab === 'manga' ? mangaTotal :
+   303→   303→    mainTab === 'comics' ? comicTotal :
+   304→   304→    filteredNovels.length;
+   305→   305→
+   306→   306→  /* ── Publisher icon helper ── */
+   307→   307→  const getPublisherIcon = (publisher: string) => {
+   308→   308→    switch (publisher) {
+   309→   309→      case 'Marvel': return <StarIcon className="w-3 h-3" />;
+   310→   310→      case 'DC': return <Crown className="w-3 h-3" />;
+   311→   311→      case 'Image': return <Eye className="w-3 h-3" />;
+   312→   312→      case 'Dark Horse': return <Skull className="w-3 h-3" />;
+   313→   313→      case 'IDW': return <Zap className="w-3 h-3" />;
+   314→   314→      default: return <Shield className="w-3 h-3" />;
+   315→   315→    }
+   316→   316→  };
+   317→   317→
+   318→   318→  return (
+   319→   319→    <div className="min-h-screen pb-10">
+   320→   320→      {/* Mobile back button */}
+   321→   321→      <button
+   322→   322→        onClick={goHome}
+   323→   323→        className="md:hidden fixed z-[90] flex items-center gap-1.5 text-white/60 active:text-white transition-colors"
+   324→   324→        style={{ top: 'max(env(safe-area-inset-top, 0px) + 8px, 8px)', left: 12 }}
+   325→   325→        aria-label="Go home"
+   326→   326→      >
+   327→   327→        <ArrowLeft className="w-5 h-5" />
+   328→   328→      </button>
+   329→   329→
+   330→   330→      <div className="pt-16 md:pt-8 pb-6 px-4 md:px-8">
+   331→   331→        {/* Desktop back */}
+   332→   332→        <button
+   333→   333→          onClick={goHome}
+   334→   334→          className="hidden md:flex items-center gap-2 text-white/70 hover:text-white mb-4 transition-colors"
+   335→   335→        >
+   336→   336→          <ArrowLeft className="w-4 h-4" />
+   337→   337→          <span className="text-sm">Back to Home</span>
+   338→   338→        </button>
+   339→   339→
+   340→   340→        {/* ── Hero header ── */}
+   341→   341→        <div className="relative mb-6">
+   342→   342→          <div className={`relative h-[20vh] min-h-[160px] md:min-h-[200px] rounded-2xl overflow-hidden`}>
+   343→   343→            <div className={`absolute inset-0 bg-gradient-to-br ${MAIN_TABS.find(t => t.key === mainTab)?.color || 'from-amber-500 to-orange-600'}`} />
+   344→   344→            <div className="absolute inset-0 opacity-20" style={{
+   345→   345→              backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+   346→   346→            }} />
+   347→   347→            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+   348→   348→            <div className="relative h-full flex items-center justify-center text-center px-4">
+   349→   349→              <div>
+   350→   350→                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${MAIN_TABS.find(t => t.key === mainTab)?.color || ''} flex items-center justify-center shadow-lg mb-3`}>
+   351→   351→                  <BookOpen className="w-7 h-7 text-white" />
+   352→   352→                </div>
+   353→   353→                <h1 className="text-3xl md:text-4xl font-black text-white mb-1">
+   354→   354→                  Read
+   355→   355→                </h1>
+   356→   356→                <p className="text-white/50 text-xs md:text-sm max-w-md mx-auto">
+   357→   357→                  {mainTab === 'manga' && 'Manga, Manhwa & Manhua'}
+   358→   358→                  {mainTab === 'comics' && 'Marvel, DC, Image & More'}
+   359→   359→                  {mainTab === 'novels' && 'Classic Novels & Literature'}
+   360→   360→                  {' \u00B7 '}{itemCount > 0 && !mangaLoading && !comicLoading && !novelLoading ? `${itemCount.toLocaleString()} titles` : 'Free to read'}
+   361→   361→                </p>
+   362→   362→              </div>
+   363→   363→            </div>
+   364→   364→          </div>
+   365→   365→        </div>
+   366→   366→
+   367→   367→        {/* ── Main tabs ── */}
+   368→   368→        <div className="flex gap-1 mb-5">
+   369→   369→          {MAIN_TABS.map((tab) => {
+   370→   370→            const IconComp = tab.icon;
+   371→   371→            return (
+   372→   372→              <button
+   373→   373→                key={tab.key}
+   374→   374→                onClick={() => setMainTab(tab.key)}
+   375→   375→                className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all relative ${
+   376→   376→                  mainTab === tab.key
+   377→   377→                    ? `bg-${activeColor}-500/15 text-${activeColor}-400 border border-${activeColor}-500/30`
+   378→   378→                    : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70 border border-white/[0.08]'
+   379→   379→                }`}
+   380→   380→              >
+   381→   381→                <IconComp className="w-4 h-4" />
+   382→   382→                <span className="ml-1.5">{tab.label}</span>
+   383→   383→                {mainTab === tab.key && (
+   384→   384→                  <motion.div
+   385→   385→                    layoutId="read-main-tab"
+   386→   386→                    className={`absolute inset-0 rounded-xl bg-${activeColor}-500/15 border border-${activeColor}-500/30`}
+   387→   387→                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+   388→   388→                  />
+   389→   389→                )}
+   390→   390→              </button>
+   391→   391→            );
+   392→   392→          })}
+   393→   393→        </div>
+   394→   394→
+   395→   395→        {/* ── Search ── */}
+   396→   396→        {mainTab !== 'novels' && (
+   397→   397→          <div className="relative mb-5">
+   398→   398→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+   399→   399→            <input
+   400→   400→              type="text"
+   401→   401→              placeholder={searchPlaceholder}
+   402→   402→              value={currentSearch}
+   403→   403→              onChange={(e) => handleSearch(e.target.value)}
+   404→   404→              className={`w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-${activeColor}-500/50 focus:ring-1 focus:ring-${activeColor}-500/30 transition-colors`}
+   405→   405→            />
+   406→   406→          </div>
+   407→   407→        )}
+   408→   408→
+   409→   409→        {/* ── Sub-tabs (manga only) ── */}
+   410→   410→        {subTabs.length > 0 && (
+   411→   411→          <div className="flex gap-1 overflow-x-auto scrollbar-none pb-3 -mx-1 px-1">
+   412→   412→            {subTabs.map((tab) => (
+   413→   413→              <button
+   414→   414→                key={tab.key}
+   415→   415→                onClick={() => setActiveSubTab(tab.key)}
+   416→   416→                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors relative whitespace-nowrap ${
+   417→   417→                  activeSubTab === tab.key
+   418→   418→                    ? `text-${activeColor}-400`
+   419→   419→                    : 'text-white/40 hover:text-white/60'
+   420→   420→                }`}
+   421→   421→              >
+   422→   422→                {tab.flag && <span className="mr-1">{tab.flag}</span>}
+   423→   423→                {tab.label}
+   424→   424→                {activeSubTab === tab.key && (
+   425→   425→                  <motion.div
+   426→   426→                    layoutId="read-sub-tab"
+   427→   427→                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-${activeColor}-500 rounded-full`}
+   428→   428→                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+   429→   429→                  />
+   430→   430→                )}
+   431→   431→              </button>
+   432→   432→            ))}
+   433→   433→          </div>
+   434→   434→        )}
+   435→   435→
+   436→   436→        {/* ── Comic publisher / genre / sort filters ── */}
+   437→   437→        {mainTab === 'comics' && (
+   438→   438→          <div className="space-y-3 mb-5">
+   439→   439→            {/* Publisher filter pills */}
+   440→   440→            <div className="flex gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
+   441→   441→              {COMIC_PUBLISHERS.map((pub) => (
+   442→   442→                <button
+   443→   443→                  key={pub}
+   444→   444→                  onClick={() => setComicPublisher(pub)}
+   445→   445→                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+   446→   446→                    comicPublisher === pub
+   447→   447→                      ? (PUBLISHER_COLORS[pub] || 'bg-white/15 text-white/90 border-white/20')
+   448→   448→                      : 'bg-white/[0.04] text-white/40 border-white/[0.08] hover:bg-white/[0.08] hover:text-white/70'
+   449→   449→                  }`}
+   450→   450→                >
+   451→   451→                  {getPublisherIcon(pub)}
+   452→   452→                  {pub}
+   453→   453→                </button>
+   454→   454→              ))}
+   455→   455→            </div>
+   456→   456→
+   457→   457→            {/* Genre filter row */}
+   458→   458→            <div className="flex gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
+   459→   459→              {COMIC_GENRES.map((genre) => (
+   460→   460→                <button
+   461→   461→                  key={genre}
+   462→   462→                  onClick={() => setComicGenre(genre)}
+   463→   463→                  className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border ${
+   464→   464→                    comicGenre === genre
+   465→   465→                      ? 'bg-red-500/15 text-red-300 border-red-500/30'
+   466→   466→                      : 'bg-white/[0.04] text-white/40 border-white/[0.08] hover:bg-white/[0.08] hover:text-white/70'
+   467→   467→                  }`}
+   468→   468→                >
+   469→   469→                  {genre}
+   470→   470→                </button>
+   471→   471→              ))}
+   472→   472→            </div>
+   473→   473→
+   474→   474→            {/* Sort dropdown */}
+   475→   475→            <div className="relative">
+   476→   476→              <button
+   477→   477→                onClick={() => setShowSortDropdown(!showSortDropdown)}
+   478→   478→                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-white/60 hover:text-white/80 transition-colors"
+   479→   479→              >
+   480→   480→                <Filter className="w-3 h-3" />
+   481→   481→                <span>Sort: {COMIC_SORT_OPTIONS.find(s => s.key === comicSort)?.label || 'Popular'}</span>
+   482→   482→                <ChevronDown className={`w-3 h-3 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+   483→   483→              </button>
+   484→   484→              <AnimatePresence>
+   485→   485→                {showSortDropdown && (
+   486→   486→                  <>
+   487→   487→                    <div className="fixed inset-0 z-40" onClick={() => setShowSortDropdown(false)} />
+   488→   488→                    <motion.div
+   489→   489→                      initial={{ opacity: 0, y: -4 }}
+   490→   490→                      animate={{ opacity: 1, y: 0 }}
+   491→   491→                      exit={{ opacity: 0, y: -4 }}
+   492→   492→                      className="absolute top-full mt-1 left-0 z-50 bg-zinc-900 border border-white/10 rounded-lg shadow-xl overflow-hidden min-w-[140px]"
+   493→   493→                    >
+   494→   494→                      {COMIC_SORT_OPTIONS.map((opt) => (
+   495→   495→                        <button
+   496→   496→                          key={opt.key}
+   497→   497→                          onClick={() => { setComicSort(opt.key); setShowSortDropdown(false); }}
+   498→   498→                          className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+   499→   499→                            comicSort === opt.key
+   500→   500→                              ? 'text-red-400 bg-red-500/10'
+   501→   501→                              : 'text-white/60 hover:text-white/80 hover:bg-white/5'
+   502→   502→                          }`}
+   503→   503→                        >
+   504→   504→                          {opt.label}
+   505→   505→                        </button>
+   506→   506→                      ))}
+   507→   507→                    </motion.div>
+   508→   508→                  </>
+   509→   509→                )}
+   510→   510→              </AnimatePresence>
+   511→   511→            </div>
+   512→   512→          </div>
+   513→   513→        )}
+   514→   514→
+   515→   515→        {/* ── Novel genre pills ── */}
+   516→   516→        {mainTab === 'novels' && (
+   517→   517→          <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-3 -mx-1 px-1">
+   518→   518→            {NOVEL_GENRES.map((genre) => (
+   519→   519→              <button
+   520→   520→                key={genre}
+   521→   521→                onClick={() => setNovelGenre(genre)}
+   522→   522→                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${
+   523→   523→                  novelGenre === genre
+   524→   524→                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+   525→   525→                    : 'bg-white/[0.04] text-white/40 border-white/[0.08] hover:bg-white/[0.08] hover:text-white/70'
+   526→   526→                }`}
+   527→   527→              >
+   528→   528→                {genre}
+   529→   529→              </button>
+   530→   530→            ))}
+   531→   531→          </div>
+   532→   532→        )}
+   533→   533→      </div>
+   534→   534→
+   535→   535→      {/* ═══ Content area ═══ */}
+   536→   536→      <div className="px-4 md:px-8">
+   537→   537→        {/* ── MANGA ── */}
+   538→   538→        {mainTab === 'manga' && (
+   539→   539→          <>
+   540→   540→            {mangaLoading && (
+   541→   541→              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
+   542→   542→                {Array.from({ length: 14 }).map((_, i) => <SkeletonCard key={i} />)}
+   543→   543→              </div>
+   544→   544→            )}
+   545→   545→            {mangaError && (
+   546→   546→              <div className="flex flex-col items-center justify-center py-20 text-center">
+   547→   547→                <AlertCircle className="w-10 h-10 text-white/15 mb-3" />
+   548→   548→                <p className="text-white/40 text-sm">Failed to load manga</p>
+   549→   549→                <button onClick={() => fetchManga(mangaSubTab, mangaSearch, 0)} className="mt-4 text-amber-500 text-sm">Retry</button>
+   550→   550→              </div>
+   551→   551→            )}
+   552→   552→            {!mangaLoading && !mangaError && (
+   553→   553→              mangaList.length === 0 ? (
+   554→   554→                <div className="flex flex-col items-center justify-center py-20 text-center">
+   555→   555→                  <Search className="w-10 h-10 text-white/15 mb-3" />
+   556→   556→                  <p className="text-white/40 text-sm">{mangaSearch ? `No results for "${mangaSearch}"` : 'No manga found'}</p>
+   557→   557→                </div>
+   558→   558→              ) : (
+   559→   559→                <>
+   560→   560→                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
+   561→   561→                    {mangaList.map((manga, i) => (
+   562→   562→                      <motion.div
+   563→   563→                        key={manga.id}
+   564→   564→                        initial={{ opacity: 0, y: 16 }}
+   565→   565→                        whileInView={{ opacity: 1, y: 0 }}
+   566→   566→                        viewport={{ once: true, margin: '-40px' }}
+   567→   567→                        transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
+   568→   568→                        className="cursor-pointer group"
+   569→   569→                        onClick={() => selectManga({ id: manga.id, title: manga.title, coverUrl: manga.coverUrl })}
+   570→   570→                      >
+   571→   571→                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-white/5 mb-2 relative">
+   572→   572→                          <img
+   573→   573→                            src={proxyCover(manga.coverUrl)}
+   574→   574→                            alt={manga.title}
+   575→   575→                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+   576→   576→                            loading="lazy"
+   577→   577→                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+   578→   578→                          />
+   579→   579→                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+   580→   580→                            <BookOpen className="w-10 h-10 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+   581→   581→                          </div>
+   582→   582→                        </div>
+   583→   583→                        <p className="text-sm font-medium text-white/90 truncate">{manga.title}</p>
+   584→   584→                        {manga.author && <p className="text-xs text-white/40 truncate">{manga.author}</p>}
+   585→   585→                      </motion.div>
+   586→   586→                    ))}
+   587→   587→                  </div>
+   588→   588→                  {mangaHasMore && (
+   589→   589→                    <div className="flex justify-center mt-8 mb-4">
+   590→   590→                      <button onClick={() => { const next = mangaOffset + 20; setMangaOffset(next); fetchManga(mangaSubTab, mangaSearch, next, true); }} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 text-sm font-medium transition-colors">
+   591→   591→                        Load More
+   592→   592→                      </button>
+   593→   593→                    </div>
+   594→   594→                  )}
+   595→   595→                </>
+   596→   596→              )
+   597→   597→            )}
+   598→   598→          </>
+   599→   599→        )}
+   600→   600→
+   601→   601→        {/* ── COMICS ── */}
+   602→   602→        {mainTab === 'comics' && (
+   603→   603→          <>
+   604→   604→            {comicLoading && (
+   605→   605→              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+   606→   606→                {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+   607→   607→              </div>
+   608→   608→            )}
+   609→   609→            {comicError && (
+   610→   610→              <div className="flex flex-col items-center justify-center py-20 text-center">
+   611→   611→                <AlertCircle className="w-10 h-10 text-white/15 mb-3" />
+   612→   612→                <p className="text-white/40 text-sm">Failed to load comics</p>
+   613→   613→                <button onClick={() => fetchComics(comicSearch)} className="mt-4 text-red-400 text-sm">Retry</button>
+   614→   614→              </div>
+   615→   615→            )}
+   616→   616→            {!comicLoading && !comicError && (
+   617→   617→              comicList.length === 0 ? (
+   618→   618→                <div className="flex flex-col items-center justify-center py-20 text-center">
+   619→   619→                  <Shield className="w-10 h-10 text-white/15 mb-3" />
+   620→   620→                  <p className="text-white/40 text-sm">{comicSearch ? `No results for "${comicSearch}"` : 'No comics found'}</p>
+   621→   621→                  {comicSearch && <button onClick={() => { setComicSearch(''); fetchComics(''); }} className="mt-4 text-red-400 text-sm">Clear search</button>}
+   622→   622→                </div>
+   623→   623→              ) : (
+   624→   624→                <>
+   625→   625→                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+   626→   626→                    {comicList.map((comic: any, i: number) => (
+   627→   627→                      <motion.div
+   628→   628→                        key={comic.id}
+   629→   629→                        initial={{ opacity: 0, y: 16 }}
+   630→   630→                        whileInView={{ opacity: 1, y: 0 }}
+   631→   631→                        viewport={{ once: true, margin: '-40px' }}
+   632→   632→                        transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
+   633→   633→                        className="cursor-pointer group"
+   634→   634→                        onClick={() => selectComic({
+   635→   635→                          id: comic.id, title: comic.title, publisher: comic.publisher,
+   636→   636→                          year: comic.year, description: comic.description, genres: comic.genres,
+   637→   637→                          slug: comic.slug, coverColor: comic.coverColor, rating: comic.rating,
+   638→   638→                          status: comic.status, issueCount: comic.issueCount,
+   639→   639→                          readSlug: comic.readSlug, coverUrl: comic.coverUrl, readAvailable: comic.readAvailable,
+   640→   640→                        })}
+   641→   641→                      >
+   642→   642→                        <div className="aspect-[2/3] rounded-lg overflow-hidden mb-2 relative">
+   643→   643→                          {comic.coverUrl ? (
+   644→   644→                            <>
+   645→   645→                              <img
+   646→   646→                                src={proxyCover(comic.coverUrl)}
+   647→   647→                                alt={comic.title}
+   648→   648→                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+   649→   649→                                loading="lazy"
+   650→   650→                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+   651→   651→                              />
+   652→   652→                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+   653→   653→                            </>
+   654→   654→                          ) : (
+   655→   655→                            <>
+   656→   656→                              {/* Gradient cover fallback */}
+   657→   657→                              <div
+   658→   658→                                className="absolute inset-0 group-hover:scale-105 transition-transform duration-300"
+   659→   659→                                style={{
+   660→   660→                                  background: `linear-gradient(135deg, ${comic.coverColor || '#1a1a2e'} 0%, ${comic.coverColor || '#1a1a2e'}88 50%, ${comic.coverColor || '#1a1a2e'}44 100%)`,
+   661→   661→                                }}
+   662→   662→                              />
+   663→   663→                              {/* Title overlay on cover */}
+   664→   664→                              <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
+   665→   665→                                <span className="text-white/90 font-black text-2xl md:text-3xl text-center leading-tight drop-shadow-lg">
+   666→   666→                                  {comic.title.split(':')[0].split('(')[0].trim().split(' ').slice(-1)[0].charAt(0).toUpperCase()}
+   667→   667→                                </span>
+   668→   668→                                <span className="text-white/40 text-[10px] font-medium mt-1 text-center leading-tight line-clamp-2">
+   669→   669→                                  {comic.title}
+   670→   670→                                </span>
+   671→   671→                              </div>
+   672→   672→                            </>
+   673→   673→                          )}
+   674→   674→                          {/* Publisher badge */}
+   675→   675→                          <div className="absolute top-1.5 left-1.5">
+   676→   676→                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${PUBLISHER_COLORS[comic.publisher] || 'bg-white/10 text-white/70 border-white/20'}`}>
+   677→   677→                              {comic.publisher}
+   678→   678→                            </span>
+   679→   679→                          </div>
+   680→   680→                          {/* Status badge */}
+   681→   681→                          <div className="absolute top-1.5 right-1.5">
+   682→   682→                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+   683→   683→                              comic.status === 'Ongoing'
+   684→   684→                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+   685→   685→                                : 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/30'
+   686→   686→                            }`}>
+   687→   687→                              {comic.status}
+   688→   688→                            </span>
+   689→   689→                          </div>
+   690→   690→                          {/* Hover overlay */}
+   691→   691→                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors duration-300 flex items-center justify-center">
+   692→   692→                            <span className="px-3 py-1.5 rounded-lg bg-red-500/90 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+   693→   693→                              Read Now
+   694→   694→                            </span>
+   695→   695→                          </div>
+   696→   696→                        </div>
+   697→   697→                        {/* Info below card */}
+   698→   698→                        <p className="text-sm font-medium text-white/90 truncate">{comic.title}</p>
+   699→   699→                        <div className="flex items-center gap-1.5 mt-0.5">
+   700→   700→                          <div className="flex items-center gap-0.5">
+   701→   701→                            <StarIcon className="w-3 h-3 text-amber-400" />
+   702→   702→                            <span className="text-[11px] text-white/50">{comic.rating}</span>
+   703→   703→                          </div>
+   704→   704→                          <span className="text-white/20">&middot;</span>
+   705→   705→                          <span className="text-[11px] text-white/40">{comic.year}</span>
+   706→   706→                        </div>
+   707→   707→                        {/* Genre tags */}
+   708→   708→                        <div className="flex flex-wrap gap-1 mt-1.5">
+   709→   709→                          {comic.genres.slice(0, 2).map((g: string) => (
+   710→   710→                            <span key={g} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/[0.06] text-white/50 border border-white/[0.08]">
+   711→   711→                              {g}
+   712→   712→                            </span>
+   713→   713→                          ))}
+   714→   714→                        </div>
+   715→   715→                      </motion.div>
+   716→   716→                    ))}
+   717→   717→                  </div>
+   718→   718→                  <div className="text-center mt-6 mb-4">
+   719→   719→                    <p className="text-white/30 text-xs">Showing {comicList.length} of {comicTotal} comics</p>
+   720→   720→                  </div>
+   721→   721→                </>
+   722→   722→              )
+   723→   723→            )}
+   724→   724→          </>
+   725→   725→        )}
+   726→   726→
+   727→   727→        {/* ── NOVELS ── */}
+   728→   728→        {mainTab === 'novels' && (
+   729→   729→          <>
+   730→   730→            {novelLoading ? (
+   731→   731→              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+   732→   732→                {Array.from({ length: 18 }).map((_, i) => <SkeletonCard key={i} />)}
+   733→   733→              </div>
+   734→   734→            ) : (
+   735→   735→              <>
+   736→   736→                {filteredNovels.length === 0 ? (
+   737→   737→                  <div className="flex flex-col items-center justify-center py-20 text-center">
+   738→   738→                    <BookText className="w-10 h-10 text-white/15 mb-3" />
+   739→   739→                    <p className="text-white/40 text-sm">{novelSearch ? `No results for "${novelSearch}"` : 'No novels found'}</p>
+   740→   740→                    {novelSearch && <button onClick={() => setNovelSearch('')} className="mt-4 text-emerald-400 text-sm">Clear search</button>}
+   741→   741→                  </div>
+   742→   742→                ) : (
+   743→   743→                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+   744→   744→                    {filteredNovels.map((novel, i) => (
+   745→   745→                      <motion.div
+   746→   746→                        key={novel.id}
+   747→   747→                        initial={{ opacity: 0, y: 16 }}
+   748→   748→                        whileInView={{ opacity: 1, y: 0 }}
+   749→   749→                        viewport={{ once: true, margin: '-40px' }}
+   750→   750→                        transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
+   751→   751→                        className="cursor-pointer group"
+   752→   752→                        onClick={() => selectNovel({ id: novel.id, title: novel.title, author: novel.author, coverUrl: novel.coverUrl, description: novel.description })}
+   753→   753→                      >
+   754→   754→                        <div className="aspect-[2/3] rounded-lg overflow-hidden bg-white/5 mb-2 relative">
+   755→   755→                          <img
+   756→   756→                            src={proxyCover(novel.coverUrl)}
+   757→   757→                            alt={novel.title}
+   758→   758→                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+   759→   759→                            loading="lazy"
+   760→   760→                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+   761→   761→                          />
+   762→   762→                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+   763→   763→                          <div className="absolute bottom-1.5 left-1.5 right-1.5 flex flex-wrap gap-1">
+   764→   764→                            {novel.genre.slice(0, 2).map((g) => (
+   765→   765→                              <span key={g} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/70 backdrop-blur-sm text-white/70 border border-white/10">
+   766→   766→                                {g}
+   767→   767→                              </span>
+   768→   768→                            ))}
+   769→   769→                          </div>
+   770→   770→                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+   771→   771→                            <BookText className="w-10 h-10 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+   772→   772→                          </div>
+   773→   773→                        </div>
+   774→   774→                        <p className="text-sm font-medium text-white/90 truncate">{novel.title}</p>
+   775→   775→                        <p className="text-xs text-white/40 truncate">{novel.author} &middot; {novel.year}</p>
+   776→   776→                      </motion.div>
+   777→   777→                    ))}
+   778→   778→                  </div>
+   779→   779→                )}
+   780→   780→                <div className="text-center mt-6 mb-4">
+   781→   781→                  <p className="text-white/30 text-xs">Showing {filteredNovels.length} of {novelList.length} classic novels</p>
+   782→   782→                </div>
+   783→   783→              </>
+   784→   784→            )}
+   785→   785→          </>
+   786→   786→        )}
+   787→   787→      </div>
+   788→   788→    </div>
+   789→   789→  );
+   790→   790→}
+   791→   791→
