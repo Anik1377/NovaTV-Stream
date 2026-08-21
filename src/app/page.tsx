@@ -459,7 +459,7 @@ export default function App() {
       <MobileSearchButton key={view} />
       <MobileTabBar />
       <VisitDisclaimer />
-      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people') && <MobileBackHome />}
+      {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people' || view === 'games') && <MobileBackHome />}
     </div>
   );
 }

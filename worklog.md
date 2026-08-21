@@ -1666,3 +1666,27 @@ Stage Summary:
 - TvDetail.tsx: BackButton now uses safe-area-aware positioning
 - Content info (poster, year, rating, runtime) now visible in player
 - All elements respect Dynamic Island and home indicator safe areas
+---
+Task ID: 1
+Agent: Main Agent
+Task: Implement 262 embeddable games from onlinegames.io into the Games section
+
+Work Log:
+- Fetched and analyzed games-data.json (262 games with title, embed URL, thumbnail, tags, description)
+- Identified 2 embed domains: cloud.onlinegames.io and www.onlinegames.io
+- Analyzed top tags to build 17 game categories (Action, Driving, Shooting, Arcade, Puzzle, Multiplayer, etc.)
+- Updated middleware.ts CSP to allow *.onlinegames.io in frame-src, img-src, and connect-src
+- Rewrote src/lib/games-data.ts with new EmbedGame interface, category system, and async loader
+- Rewrote src/components/game/GameRenderer.tsx to load games via embed URLs with restart/error handling
+- Rewrote src/components/game/GamesPage.tsx with: hero banner, search, 17 category filter pills with counts, real thumbnail grid, infinite scroll (30 at a time), fullscreen game player with info panel, skeleton loading states
+- Updated src/app/page.tsx to add games view to MobileBackHome button
+- Saved 262-game JSON to public/games-data.json for client-side loading
+
+Stage Summary:
+- 262 playable games from onlinegames.io now available in the Games section
+- Games load in iframes directly from onlinegames.io embed URLs
+- Categories: All (262), Popular (60), Action (57), Driving (74), Shooting (38), Arcade (60), Puzzle (18), Multiplayer (41), Simulator (55), .io (21), 2D (133), 3D (124), Mobile (107), Kids (35), Adventure (25), Survival (10), Snake (4)
+- Features: real thumbnails, search, category filtering, infinite scroll, fullscreen player with restart/info/open-externally
+- Mobile responsive with 2-column grid and scrollable categories
+- Verified via Agent Browser: desktop and mobile both working, no console errors
+
