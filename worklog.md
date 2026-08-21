@@ -1543,3 +1543,27 @@ Stage Summary:
 - Key design: iframe is on TOP with no overlays, all controls BELOW the video
 - Matches user wireframe: video → controls → server selector → info footer → episode sidebar
 - Pushed to GitHub as commit d694e17
+---
+Task ID: 4
+Agent: main
+Task: Rebuild video player with proven streaming site UX patterns
+
+Work Log:
+- Researched 123movies, gomovies, fmovies, vidsrc.cc player UI patterns via web search
+- Key finding: ALL major streaming embed sites use server TABS (not dropdowns)
+- Tabs are placed ABOVE the iframe, never behind it — eliminates all z-index issues
+- Completely rewrote VideoPlayer.tsx (223 insertions, 385 deletions — net -162 lines)
+- Removed: dropdown server selector, episode sidebar, fullscreen toggle, framer-motion drag
+- Added: horizontal scrollable server tabs, collapsible episode panel below video
+- Ultra-minimal chrome: 44px header + 36px server tabs + iframe fills rest + 28px status bar
+- Loading: spinner behind iframe (z-1, pointer-events-none) + text in status bar
+- Error: overlay covers iframe with retry button
+- Mobile: 5s timeout, no touch events on video area, server tabs scroll horizontally
+- TV: episode panel slides down from status bar with season tabs + thumbnails
+- No Crown import needed (removed), no Maximize2/Minimize2 (removed)
+
+Stage Summary:
+- VideoPlayer.tsx simplified from 560 lines to 337 lines
+- Server selector is now tabs — zero iframe z-index conflicts
+- Works on phone, PC, and iPhone
+- Pushed as commit 3b96b95
