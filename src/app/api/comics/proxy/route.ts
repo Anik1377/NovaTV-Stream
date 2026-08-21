@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'ComicReader/1.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'image/webp,image/avif,image/jpg,image/png,image/*,*/*;q=0.8',
+        'Accept-Encoding': 'identity',
       },
       redirect: 'follow',
     });
@@ -33,11 +35,15 @@ export async function GET(req: NextRequest) {
     const contentType = res.headers.get('content-type') || 'image/jpeg';
     const buffer = await res.arrayBuffer();
 
+    // Longer cache for webp cover images from the comic CDN
+    const isWebp = contentType.includes('webp');
+    const cacheMaxAge = isWebp ? '604800' : '86400'; // 7 days for webp, 1 day otherwise
+
     return new NextResponse(buffer, {
       headers: {
         'content-type': contentType,
-        'cache-control': 'public, max-age=86400',
-        'access-control-allow-origin': '*'
+        'cache-control': `public, max-age=${cacheMaxAge}, stale-while-revalidate=86400`,
+        'access-control-allow-origin': '*',
       },
     });
   } catch {

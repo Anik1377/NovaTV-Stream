@@ -1733,3 +1733,26 @@ Stage Summary:
 - Full filtering by publisher, genre, sort order, and text search
 - Comic detail page with all metadata and external Read Now link
 - All verified working via Agent Browser and lint passes clean
+
+---
+Task ID: 4
+Agent: fullstack-developer
+Task: Fix dead readcomiconline.li links — integrate readcomicsonline.lol with real cover images from cdn.readcomicsonline.lol
+
+Work Log:
+- Added READ_SLUG_MAP constant (30 entries) mapping internal comic slugs to readcomicsonline.lol comic slugs in /api/comics/trending/route.ts
+- Added COVER_CDN constant pointing to https://cdn.readcomicsonline.lol/covers
+- Updated ComicItem interface with optional readSlug, coverUrl, readAvailable fields
+- Modified GET handler to enrich results: attaches readSlug, coverUrl (webp from CDN), and readAvailable=true for mapped comics
+- Updated /api/comics/proxy/route.ts: improved User-Agent header, added Accept header for webp, added Accept-Encoding: identity, added longer cache (7 days for webp, 1 day otherwise) with stale-while-revalidate
+- Rewrote ComicDetail.tsx: replaced dead readcomiconline.li URL with readcomicsonline.lol; added real cover image display (proxied via /api/comics/proxy?url=) with fallback to gradient placeholder; added reading status indicator (green CheckCircle2 "Available to Read" or yellow AlertTriangle "Search Required"); added "Search to Read" Google fallback button for unmapped comics; proxied cover images through backend
+- Updated ReadPage.tsx proxyCover helper to route readcomicsonline.lol URLs through /api/comics/proxy; updated comic card rendering to show real cover images (via proxy) when available, falling back to gradient placeholder; passed readSlug, coverUrl, readAvailable to selectComic
+- Updated app-store.ts: extended selectedComic interface and selectComic function signature with readSlug?, coverUrl?, readAvailable? optional fields
+- Updated middleware.ts CSP: replaced readcomiconline.li with readcomicsonline.lol in frame-src and connect-src; added cdn.readcomicsonline.lol to img-src and connect-src
+
+Stage Summary:
+- 6 files changed: trending/route.ts, proxy/route.ts, ComicDetail.tsx, ReadPage.tsx, app-store.ts, middleware.ts
+- Dead readcomiconline.li links fully replaced with working readcomicsonline.lol integration
+- Real cover images from cdn.readcomicsonline.lol proxied through backend (CSP-compliant)
+- All 30 comics mapped with readcomicsonline.lol slugs and CDN cover URLs
+- ESLint passes with zero errors

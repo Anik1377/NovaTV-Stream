@@ -99,6 +99,7 @@ const MAIN_TABS: { key: MainTab; label: string; icon: typeof BookOpen; color: st
 function proxyCover(url?: string): string {
   if (!url) return '';
   if (url.includes('gutenberg.org')) return `/api/novels/proxy?url=${encodeURIComponent(url)}`;
+  if (url.includes('readcomicsonline.lol')) return `/api/comics/proxy?url=${encodeURIComponent(url)}`;
   return `/api/manga/proxy?url=${encodeURIComponent(url)}`;
 }
 
@@ -635,25 +636,41 @@ export function ReadPage() {
                           year: comic.year, description: comic.description, genres: comic.genres,
                           slug: comic.slug, coverColor: comic.coverColor, rating: comic.rating,
                           status: comic.status, issueCount: comic.issueCount,
+                          readSlug: comic.readSlug, coverUrl: comic.coverUrl, readAvailable: comic.readAvailable,
                         })}
                       >
                         <div className="aspect-[2/3] rounded-lg overflow-hidden mb-2 relative">
-                          {/* Gradient cover */}
-                          <div
-                            className="absolute inset-0 group-hover:scale-105 transition-transform duration-300"
-                            style={{
-                              background: `linear-gradient(135deg, ${comic.coverColor || '#1a1a2e'} 0%, ${comic.coverColor || '#1a1a2e'}88 50%, ${comic.coverColor || '#1a1a2e'}44 100%)`,
-                            }}
-                          />
-                          {/* Title overlay on cover */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
-                            <span className="text-white/90 font-black text-2xl md:text-3xl text-center leading-tight drop-shadow-lg">
-                              {comic.title.split(':')[0].split('(')[0].trim().split(' ').slice(-1)[0].charAt(0).toUpperCase()}
-                            </span>
-                            <span className="text-white/40 text-[10px] font-medium mt-1 text-center leading-tight line-clamp-2">
-                              {comic.title}
-                            </span>
-                          </div>
+                          {comic.coverUrl ? (
+                            <>
+                              <img
+                                src={proxyCover(comic.coverUrl)}
+                                alt={comic.title}
+                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            </>
+                          ) : (
+                            <>
+                              {/* Gradient cover fallback */}
+                              <div
+                                className="absolute inset-0 group-hover:scale-105 transition-transform duration-300"
+                                style={{
+                                  background: `linear-gradient(135deg, ${comic.coverColor || '#1a1a2e'} 0%, ${comic.coverColor || '#1a1a2e'}88 50%, ${comic.coverColor || '#1a1a2e'}44 100%)`,
+                                }}
+                              />
+                              {/* Title overlay on cover */}
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
+                                <span className="text-white/90 font-black text-2xl md:text-3xl text-center leading-tight drop-shadow-lg">
+                                  {comic.title.split(':')[0].split('(')[0].trim().split(' ').slice(-1)[0].charAt(0).toUpperCase()}
+                                </span>
+                                <span className="text-white/40 text-[10px] font-medium mt-1 text-center leading-tight line-clamp-2">
+                                  {comic.title}
+                                </span>
+                              </div>
+                            </>
+                          )}
                           {/* Publisher badge */}
                           <div className="absolute top-1.5 left-1.5">
                             <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${PUBLISHER_COLORS[comic.publisher] || 'bg-white/10 text-white/70 border-white/20'}`}>

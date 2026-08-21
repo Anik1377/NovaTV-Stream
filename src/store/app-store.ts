@@ -95,8 +95,11 @@ interface AppState {
     rating: number;
     status: string;
     issueCount: number;
+    readSlug?: string;
+    coverUrl?: string;
+    readAvailable?: boolean;
   } | null;
-  selectComic: (comic: { id: number; title: string; publisher: string; year: number; description: string; genres: string[]; slug: string; coverColor: string; rating: number; status: string; issueCount: number; }) => void;
+  selectComic: (comic: { id: number; title: string; publisher: string; year: number; description: string; genres: string[]; slug: string; coverColor: string; rating: number; status: string; issueCount: number; readSlug?: string; coverUrl?: string; readAvailable?: boolean; }) => void;
   bumpNav: () => void;
   showWarning: () => void;
   showPrivacy: () => void;

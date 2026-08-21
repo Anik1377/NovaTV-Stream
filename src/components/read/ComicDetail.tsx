@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -14,6 +15,10 @@ import {
   BookOpen,
   Calendar,
   Layers,
+  CheckCircle2,
+  AlertTriangle,
+  Search,
+  ImageIcon,
 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 
@@ -42,11 +47,21 @@ const getPublisherIcon = (publisher: string) => {
 
 export function ComicDetail() {
   const { selectedComic, showRead } = useAppStore();
+  const [coverError, setCoverError] = useState(false);
 
   if (!selectedComic) return null;
 
   const colors = PUBLISHER_COLORS[selectedComic.publisher] || { bg: 'bg-white/10', text: 'text-white/70', border: 'border-white/20' };
-  const readUrl = `https://readcomiconline.li/comic/${selectedComic.slug}`;
+  const hasReadSlug = !!selectedComic.readSlug;
+  const readUrl = hasReadSlug
+    ? `https://readcomicsonline.lol/comic/${selectedComic.readSlug}`
+    : `https://www.google.com/search?q=read+${encodeURIComponent(selectedComic.title)}+comics+online+free`;
+
+  const proxiedCoverUrl = selectedComic.coverUrl
+    ? `/api/comics/proxy?url=${encodeURIComponent(selectedComic.coverUrl)}`
+    : null;
+
+  const showRealCover = proxiedCoverUrl && !coverError;
 
   return (
     <div className="min-h-screen pb-10">
@@ -87,24 +102,36 @@ export function ComicDetail() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
           <div className="relative p-6 md:p-10 pt-20 md:pt-24 pb-12 md:pb-16 flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-            {/* Cover placeholder */}
+            {/* Cover */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.1 }}
               className="shrink-0 w-40 md:w-52 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl"
               style={{
-                background: `linear-gradient(160deg, ${selectedComic.coverColor || '#1a1a2e'}, ${selectedComic.coverColor || '#1a1a2e'}88)`,
+                background: showRealCover
+                  ? '#111'
+                  : `linear-gradient(160deg, ${selectedComic.coverColor || '#1a1a2e'}, ${selectedComic.coverColor || '#1a1a2e'}88)`,
               }}
             >
-              <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                <span className="text-white/90 font-black text-5xl md:text-6xl drop-shadow-lg">
-                  {selectedComic.title.charAt(0).toUpperCase()}
-                </span>
-                <span className="text-white/30 text-xs font-medium mt-2 text-center leading-tight line-clamp-3">
-                  {selectedComic.title}
-                </span>
-              </div>
+              {showRealCover ? (
+                <img
+                  src={proxiedCoverUrl}
+                  alt={selectedComic.title}
+                  className="w-full h-full object-cover"
+                  onError={() => setCoverError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                  <ImageIcon className="w-8 h-8 text-white/20 mb-1" />
+                  <span className="text-white/90 font-black text-5xl md:text-6xl drop-shadow-lg">
+                    {selectedComic.title.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="text-white/30 text-xs font-medium mt-2 text-center leading-tight line-clamp-3">
+                    {selectedComic.title}
+                  </span>
+                </div>
+              )}
             </motion.div>
 
             {/* Info */}
@@ -150,15 +177,34 @@ export function ComicDetail() {
                 </div>
               </div>
 
-              {/* Read Now button */}
+              {/* Reading status indicator */}
+              <div className="mb-4">
+                {hasReadSlug ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/30">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Available to Read
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Search Required
+                  </span>
+                )}
+              </div>
+
+              {/* Read button */}
               <a
                 href={readUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold text-sm shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all ${
+                  hasReadSlug
+                    ? 'bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/25 hover:shadow-red-500/30'
+                    : 'bg-gradient-to-r from-yellow-500 to-amber-600 shadow-yellow-500/25 hover:shadow-yellow-500/30'
+                }`}
               >
-                <BookOpen className="w-4 h-4" />
-                Read Now
+                {hasReadSlug ? <BookOpen className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+                {hasReadSlug ? 'Read Now' : 'Search to Read'}
                 <ExternalLink className="w-3.5 h-3.5 opacity-70" />
               </a>
             </motion.div>

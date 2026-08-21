@@ -1690,4 +1690,47 @@
   1690→- Mobile responsive with 2-column grid and scrollable categories
   1691→- Verified via Agent Browser: desktop and mobile both working, no console errors
   1692→
-  1693→
+  1693→---
+  1694→Task ID: 2
+  1695→Agent: main
+  1696→Task: Build complete American Comics system for Read tab
+  1697→
+  1698→Work Log:
+  1699→- Rewrote /api/comics/trending/route.ts to read from /public/comics-data.json (85 comics) instead of MangaDex API
+  1700→- Deleted /api/comics/search/ directory (no longer needed)
+  1701→- Created /api/comics/proxy/route.ts as a simple image proxy with CORS headers
+  1702→- Rewrote the COMICS section in ReadPage.tsx with publisher/genre/sort filters, gradient comic cards, search support
+  1703→- Created ComicDetail.tsx with hero section, synopsis, genres, details grid, Read Now button
+  1704→- Updated app-store.ts with selectedComic/selectComic and comic-detail ViewType
+  1705→- Updated page.tsx with ComicDetail lazy import and view
+  1706→- Updated middleware.ts CSP for readcomiconline.li
+  1707→- All changes pass ESLint with zero errors
+  1708→
+  1709→Stage Summary:
+  1710→- 5 files modified, 2 files created, 1 directory deleted
+  1711→- Comics tab shows 85 American comics with filtering, sorting, search
+  1712→- Comic detail view with full info and external read link
+  1713→---
+  1714→Task ID: 2
+  1715→Agent: Main
+  1716→Task: Add American Comics (Marvel, DC, Image, etc.) to Read tab
+  1717→
+  1718→Work Log:
+  1719→- Created /public/comics-data.json with 85 curated American comic series across 8 publishers
+  1720→- Rewrote /api/comics/trending/route.ts to serve from local JSON with publisher/genre/sort/search filters
+  1721→- Deleted /api/comics/search/ (no longer needed)
+  1722→- Created /api/comics/proxy/route.ts for image proxying
+  1723→- Rewrote comics section in ReadPage.tsx with publisher filter pills (color-coded), genre filter row, sort dropdown, search, gradient cover cards with hover effects
+  1724→- Created ComicDetail.tsx with hero section, gradient cover, publisher badge, synopsis, genre pills, details grid, Read Now external link
+  1725→- Updated app-store.ts with selectedComic state, selectComic action, comic-detail ViewType
+  1726→- Updated page.tsx with ComicDetail lazy import and view routing
+  1727→- Updated middleware.ts CSP for readcomiconline.li
+  1728→- Fixed ComicDetail back button to navigate to Read view (not Home)
+  1729→- Fixed multiple broken JSX comment syntax errors from prior session
+  1730→
+  1731→Stage Summary:
+  1732→- 85 American comics from Marvel, DC, Image, Dark Horse, IDW, Dynamite, BOOM!, Cartoon Books
+  1733→- Full filtering by publisher, genre, sort order, and text search
+  1734→- Comic detail page with all metadata and external Read Now link
+  1735→- All verified working via Agent Browser and lint passes clean
+  1736→
