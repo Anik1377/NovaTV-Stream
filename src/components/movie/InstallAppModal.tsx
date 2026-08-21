@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X,
   Download,
@@ -86,6 +86,10 @@ function isStandalone(): boolean {
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
+/* Shared ref for the deferred install prompt */
+let _deferredPrompt: BeforeInstallPromptEvent | null = null;
+let _promptCaptured = false;
+
 export function InstallAppModal({
   open,
   onClose,
@@ -94,7 +98,6 @@ export function InstallAppModal({
   onClose: () => void;
 }) {
   const [installing, setInstalling] = useState(false);
-  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
 
   /* Detect platform (derived, no effect needed) */
   const platform: 'android' | 'ios' | 'desktop' = useMemo(() => {
@@ -103,25 +106,15 @@ export function InstallAppModal({
     return 'desktop';
   }, []);
 
-  /* Capture beforeinstallprompt */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      deferredPromptRef.current = e as BeforeInstallPromptEvent;
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
   const handleInstall = useCallback(async () => {
     setInstalling(true);
     try {
       /* Android / Chrome — use native prompt */
-      if (deferredPromptRef.current) {
-        await deferredPromptRef.current.prompt();
-        const { outcome } = await deferredPromptRef.current.userChoice;
+      if (_deferredPrompt) {
+        await _deferredPrompt.prompt();
+        const { outcome } = await _deferredPrompt.userChoice;
         if (outcome === 'accepted') {
-          deferredPromptRef.current = null;
+          _deferredPrompt = null;
           onClose();
         }
         setInstalling(false);
@@ -354,6 +347,16 @@ export function InstallBanner({
       const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
       if (Date.now() - ts < ONE_WEEK) return;
     }
+
+    // Capture beforeinstallprompt only when banner is about to show
+    if (!_promptCaptured) {
+      _promptCaptured = true;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        _deferredPrompt = e as BeforeInstallPromptEvent;
+      });
+    }
+
     /* Show after 3 seconds to not interrupt first load */
     const timer = setTimeout(() => setVisible(true), 3000);
     return () => clearTimeout(timer);

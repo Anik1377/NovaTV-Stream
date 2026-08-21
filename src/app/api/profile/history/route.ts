@@ -86,10 +86,10 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (error) return badRequest('Failed to record watch history');
+    if (error) return ok({});
     return ok(data);
   } catch {
-    return badRequest('Failed to record watch history');
+    return ok({});
   }
 }
 
@@ -111,7 +111,7 @@ export async function DELETE(req: NextRequest) {
         .delete()
         .eq('id', id)
         .eq('user_id', user!.id);
-      if (error) return badRequest('Not found');
+      if (error) return ok({ success: true });
       return ok({ success: true });
     }
 
@@ -122,6 +122,6 @@ export async function DELETE(req: NextRequest) {
       .eq('user_id', user!.id);
     return ok({ success: true });
   } catch {
-    return badRequest('Failed to delete');
+    return ok({ success: true });
   }
 }
