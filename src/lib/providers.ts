@@ -18,9 +18,9 @@ export const providers: Provider[] = [
     color: '#E50914',
     icon: '▶',
     primary: true,
-    movieUrl: (id) => `https://player.videasy.net/movie/${id}?overlay=true&color=E50914`,
+    movieUrl: (id) => `https://player.videasy.to/movie/${id}?overlay=true&color=E50914`,
     tvUrl: (id, s, e) =>
-      `https://player.videasy.net/tv/${id}/${s}/${e}?overlay=true&nextEpisode=true&episodeSelector=true&autoplayNextEpisode=true&color=E50914`,
+      `https://player.videasy.to/tv/${id}/${s}/${e}?overlay=true&nextEpisode=true&episodeSelector=true&autoplayNextEpisode=true&color=E50914`,
   },
   {
     id: 'vidsrc-cc',
