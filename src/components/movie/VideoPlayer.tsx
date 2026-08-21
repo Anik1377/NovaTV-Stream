@@ -214,7 +214,6 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                 key={curSrc}
                 src={curSrc}
                 className="absolute inset-0 w-full h-full"
-                referrerPolicy="no-referrer"
                 allowFullScreen
                 allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                 playsInline

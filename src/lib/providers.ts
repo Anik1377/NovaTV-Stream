@@ -12,24 +12,24 @@ export interface Provider {
 export const providers: Provider[] = [
   /* ── Tier 1: Most reliable, best UX ── */
   {
-    id: 'vidsrc-cc',
-    name: 'VidSrc',
-    description: 'Recommended — HD, subtitles, fast load',
-    color: '#00f2ff',
-    icon: '◈',
-    primary: true,
-    movieUrl: (id) => `https://vidsrc.cc/v2/embed/movie/${id}`,
-    tvUrl: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`,
-  },
-  {
     id: 'videasy',
     name: 'Videasy',
-    description: 'HD, subtitles, auto-next episode',
-    color: '#8B5CF6',
+    description: 'Recommended — HD, subtitles, auto-next episode',
+    color: '#E50914',
     icon: '▶',
+    primary: true,
     movieUrl: (id) => `https://player.videasy.net/movie/${id}?overlay=true&color=E50914`,
     tvUrl: (id, s, e) =>
       `https://player.videasy.net/tv/${id}/${s}/${e}?overlay=true&nextEpisode=true&episodeSelector=true&autoplayNextEpisode=true&color=E50914`,
+  },
+  {
+    id: 'vidsrc-cc',
+    name: 'VidSrc',
+    description: 'HD, subtitles, fast load',
+    color: '#00f2ff',
+    icon: '◈',
+    movieUrl: (id) => `https://vidsrc.cc/v2/embed/movie/${id}`,
+    tvUrl: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`,
   },
   {
     id: 'vidsrc-icu',
