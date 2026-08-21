@@ -518,6 +518,9 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                     <div className="text-center">
                       <p className="text-white/60 text-sm font-medium">Failed to load stream</p>
                       <p className="text-white/30 text-xs mt-1">{provider.name} couldn't serve this content</p>
+                      <p className="text-white/20 text-xs mt-2.5 px-6 leading-relaxed">
+                        Please try another server if the current one is not working.
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
