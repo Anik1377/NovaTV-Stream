@@ -1607,3 +1607,26 @@ Stage Summary:
 - History APIs now fail silently with 200 status (fire-and-forget pattern)
 - PWA prompt capture deferred to reduce Chrome warning window
 - Commit d912163 pushed to main
+---
+Task ID: 3
+Agent: Main Agent
+Task: Re-implement Videasy as primary server with iPhone support
+
+Work Log:
+- Fetched Videasy docs from https://www.videasy.to/docs via web-reader
+- Videasy URL structure: player.videasy.net/movie/{tmdb_id} and player.videasy.net/tv/{id}/{season}/{episode}
+- Features: overlay, nextEpisode, episodeSelector, autoplayNextEpisode, color (hex without #)
+- Identified root cause of iPhone failure: referrerPolicy="no-referrer" on iframe
+  iOS Safari strictly enforces this, sending zero referrer to embed providers
+  Videasy (and other providers) likely reject no-referrer requests on mobile
+- Promoted Videasy to primary provider (first in list, default in app-store)
+- Removed referrerPolicy="no-referrer" from VideoPlayer.tsx and ShowReelDetail.tsx
+- Added api.videasy.net and player.videasy.net to CSP connect-src
+- Videasy color set to E50914 (red) to match app theme
+- Lint passes clean, pushed to GitHub
+
+Stage Summary:
+- Videasy is now the default/primary server
+- iPhone fix: removed referrerPolicy no-referrer from all iframes
+- CSP updated with Videasy API domains
+- Commit 10b34d6 pushed to main
