@@ -140,7 +140,9 @@ export function TvDetail() {
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
-          <BackButton onClick={goBack} className="absolute top-20 left-4 md:left-8 z-10" />
+          <div className="absolute z-10 left-4 md:left-8" style={{ top: 'max(env(safe-area-inset-top, 0px) + 72px, 80px)' }}>
+            <BackButton onClick={goBack} />
+          </div>
         </div>
 
         {/* Content */}

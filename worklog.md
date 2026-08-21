@@ -1648,3 +1648,21 @@ Stage Summary:
 - Root cause: player.videasy.net 301->player.videasy.to but .to domain was missing from CSP frame-src
 - Fix: Use .to directly + add to CSP
 - Commit 481474d pushed to main
+---
+Task ID: 3
+Agent: main
+Task: Redesign video player UI with content info + fix Dynamic Island safe area
+
+Work Log:
+- Read and analyzed current VideoPlayer.tsx, MovieDetail.tsx, TvDetail.tsx, Header.tsx, MobileTabBar.tsx
+- Redesigned VideoPlayer component with: glassmorphism header, PlayingBars animated indicator, server dropdown menu with tiered grouping (Recommended/Alternatives/Fallbacks), branded loading state with pulsing glow, dual-action error recovery (Retry + Switch Server), expandable content info card, improved episode panel with vote/overview, desktop animated sidebar, mobile bottom sheet with drag handle
+- Added content info section: poster thumbnail, title, year, rating, runtime, episode badge, overview
+- Fixed Dynamic Island safe area: added paddingTop env(safe-area-inset-top) to root player container, wrapped MovieDetail and TvDetail BackButton in safe-area-aware positioned divs
+- All changes pass ESLint with zero errors
+
+Stage Summary:
+- VideoPlayer.tsx completely rewritten with premium UI
+- MovieDetail.tsx: BackButton now uses safe-area-aware positioning
+- TvDetail.tsx: BackButton now uses safe-area-aware positioning
+- Content info (poster, year, rating, runtime) now visible in player
+- All elements respect Dynamic Island and home indicator safe areas

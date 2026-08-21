@@ -127,8 +127,10 @@ export function MovieDetail() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-[#0a0a0a]/30" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/70 to-transparent" />
 
-          {/* Floating back button pill */}
-          <BackButton onClick={goBack} className="absolute top-20 left-6 md:left-12 z-20" />
+          {/* Floating back button pill — safe from Dynamic Island */}
+          <div className="absolute z-20 left-6 md:left-12" style={{ top: 'max(env(safe-area-inset-top, 0px) + 72px, 80px)' }}>
+            <BackButton onClick={goBack} />
+          </div>
         </div>
 
         {/* Content - overlaps backdrop */}
