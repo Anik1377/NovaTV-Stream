@@ -1,0 +1,680 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef, useMemo } from 'react';
+     4→import { Play, Star, ArrowLeft, Calendar, Tv, Zap, SkipBack, SkipForward, Maximize2, Minimize2, Shield, ChevronDown, Search } from 'lucide-react';
+     5→import { motion, AnimatePresence } from 'framer-motion';
+     6→import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
+     7→import { useAppStore } from '@/store/app-store';
+     8→import { Button } from '@/components/ui/button';
+     9→import { MovieCard } from './MovieCard';
+    10→import { providers, getEmbedUrl, getProvider } from '@/lib/providers';
+    11→import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
+    12→
+    13→type LangType = 'sub' | 'dub';
+    14→
+    15→export function TvDetail() {
+    16→  const { selectedTv, goHome, selectedSeason, setSelectedSeason, selectedEpisode, setSelectedEpisode, selectedProvider, setSelectedProvider } = useAppStore();
+    17→  const [details, setDetails] = useState<TvShowDetails | null>(null);
+    18→  const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
+    19→  const [loading, setLoading] = useState(true);
+    20→  const [seasonLoading, setSeasonLoading] = useState(false);
+    21→  const [watching, setWatching] = useState(false);
+    22→  const [iframeLoading, setIframeLoading] = useState(false);
+    23→  const [iframeError, setIframeError] = useState(false);
+    24→  const [isFullscreen, setIsFullscreen] = useState(false);
+    25→  const [adShield, setAdShield] = useState(true);
+    26→  const [langTab, setLangTab] = useState<LangType>('sub');
+    27→  const [epSearch, setEpSearch] = useState('');
+    28→  const [sidebarOpen, setSidebarOpen] = useState(true);
+    29→  const videoContainerRef = useRef<HTMLDivElement>(null);
+    30→  const iframeRef = useRef<HTMLIFrameElement>(null);
+    31→  const prevIdRef = useRef<number | null>(null);
+    32→
+    33→  // Block popups
+    34→  useEffect(() => {
+    35→    const orig = window.open;
+    36→    window.open = () => null;
+    37→    return () => { window.open = orig; };
+    38→  }, []);
+    39→
+    40→  useEffect(() => {
+    41→    if (!selectedTv) return;
+    42→    if (selectedTv.id === prevIdRef.current) return;
+    43→    prevIdRef.current = selectedTv.id;
+    44→    window.scrollTo({ top: 0 });
+    45→    Promise.resolve().then(() => setWatching(false));
+    46→    let cancelled = false;
+    47→    Promise.resolve().then(() => { if (!cancelled) setLoading(true); });
+    48→    fetch(`/api/tmdb/tv/${selectedTv.id}`)
+    49→      .then((res) => res.json())
+    50→      .then((data) => { if (!cancelled) setDetails(data); })
+    51→      .catch(console.error)
+    52→      .finally(() => { if (!cancelled) setLoading(false); });
+    53→    return () => { cancelled = true; };
+    54→  }, [selectedTv]);
+    55→
+    56→  useEffect(() => {
+    57→    if (!selectedTv) return;
+    58→    let cancelled = false;
+    59→    Promise.resolve().then(() => { if (!cancelled) setSeasonLoading(true); });
+    60→    fetch(`/api/tmdb/tv/${selectedTv.id}/season/${selectedSeason}`)
+    61→      .then((res) => res.json())
+    62→      .then((data) => { if (!cancelled) setSeasonDetails(data); })
+    63→      .catch(console.error)
+    64→      .finally(() => { if (!cancelled) setSeasonLoading(false); });
+    65→    return () => { cancelled = true; };
+    66→  }, [selectedTv, selectedSeason]);
+    67→
+    68→  const toggleFullscreen = async () => {
+    69→    if (!videoContainerRef.current) return;
+    70→    try {
+    71→      if (!document.fullscreenElement) {
+    72→        await videoContainerRef.current.requestFullscreen();
+    73→        setIsFullscreen(true);
+    74→      } else {
+    75→        await document.exitFullscreen();
+    76→        setIsFullscreen(false);
+    77→      }
+    78→    } catch { /* ignore */ }
+    79→  };
+    80→
+    81→  useEffect(() => {
+    82→    const h = () => setIsFullscreen(!!document.fullscreenElement);
+    83→    document.addEventListener('fullscreenchange', h);
+    84→    return () => document.removeEventListener('fullscreenchange', h);
+    85→  }, []);
+    86→
+    87→  const show = selectedTv ? (details || selectedTv) : null;
+    88→  const title = show?.title || show?.name || '';
+    89→  const year = (show?.first_air_date || '').split('-')[0];
+    90→  const rating = show?.vote_average?.toFixed(1);
+    91→  const episodes = seasonDetails?.episodes || [];
+    92→  const seasons = details?.seasons?.filter(s => s.season_number > 0) || [];
+    93→  const cast = details?.credits?.cast?.slice(0, 6) || [];
+    94→  const similar = details?.similar?.results?.slice(0, 15) || [];
+    95→  const activeProvider = getProvider(selectedProvider);
+    96→  const currentEp = selectedEpisode || episodes[0] || null;
+    97→
+    98→  const filteredEps = useMemo(() => {
+    99→    if (!epSearch) return episodes;
+   100→    const q = epSearch.trim();
+   101→    return episodes.filter(ep => String(ep.episode_number).includes(q) || ep.name.toLowerCase().includes(q.toLowerCase()));
+   102→  }, [episodes, epSearch]);
+   103→
+   104→  if (!selectedTv || !show) return null;
+   105→
+   106→  const playEpisode = (ep: Episode) => {
+   107→    setSelectedEpisode(ep);
+   108→    setWatching(true);
+   109→    setIframeLoading(true);
+   110→    setIframeError(false);
+   111→    setAdShield(true);
+   112→  };
+   113→
+   114→  const startWatching = () => {
+   115→    if (episodes.length > 0 && !selectedEpisode) {
+   116→      setSelectedEpisode(episodes[0]);
+   117→    }
+   118→    setWatching(true);
+   119→    setIframeLoading(true);
+   120→    setIframeError(false);
+   121→    setAdShield(true);
+   122→  };
+   123→
+   124→  const goBack = () => {
+   125→    setWatching(false);
+   126→    setIframeError(false);
+   127→  };
+   128→
+   129→  const playNext = () => {
+   130→    if (!currentEp) return;
+   131→    const next = episodes.find(e => e.episode_number === currentEp.episode_number + 1);
+   132→    if (next) playEpisode(next);
+   133→  };
+   134→
+   135→  const playPrev = () => {
+   136→    if (!currentEp) return;
+   137→    const prev = episodes.find(e => e.episode_number === currentEp.episode_number - 1);
+   138→    if (prev) playEpisode(prev);
+   139→  };
+   140→
+   141→  const switchProvider = (pid: string) => {
+   142→    setSelectedProvider(pid);
+   143→    setIframeLoading(true);
+   144→    setIframeError(false);
+   145→    setAdShield(true);
+   146→  };
+   147→
+   148→  const iframeSrc = currentEp
+   149→    ? getEmbedUrl(selectedProvider, 'tv', show.id, selectedSeason, currentEp.episode_number)
+   150→    : '';
+   151→
+   152→  const renderStars = (avg: number) => {
+   153→    const full = Math.round(avg / 2);
+   154→    return Array.from({ length: 5 }, (_, i) => (
+   155→      <Star key={i} className={"w-3.5 h-3.5 " + (i < full ? 'fill-amber-400 text-amber-400' : 'fill-white/10 text-white/10')} />
+   156→    ));
+   157→  };
+   158→
+   159→  // ============ WATCH MODE ============
+   160→  if (watching) {
+   161→    return (
+   162→      <motion.div
+   163→        initial={{ opacity: 0 }}
+   164→        animate={{ opacity: 1 }}
+   165→        transition={{ duration: 0.3 }}
+   166→        className="min-h-screen bg-[#0a0a0a] flex flex-col"
+   167→      >
+   168→        {/* Breadcrumb */}
+   169→        <div className="flex items-center gap-2 px-4 h-10 bg-[#0d0d0d] border-b border-white/[0.04] shrink-0 text-xs text-white/30">
+   170→          <button onClick={goHome} className="hover:text-white/60 transition-colors">Home</button>
+   171→          <span>•</span>
+   172→          <button onClick={goBack} className="hover:text-white/60 transition-colors">TV</button>
+   173→          <span>•</span>
+   174→          <span className="text-white/60 truncate">{title}</span>
+   175→        </div>
+   176→
+   177→        {/* 3-column layout */}
+   178→        <div className="flex-1 flex overflow-hidden">
+   179→          {/* LEFT: Episode sidebar */}
+   180→          <AnimatePresence>
+   181→            {sidebarOpen && (
+   182→              <motion.aside
+   183→                initial={{ width: 0, opacity: 0 }}
+   184→                animate={{ width: 280, opacity: 1 }}
+   185→                exit={{ width: 0, opacity: 0 }}
+   186→                transition={{ duration: 0.2 }}
+   187→                className="shrink-0 bg-[#0f1117] border-r border-white/[0.04] flex flex-col overflow-hidden"
+   188→              >
+   189→                {/* Sidebar header */}
+   190→                <div className="px-3 py-3 border-b border-white/[0.04] space-y-2">
+   191→                  <div className="flex items-center justify-between">
+   192→                    <span className="text-white/70 text-xs font-semibold">Episodes</span>
+   193→                    <button onClick={() => setSidebarOpen(false)} className="text-white/30 hover:text-white/60 transition-colors">
+   194→                      <ChevronDown className="w-4 h-4 rotate-90" />
+   195→                    </button>
+   196→                  </div>
+   197→                  <div className="flex gap-2">
+   198→                    {/* Season dropdown */}
+   199→                    {seasons.length > 0 && (
+   200→                      <select
+   201→                        value={selectedSeason}
+   202→                        onChange={(e) => { setSelectedSeason(Number(e.target.value)); setEpSearch(''); }}
+   203→                        className="flex-1 h-8 px-2 rounded-lg bg-white/[0.06] border border-white/[0.06] text-white/80 text-xs appearance-none cursor-pointer focus:outline-none focus:border-[#e50914]/40"
+   204→                      >
+   205→                        {seasons.map(s => (
+   206→                          <option key={s.id} value={s.season_number} className="bg-[#1a1a1a]">Season {s.season_number}</option>
+   207→                        ))}
+   208→                      </select>
+   209→                    )}
+   210→                    {/* Search */}
+   211→                    <div className="relative w-24">
+   212→                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/30" />
+   213→                      <input
+   214→                        value={epSearch}
+   215→                        onChange={(e) => setEpSearch(e.target.value)}
+   216→                        placeholder="Find #"
+   217→                        className="w-full h-8 pl-7 pr-2 rounded-lg bg-white/[0.06] border border-white/[0.06] text-white/80 text-xs placeholder:text-white/20 focus:outline-none focus:border-[#e50914]/40"
+   218→                      />
+   219→                    </div>
+   220→                  </div>
+   221→                </div>
+   222→
+   223→                {/* Episode grid */}
+   224→                <div className="flex-1 overflow-y-auto content-scroll p-3">
+   225→                  {seasonLoading ? (
+   226→                    <div className="grid grid-cols-5 gap-1.5">
+   227→                      {Array.from({ length: 10 }).map((_, i) => (
+   228→                        <div key={i} className="aspect-square rounded-lg bg-white/[0.04] animate-pulse" />
+   229→                      ))}
+   230→                    </div>
+   231→                  ) : (
+   232→                    <div className="grid grid-cols-5 gap-1.5">
+   233→                      {filteredEps.map((ep) => {
+   234→                        const isActive = currentEp?.id === ep.id;
+   235→                        return (
+   236→                          <button
+   237→                            key={ep.id}
+   238→                            onClick={() => playEpisode(ep)}
+   239→                            title={ep.name}
+   240→                            className={
+   241→                              'aspect-square rounded-lg text-xs font-bold flex items-center justify-center transition-all duration-200 ' +
+   242→                              (isActive
+   243→                                ? 'bg-[#e50914] text-white shadow-lg shadow-[#e50914]/20 scale-105'
+   244→                                : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.08] hover:text-white/80')
+   245→                            }
+   246→                          >
+   247→                            {ep.episode_number}
+   248→                          </button>
+   249→                        );
+   250→                      })}
+   251→                    </div>
+   252→                  )}
+   253→                </div>
+   254→              </motion.aside>
+   255→            )}
+   256→          </AnimatePresence>
+   257→
+   258→          {/* CENTER: Video + Server selector */}
+   259→          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+   260→            {/* Video container */}
+   261→            <div ref={videoContainerRef} className="relative w-full bg-black">
+   262→              <div className="relative w-full aspect-video max-h-[70vh] mx-auto">
+   263→                {!sidebarOpen && (
+   264→                  <button
+   265→                    onClick={() => setSidebarOpen(true)}
+   266→                    className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white text-xs font-medium transition-colors"
+   267→                  >
+   268→                    Episodes
+   269→                  </button>
+   270→                )}
+   271→                {iframeLoading && !iframeError && (
+   272→                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   273→                    <div className="w-10 h-10 border-3 border-[#e50914] border-t-transparent rounded-full animate-spin" />
+   274→                    <p className="text-white/30 text-xs">Loading from {activeProvider.name}...</p>
+   275→                  </div>
+   276→                )}
+   277→                {iframeError && (
+   278→                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-black">
+   279→                    <Play className="w-12 h-12 text-white/20" />
+   280→                    <p className="text-white/40 text-sm">Failed to load</p>
+   281→                    <button onClick={() => switchProvider(selectedProvider)} className="px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs transition-colors">Retry</button>
+   282→                  </div>
+   283→                )}
+   284→                {adShield && (
+   285→                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/5">
+   286→                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm">
+   287→                      <Shield className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+   288→                      <span className="text-white/60 text-[11px]">Blocking ads...</span>
+   289→                    </div>
+   290→                  </div>
+   291→                )}
+   292→                {iframeSrc && (
+   293→                  <iframe
+   294→                    ref={iframeRef}
+   295→                    key={iframeSrc}
+   296→                    src={iframeSrc}
+   297→                    className="w-full h-full"
+   298→                    allowFullScreen
+   299→                    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+   300→                    onLoad={() => { setIframeLoading(false); setTimeout(() => setAdShield(false), 1500); }}
+   301→                    onError={() => { setIframeLoading(false); setIframeError(true); }}
+   302→                    title={title}
+   303→                    referrerPolicy="no-referrer"
+   304→                  />
+   305→                )}
+   306→              </div>
+   307→            </div>
+   308→
+   309→            {/* Controls bar */}
+   310→            <div className="flex items-center justify-between px-4 py-2 bg-[#0d0d0d] border-b border-white/[0.04]">
+   311→              <div className="flex items-center gap-3">
+   312→                <button onClick={playPrev} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors">
+   313→                  <SkipBack className="w-3 h-3" /> Prev
+   314→                </button>
+   315→                <button onClick={playNext} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors">
+   316→                  Next <SkipForward className="w-3 h-3" />
+   317→                </button>
+   318→              </div>
+   319→              <div className="flex items-center gap-2">
+   320→                <button onClick={toggleFullscreen} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors">
+   321→                  {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />} Expand
+   322→                </button>
+   323→                <button onClick={goBack} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors">
+   324→                  <ArrowLeft className="w-3 h-3" /> Close
+   325→                </button>
+   326→              </div>
+   327→            </div>
+   328→
+   329→            {/* Server / Language selector panel */}
+   330→            <div className="px-4 py-3 bg-[#0d0d0d]">
+   331→              {/* Currently playing info */}
+   332→              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-[#e50914]/8 border border-[#e50914]/15">
+   333→                <Play className="w-3.5 h-3.5 text-[#e50914] fill-[#e50914]" />
+   334→                <span className="text-white/60 text-xs">You are watching</span>
+   335→                <span className="text-white text-xs font-semibold">
+   336→                  {title} S{String(selectedSeason).padStart(2,'0')}E{String(currentEp?.episode_number || 1).padStart(2,'0')}
+   337→                </span>
+   338→              </div>
+   339→
+   340→              {/* SUB / DUB tabs */}
+   341→              <div className="flex gap-1.5 mb-3">
+   342→                {(['sub', 'dub'] as LangType[]).map((tab) => (
+   343→                  <button
+   344→                    key={tab}
+   345→                    onClick={() => setLangTab(tab)}
+   346→                    className={
+   347→                      'flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ' +
+   348→                      (langTab === tab
+   349→                        ? 'bg-[#e50914] text-white shadow-md shadow-[#e50914]/20'
+   350→                        : 'bg-white/[0.04] text-white/40 hover:bg-white/[0.06] hover:text-white/60')
+   351→                    }
+   352→                  >
+   353→                    {tab === 'sub' ? '💬' : '🎙️'} {tab}
+   354→                  </button>
+   355→                ))}
+   356→              </div>
+   357→
+   358→              {/* Server grid */}
+   359→              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5">
+   360→                {providers.map((p) => {
+   361→                  const isActive = p.id === selectedProvider;
+   362→                  return (
+   363→                    <button
+   364→                      key={p.id + '-' + langTab}
+   365→                      onClick={() => switchProvider(p.id)}
+   366→                      className={
+   367→                        'flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 border ' +
+   368→                        (isActive
+   369→                          ? 'bg-[#e50914] text-white border-[#e50914] shadow-md shadow-[#e50914]/15'
+   370→                          : 'bg-white/[0.03] text-white/50 border-white/[0.04] hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.08]')
+   371→                      }
+   372→                    >
+   373→                      <span style={{ color: isActive ? 'white' : p.color }}>{p.icon}</span>
+   374→                      {p.name}
+   375→                    </button>
+   376→                  );
+   377→                })}
+   378→              </div>
+   379→            </div>
+   380→          </div>
+   381→
+   382→          {/* RIGHT: Show info panel */}
+   383→          <aside className="hidden lg:flex w-72 xl:w-80 shrink-0 bg-[#0d0d0d] border-l border-white/[0.04] flex-col overflow-y-auto content-scroll">
+   384→            {/* Poster */}
+   385→            <div className="p-4">
+   386→              <div className="w-36 mx-auto rounded-xl overflow-hidden shadow-2xl shadow-black/60 border border-white/[0.06]">
+   387→                <img src={getImageUrl(show.poster_path, 'w342')} alt={title} className="w-full aspect-[2/3] object-cover" />
+   388→              </div>
+   389→            </div>
+   390→
+   391→            <div className="px-4 pb-4 space-y-4">
+   392→              {/* Title */}
+   393→              <h2 className="text-white font-bold text-base leading-tight text-center">{title}</h2>
+   394→
+   395→              {/* Tags */}
+   396→              <div className="flex flex-wrap gap-1.5 justify-center">
+   397→                {rating && parseFloat(rating) > 0 && (
+   398→                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/10 text-amber-400 border border-amber-400/20">
+   399→                    ★ {rating}
+   400→                  </span>
+   401→                )}
+   402→                {year && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-white/60 border border-white/[0.06]">{year}</span>}
+   403→                {details?.number_of_seasons && (
+   404→                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+   405→                    {details.number_of_seasons} Season{details.number_of_seasons > 1 ? 's' : ''}
+   406→                  </span>
+   407→                )}
+   408→                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#e50914]/10 text-[#e50914] border border-[#e50914]/20">
+   409→                  EP {episodes.length}
+   410→                </span>
+   411→                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-white/50 border border-white/[0.06]">TV</span>
+   412→              </div>
+   413→
+   414→              {/* Genres */}
+   415→              {details?.genres && details.genres.length > 0 && (
+   416→                <div className="flex flex-wrap gap-1.5 justify-center">
+   417→                  {details.genres.slice(0, 4).map(g => (
+   418→                    <span key={g.id} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/[0.04] text-white/50 border border-white/[0.04]">{g.name}</span>
+   419→                  ))}
+   420→                </div>
+   421→              )}
+   422→
+   423→              {/* Synopsis */}
+   424→              <p className="text-white/40 text-xs leading-relaxed line-clamp-5">{show.overview}</p>
+   425→
+   426→              {/* Current episode info */}
+   427→              {currentEp && (
+   428→                <div className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+   429→                  <div className="flex items-center gap-2 mb-1.5">
+   430→                    <Play className="w-3 h-3 text-[#e50914] fill-[#e50914]" />
+   431→                    <span className="text-white/80 text-xs font-semibold">Episode {currentEp.episode_number}</span>
+   432→                    {currentEp.runtime && (
+   433→                      <span className="text-white/30 text-[10px] ml-auto">{currentEp.runtime}m</span>
+   434→                    )}
+   435→                  </div>
+   436→                  <p className="text-white/60 text-xs font-medium mb-1">{currentEp.name}</p>
+   437→                  <p className="text-white/30 text-[10px] leading-relaxed line-clamp-3">{currentEp.overview}</p>
+   438→                </div>
+   439→              )}
+   440→
+   441→              {/* Cast mini */}
+   442→              {cast.length > 0 && (
+   443→                <div>
+   444→                  <p className="text-white/30 text-[10px] font-semibold uppercase tracking-wider mb-2">Cast</p>
+   445→                  <div className="flex flex-wrap gap-1.5">
+   446→                    {cast.map(p => (
+   447→                      <span key={p.id} className="text-white/50 text-[10px]">{p.name}</span>
+   448→                    )).reduce((acc, el, i) => i < acc.length - 1 ? [...acc, el, <span key={`sep-${i}`} className="text-white/15 text-[10px]">•</span>] : [...acc, el], [] as React.ReactNode[])}
+   449→                  </div>
+   450→                </div>
+   451→              )}
+   452→            </div>
+   453→          </aside>
+   454→        </div>
+   455→      </motion.div>
+   456→    );
+   457→  }
+   458→
+   459→  // ============ BROWSE MODE ============
+   460→  return (
+   461→    <motion.div
+   462→      initial={{ opacity: 0 }}
+   463→      animate={{ opacity: 1 }}
+   464→      transition={{ duration: 0.5 }}
+   465→      className="min-h-screen"
+   466→    >
+   467→      {/* Full-width backdrop */}
+   468→      <div className="relative w-full h-[60vh]">
+   469→        {show.backdrop_path && (
+   470→          <img src={getBackdropUrl(show.backdrop_path)} alt="" className="w-full h-full object-cover" />
+   471→        )}
+   472→        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-[#0a0a0a]/30" />
+   473→        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/70 to-transparent" />
+   474→        <button
+   475→          onClick={goHome}
+   476→          className="absolute top-20 left-6 md:left-12 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-colors duration-300"
+   477→        >
+   478→          <ArrowLeft className="w-4 h-4" />
+   479→          <span className="text-sm font-medium">Back</span>
+   480→        </button>
+   481→      </div>
+   482→
+   483→      {/* Content */}
+   484→      <div className="px-6 md:px-12 lg:px-16 -mt-36 md:-mt-44 relative z-10">
+   485→        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+   486→          <div className="shrink-0 mx-auto md:mx-0">
+   487→            <div className="w-52 md:w-60 rounded-xl overflow-hidden shadow-2xl shadow-black/60 border border-white/[0.08]">
+   488→              <img src={getImageUrl(show.poster_path, 'w342')} alt={title} className="w-full aspect-[2/3] object-cover" />
+   489→            </div>
+   490→          </div>
+   491→
+   492→          <div className="flex-1 min-w-0 pt-2 md:pt-8">
+   493→            {loading ? (
+   494→              <div className="space-y-4">
+   495→                <div className="h-10 bg-white/5 rounded-lg animate-pulse w-3/4" />
+   496→                <div className="h-5 bg-white/5 rounded-lg animate-pulse w-1/2" />
+   497→                <div className="h-24 bg-white/5 rounded-lg animate-pulse" />
+   498→              </div>
+   499→            ) : (
+   500→              <>
+   501→                <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">{title}</h1>
+   502→                {(show as any).tagline && (
+   503→                  <p className="text-white/40 italic text-base md:text-lg mb-4 font-light">&ldquo;{(show as any).tagline}&rdquo;</p>
+   504→                )}
+   505→
+   506→                <div className="flex items-center gap-3 mb-5">
+   507→                  {rating && parseFloat(rating) > 0 && (
+   508→                    <div className="flex items-center gap-2">
+   509→                      <div className="flex gap-0.5">{renderStars(parseFloat(rating))}</div>
+   510→                      <span className="text-white/80 text-sm font-semibold">{rating}</span>
+   511→                    </div>
+   512→                  )}
+   513→                  {year && (
+   514→                    <>
+   515→                      <span className="w-1 h-1 rounded-full bg-white/20" />
+   516→                      <span className="flex items-center gap-1.5 text-white/50 text-sm"><Calendar className="w-3.5 h-3.5" />{year}</span>
+   517→                    </>
+   518→                  )}
+   519→                  {details?.number_of_seasons && (
+   520→                    <>
+   521→                      <span className="w-1 h-1 rounded-full bg-white/20" />
+   522→                      <span className="flex items-center gap-1.5 text-white/50 text-sm"><Tv className="w-3.5 h-3.5" />{details.number_of_seasons} Season{details.number_of_seasons > 1 ? 's' : ''}</span>
+   523→                    </>
+   524→                  )}
+   525→                </div>
+   526→
+   527→                <div className="flex flex-wrap gap-2 mb-6">
+   528→                  {details?.genres?.map((g) => (
+   529→                    <span key={g.id} className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.06] text-white/70 border border-white/[0.06] hover:border-white/15 hover:text-white/90 transition-colors">{g.name}</span>
+   530→                  ))}
+   531→                </div>
+   532→
+   533→                <div className="flex items-center gap-3 mb-6">
+   534→                  <Button
+   535→                    onClick={startWatching}
+   536→                    className="bg-[#e50914] hover:bg-[#dc2626] text-white px-8 h-12 text-base font-semibold gap-2.5 rounded-xl shadow-lg shadow-[#e50914]/25 hover:shadow-xl hover:shadow-[#e50914]/30"
+   537→                  >
+   538→                    <Play className="w-5 h-5 fill-white" />
+   539→                    Play S{String(selectedSeason).padStart(2,'0')}E01
+   540→                  </Button>
+   541→                </div>
+   542→
+   543→                <div className="mb-8">
+   544→                  <h3 className="text-white font-semibold text-base mb-2.5 tracking-tight">Synopsis</h3>
+   545→                  <p className="text-white/60 text-sm leading-relaxed">{show.overview}</p>
+   546→                </div>
+   547→
+   548→                {details?.created_by?.length > 0 && (
+   549→                  <div className="mb-8">
+   550→                    <h3 className="text-white font-semibold text-base mb-2.5 tracking-tight">Created By</h3>
+   551→                    <p className="text-white/70 text-sm font-medium">{details.created_by.map(c => c.name).join(', ')}</p>
+   552→                  </div>
+   553→                )}
+   554→
+   555→                {cast.length > 0 && (
+   556→                  <div className="mb-8">
+   557→                    <h3 className="text-white font-semibold text-base mb-4 tracking-tight">Cast</h3>
+   558→                    <div className="flex gap-4 overflow-x-auto content-scroll no-scrollbar pb-2">
+   559→                      {cast.map((person) => (
+   560→                        <div key={person.id} className="flex-shrink-0 flex flex-col items-center gap-2 w-20">
+   561→                          <div className="w-16 h-16 rounded-full overflow-hidden bg-[#1a1a1a] border-2 border-white/[0.06] shrink-0">
+   562→                            {person.profile_path ? (
+   563→                              <img src={getImageUrl(person.profile_path, 'w185')} alt={person.name} className="w-full h-full object-cover" />
+   564→                            ) : (
+   565→                              <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center text-white/30 text-lg font-semibold">{person.name[0]}</div>
+   566→                            )}
+   567→                          </div>
+   568→                          <div className="text-center min-w-0">
+   569→                            <p className="text-white text-xs font-medium truncate block">{person.name}</p>
+   570→                            <p className="text-white/40 text-[10px] truncate block">{person.character}</p>
+   571→                          </div>
+   572→                        </div>
+   573→                      ))}
+   574→                    </div>
+   575→                  </div>
+   576→                )}
+   577→              </>
+   578→            )}
+   579→          </div>
+   580→        </div>
+   581→
+   582→        {/* Episodes section */}
+   583→        <div className="mt-8 mb-10">
+   584→          <div className="flex items-center gap-4 mb-5 flex-wrap">
+   585→            <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+   586→              <span className="w-1 h-7 bg-[#e50914] rounded-full" />
+   587→              Episodes
+   588→            </h2>
+   589→            {seasons.length > 0 && (
+   590→              <div className="flex items-center bg-white/[0.04] rounded-full p-1 border border-white/[0.06]">
+   591→                {seasons.map((s) => (
+   592→                  <button
+   593→                    key={s.id}
+   594→                    onClick={() => setSelectedSeason(s.season_number)}
+   595→                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 whitespace-nowrap ${
+   596→                      s.season_number === selectedSeason
+   597→                        ? 'bg-[#e50914] text-white shadow-md shadow-[#e50914]/20'
+   598→                        : 'text-white/50 hover:text-white/80 hover:bg-white/[0.06]'
+   599→                    }`}
+   600→                  >
+   601→                    S{s.season_number}
+   602→                  </button>
+   603→                ))}
+   604→              </div>
+   605→            )}
+   606→          </div>
+   607→
+   608→          {seasonLoading ? (
+   609→            <div className="space-y-3">
+   610→              {Array.from({ length: 4 }).map((_, i) => (
+   611→                <div key={i} className="h-28 bg-white/[0.03] rounded-xl animate-pulse" />
+   612→              ))}
+   613→            </div>
+   614→          ) : (
+   615→            <div className="space-y-2.5">
+   616→              {episodes.map((ep, idx) => {
+   617→                const isActive = selectedEpisode?.id === ep.id;
+   618→                return (
+   619→                  <motion.div
+   620→                    key={ep.id}
+   621→                    initial={{ opacity: 0, y: 10 }}
+   622→                    animate={{ opacity: 1, y: 0 }}
+   623→                    transition={{ delay: idx * 0.03, duration: 0.3 }}
+   624→                    onClick={() => playEpisode(ep)}
+   625→                    className={`flex gap-4 rounded-xl p-3 cursor-pointer transition-all duration-300 group border ${
+   626→                      isActive
+   627→                        ? 'bg-[#e50914]/10 border-[#e50914]/30'
+   628→                        : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.04] hover:border-white/[0.08]'
+   629→                    } ${isActive ? 'border-l-[3px] border-l-[#e50914]' : ''}`}
+   630→                  >
+   631→                    <div className="relative w-40 md:w-52 aspect-video rounded-lg overflow-hidden bg-[#141414] shrink-0">
+   632→                      {ep.still_path ? (
+   633→                        <img src={getImageUrl(ep.still_path, 'w300')} alt={ep.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+   634→                      ) : (
+   635→                        <div className="w-full h-full bg-[#141414] flex items-center justify-center"><Play className="w-8 h-8 text-white/10" /></div>
+   636→                      )}
+   637→                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40">
+   638→                        <div className="w-10 h-10 rounded-full bg-[#e50914]/90 flex items-center justify-center shadow-lg shadow-black/40">
+   639→                          <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+   640→                        </div>
+   641→                      </div>
+   642→                      <div className="absolute bottom-1.5 right-1.5 bg-black/70 px-2 py-0.5 rounded-md text-[10px] text-white/60 font-medium">{ep.runtime ? `${ep.runtime}m` : '--'}</div>
+   643→                    </div>
+   644→                    <div className="flex-1 min-w-0 py-0.5">
+   645→                      <div className="flex items-center gap-2.5 mb-1.5">
+   646→                        <span className="text-white/30 text-xs font-mono font-semibold">E{String(ep.episode_number).padStart(2, '0')}</span>
+   647→                        <h4 className="text-white text-sm font-semibold truncate">{ep.name}</h4>
+   648→                      </div>
+   649→                      {ep.vote_average > 0 && (
+   650→                        <span className="flex items-center gap-1 text-amber-400 text-xs mb-2"><Star className="w-3 h-3 fill-amber-400" />{ep.vote_average.toFixed(1)}</span>
+   651→                      )}
+   652→                      <p className="text-white/40 text-xs leading-relaxed line-clamp-2 md:line-clamp-3">{ep.overview || 'No description available.'}</p>
+   653→                    </div>
+   654→                  </motion.div>
+   655→                );
+   656→              })}
+   657→            </div>
+   658→          )}
+   659→        </div>
+   660→
+   661→        {similar.length > 0 && (
+   662→          <section className="mt-4 mb-10">
+   663→            <div className="flex items-center gap-3 mb-5">
+   664→              <span className="w-1 h-7 bg-[#e50914] rounded-full" />
+   665→              <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">More Like This</h2>
+   666→            </div>
+   667→            <div className="flex gap-3 md:gap-4 overflow-x-auto content-scroll no-scrollbar pb-4">
+   668→              {similar.map((m, i) => (
+   669→                <MovieCard key={m.id} movie={{ ...m, media_type: 'tv' }} index={i} />
+   670→              ))}
+   671→            </div>
+   672→          </section>
+   673→        )}
+   674→
+   675→        <div className="h-24" />
+   676→      </div>
+   677→    </motion.div>
+   678→  );
+   679→}
+   680→

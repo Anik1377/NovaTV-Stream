@@ -1,0 +1,1128 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef, useCallback } from 'react';
+     4→import {
+     5→  Search,
+     6→  Play,
+     7→  Pause,
+     8→  SkipBack,
+     9→  SkipForward,
+    10→  X,
+    11→  TrendingUp,
+    12→  ChevronDown,
+    13→  ChevronRight,
+    14→  ExternalLink,
+    15→  Volume2,
+    16→  Heart,
+    17→  Shuffle,
+    18→  Repeat,
+    19→  Music,
+    20→  Flame,
+    21→  Headphones,
+    22→  Dumbbell,
+    23→  Mic,
+    24→  Globe,
+    25→  Radio,
+    26→  Moon,
+    27→  Film,
+    28→  MoreHorizontal,
+    29→  ListMusic,
+    30→  Clock,
+    31→} from 'lucide-react';
+    32→import { motion, AnimatePresence } from 'framer-motion';
+    33→
+    34→// ─── Types ───────────────────────────────────────────────────────────────────
+    35→
+    36→interface YoutubeVideoResult {
+    37→  videoId: string;
+    38→  title: string;
+    39→  channelTitle: string;
+    40→  thumbnail: string;
+    41→  duration: string;
+    42→  viewCount: number;
+    43→  publishedAt: string;
+    44→}
+    45→
+    46→interface ApiResponse {
+    47→  results: YoutubeVideoResult[];
+    48→  nextPageToken?: string;
+    49→}
+    50→
+    51→// ─── Helpers ─────────────────────────────────────────────────────────────────
+    52→
+    53→function formatDuration(iso: string): string {
+    54→  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    55→  if (!m) return '0:00';
+    56→  const h = parseInt(m[1] || '0');
+    57→  const min = parseInt(m[2] || '0');
+    58→  const s = parseInt(m[3] || '0');
+    59→  if (h > 0) return `${h}:${min.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    60→  return `${min}:${s.toString().padStart(2, '0')}`;
+    61→}
+    62→
+    63→function formatDurationSeconds(iso: string): number {
+    64→  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    65→  if (!m) return 0;
+    66→  const h = parseInt(m[1] || '0');
+    67→  const min = parseInt(m[2] || '0');
+    68→  const s = parseInt(m[3] || '0');
+    69→  return h * 3600 + min * 60 + s;
+    70→}
+    71→
+    72→function formatTime(sec: number): string {
+    73→  const m = Math.floor(sec / 60);
+    74→  const s = Math.floor(sec % 60);
+    75→  return `${m}:${s.toString().padStart(2, '0')}`;
+    76→}
+    77→
+    78→function formatViews(n: number): string {
+    79→  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+    80→  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    81→  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    82→  return String(n);
+    83→}
+    84→
+    85→// ─── Audio Player Hook (native <audio> + Media Session API) ──────────────
+    86→
+    87→interface PlayerState {
+    88→  isPlaying: boolean;
+    89→  currentTime: number;
+    90→  duration: number;
+    91→}
+    92→
+    93→interface TrackMeta {
+    94→  title: string;
+    95→  artist: string;
+    96→  artwork: string;
+    97→}
+    98→
+    99→function useAudioPlayer(videoId: string | null, trackMeta: TrackMeta | null) {
+   100→  const audioRef = useRef<HTMLAudioElement | null>(null);
+   101→  const [state, setState] = useState<PlayerState>({ isPlaying: false, currentTime: 0, duration: 0 });
+   102→  const onEndRef = useRef<() => void>(() => {});
+   103→  const onNextRef = useRef<() => void>(() => {});
+   104→  const onPrevRef = useRef<() => void>(() => {});
+   105→
+   106→  // Lazy-create the audio element once
+   107→  const getAudio = useCallback(() => {
+   108→    if (!audioRef.current) {
+   109→      audioRef.current = new Audio();
+   110→      audioRef.current.preload = 'auto';
+   111→    }
+   112→    return audioRef.current;
+   113→  }, []);
+   114→
+   115→  // Fetch audio URL and play when videoId changes
+   116→  useEffect(() => {
+   117→    const audio = getAudio();
+   118→
+   119→    if (!videoId) {
+   120→      audio.pause();
+   121→      audio.src = '';
+   122→      return;
+   123→    }
+   124→
+   125→    let cancelled = false;
+   126→
+   127→    const loadAndPlay = async () => {
+   128→      try {
+   129→        const res = await fetch(`/api/youtube/audio?videoId=${videoId}`);
+   130→        const data = await res.json();
+   131→        if (cancelled || !data.url) return;
+   132→
+   133→        audio.src = data.url;
+   134→        if (data.duration) {
+   135→          setState((s) => ({ ...s, duration: data.duration }));
+   136→        }
+   137→
+   138→        await audio.play();
+   139→      } catch (err) {
+   140→        console.error('Failed to load audio:', err);
+   141→      }
+   142→    };
+   143→
+   144→    loadAndPlay();
+   145→
+   146→    // Native audio events
+   147→    const onTimeUpdate = () => {
+   148→      if (audio.duration && isFinite(audio.duration)) {
+   149→        setState((s) => ({ ...s, currentTime: audio.currentTime, duration: audio.duration }));
+   150→      }
+   151→    };
+   152→    const onPlay = () => setState((s) => ({ ...s, isPlaying: true }));
+   153→    const onPause = () => setState((s) => ({ ...s, isPlaying: false }));
+   154→    const onEnded = () => {
+   155→      setState((s) => ({ ...s, isPlaying: false }));
+   156→      onEndRef.current();
+   157→    };
+   158→    const onDurationChange = () => {
+   159→      if (audio.duration && isFinite(audio.duration)) {
+   160→        setState((s) => ({ ...s, duration: audio.duration }));
+   161→      }
+   162→    };
+   163→
+   164→    audio.addEventListener('timeupdate', onTimeUpdate);
+   165→    audio.addEventListener('play', onPlay);
+   166→    audio.addEventListener('pause', onPause);
+   167→    audio.addEventListener('ended', onEnded);
+   168→    audio.addEventListener('durationchange', onDurationChange);
+   169→
+   170→    // Update Media Session position state periodically
+   171→    const posIv = setInterval(() => {
+   172→      if ('mediaSession' in navigator && audio.duration && isFinite(audio.duration) && !audio.paused) {
+   173→        try {
+   174→          navigator.mediaSession.setPositionState({
+   175→            duration: audio.duration,
+   176→            playbackRate: audio.playbackRate,
+   177→            position: audio.currentTime,
+   178→          });
+   179→        } catch { /* ignore */ }
+   180→      }
+   181→    }, 1000);
+   182→
+   183→    return () => {
+   184→      cancelled = true;
+   185→      clearInterval(posIv);
+   186→      audio.removeEventListener('timeupdate', onTimeUpdate);
+   187→      audio.removeEventListener('play', onPlay);
+   188→      audio.removeEventListener('pause', onPause);
+   189→      audio.removeEventListener('ended', onEnded);
+   190→      audio.removeEventListener('durationchange', onDurationChange);
+   191→      audio.pause();
+   192→      audio.src = '';
+   193→    };
+   194→  }, [videoId, getAudio]);
+   195→
+   196→  // Media Session metadata & action handlers
+   197→  useEffect(() => {
+   198→    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+   199→    const audio = getAudio();
+   200→
+   201→    if (trackMeta) {
+   202→      navigator.mediaSession.metadata = new MediaMetadata({
+   203→        title: trackMeta.title,
+   204→        artist: trackMeta.artist,
+   205→        album: 'StreamVault Music',
+   206→        artwork: [
+   207→          { src: trackMeta.artwork, sizes: '512x512', type: 'image/jpeg' },
+   208→          { src: trackMeta.artwork, sizes: '192x192', type: 'image/jpeg' },
+   209→        ],
+   210→      });
+   211→    }
+   212→
+   213→    if (navigator.mediaSession.setActionHandler) {
+   214→      navigator.mediaSession.setActionHandler('play', () => { audio.play(); });
+   215→      navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); });
+   216→      navigator.mediaSession.setActionHandler('previoustrack', () => onPrevRef.current());
+   217→      navigator.mediaSession.setActionHandler('nexttrack', () => onNextRef.current());
+   218→      navigator.mediaSession.setActionHandler('seekto', (details) => {
+   219→        if (details && details.seekTime !== undefined) {
+   220→          audio.currentTime = details.seekTime;
+   221→        }
+   222→      });
+   223→      navigator.mediaSession.setActionHandler('stop', () => { audio.pause(); });
+   224→    }
+   225→  }, [trackMeta, getAudio]);
+   226→
+   227→  const togglePlay = useCallback(() => {
+   228→    const audio = getAudio();
+   229→    if (audio.paused) audio.play();
+   230→    else audio.pause();
+   231→  }, [getAudio]);
+   232→
+   233→  const seekTo = useCallback((seconds: number) => {
+   234→    getAudio().currentTime = seconds;
+   235→  }, [getAudio]);
+   236→
+   237→  const setOnEnd = useCallback((cb: () => void) => { onEndRef.current = cb; }, []);
+   238→  const setOnNext = useCallback((cb: () => void) => { onNextRef.current = cb; }, []);
+   239→  const setOnPrev = useCallback((cb: () => void) => { onPrevRef.current = cb; }, []);
+   240→
+   241→  return { ...state, togglePlay, seekTo, setOnEnd, setOnNext, setOnPrev };
+   242→}
+   243→
+   244→// ─── Constants ───────────────────────────────────────────────────────────────
+   245→
+   246→const MOOD_CATEGORIES = [
+   247→  { label: 'Today\'s Hits', query: 'Top Hits 2025', icon: Flame, color: 'from-rose-600 to-orange-500' },
+   248→  { label: 'Chill Vibes', query: 'Lo-fi Chill Beats', icon: Headphones, color: 'from-violet-600 to-purple-500' },
+   249→  { label: 'Workout', query: 'Workout Music Mix', icon: Dumbbell, color: 'from-emerald-600 to-teal-500' },
+   250→  { label: 'Romance', query: 'Romantic Love Songs', icon: Heart, color: 'from-pink-600 to-rose-500' },
+   251→  { label: 'Hip Hop', query: 'Hip Hop Music 2025', icon: Mic, color: 'from-amber-600 to-yellow-500' },
+   252→  { label: 'K-Pop', query: 'K-Pop Music Playlist', icon: Globe, color: 'from-sky-600 to-blue-500' },
+   253→  { label: 'Rock', query: 'Rock Music Hits', icon: Music, color: 'from-red-700 to-red-500' },
+   254→  { label: 'Bollywood', query: 'Bollywood Hits 2025', icon: Film, color: 'from-orange-600 to-amber-500' },
+   255→  { label: 'Arabic', query: 'Arabic Music Hits', icon: Moon, color: 'from-teal-600 to-emerald-500' },
+   256→  { label: 'Latin', query: 'Latin Music Reggaeton', icon: Radio, color: 'from-fuchsia-600 to-pink-500' },
+   257→];
+   258→
+   259→const GENRE_PILLS = [
+   260→  'Pop', 'Hip Hop', 'Rock', 'R&B', 'Electronic',
+   261→  'Jazz', 'Classical', 'Lo-fi', 'K-Pop', 'Bollywood',
+   262→  'Arabic', 'Latin', 'Country', 'Metal', 'Indie',
+   263→];
+   264→
+   265→// ─── Skeleton Components ────────────────────────────────────────────────────
+   266→
+   267→function CategorySkeleton() {
+   268→  return (
+   269→    <div className="shrink-0 w-36">
+   270→      <div className="w-36 h-20 rounded-xl bg-white/[0.04] animate-pulse" />
+   271→      <div className="h-3 w-24 mt-2 rounded bg-white/[0.04] animate-pulse" />
+   272→    </div>
+   273→  );
+   274→}
+   275→
+   276→function RankCardSkeleton() {
+   277→  return (
+   278→    <div className="shrink-0 w-40">
+   279→      <div className="w-40 h-52 rounded-xl bg-white/[0.04] animate-pulse" />
+   280→    </div>
+   281→  );
+   282→}
+   283→
+   284→function TrackRowSkeleton() {
+   285→  return (
+   286→    <div className="flex items-center gap-3 px-4 py-2.5">
+   287→      <div className="w-10 h-10 rounded-lg bg-white/[0.04] animate-pulse shrink-0" />
+   288→      <div className="flex-1 min-w-0">
+   289→        <div className="h-3.5 w-3/4 rounded bg-white/[0.04] animate-pulse" />
+   290→        <div className="h-3 w-1/2 rounded bg-white/[0.04] animate-pulse mt-1.5" />
+   291→      </div>
+   292→      <div className="h-3 w-10 rounded bg-white/[0.04] animate-pulse" />
+   293→    </div>
+   294→  );
+   295→}
+   296→
+   297→// ─── Category Card (replaces mood cards — no emoji) ─────────────────────────
+   298→
+   299→function CategoryCard({
+   300→  label,
+   301→  icon: Icon,
+   302→  color,
+   303→  onClick,
+   304→  isActive,
+   305→}: {
+   306→  label: string;
+   307→  icon: React.ComponentType<{ className?: string }>;
+   308→  color: string;
+   309→  onClick: () => void;
+   310→  isActive: boolean;
+   311→}) {
+   312→  return (
+   313→    <motion.button
+   314→      whileTap={{ scale: 0.96 }}
+   315→      onClick={onClick}
+   316→      className={`shrink-0 w-36 text-left group ${isActive ? 'ring-1 ring-white/30' : ''}`}
+   317→    >
+   318→      <div className={`w-36 h-20 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center relative overflow-hidden`}>
+   319→        <Icon className="w-7 h-7 text-white/90 relative z-10 drop-shadow-lg" />
+   320→        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+   321→      </div>
+   322→      <p className="mt-2 text-[13px] font-medium text-white/80 truncate">{label}</p>
+   323→    </motion.button>
+   324→  );
+   325→}
+   326→
+   327→// ─── Ranked Card (horizontal scroll, Apple Music artist style) ──────────────
+   328→
+   329→function RankedCard({
+   330→  track,
+   331→  rank,
+   332→  onPlay,
+   333→  isActive,
+   334→}: {
+   335→  track: YoutubeVideoResult;
+   336→  rank: number;
+   337→  onPlay: () => void;
+   338→  isActive: boolean;
+   339→}) {
+   340→  const [imgError, setImgError] = useState(false);
+   341→
+   342→  return (
+   343→    <motion.button
+   344→      initial={{ opacity: 0, y: 12 }}
+   345→      animate={{ opacity: 1, y: 0 }}
+   346→      transition={{ duration: 0.3, delay: rank * 0.03 }}
+   347→      whileTap={{ scale: 0.97 }}
+   348→      onClick={onPlay}
+   349→      className="shrink-0 w-40 text-left group"
+   350→    >
+   351→      <div className="relative w-40 h-52 rounded-xl overflow-hidden bg-white/[0.04]">
+   352→        {!imgError ? (
+   353→          <img
+   354→            src={track.thumbnail}
+   355→            alt={track.title}
+   356→            className="w-full h-full object-cover"
+   357→            loading="lazy"
+   358→            onError={() => setImgError(true)}
+   359→          />
+   360→        ) : (
+   361→          <div className="w-full h-full bg-gradient-to-b from-white/[0.06] to-white/[0.02] flex items-center justify-center">
+   362→            <Music className="w-10 h-10 text-white/15" />
+   363→          </div>
+   364→        )}
+   365→
+   366→        {/* Rank number */}
+   367→        <div className="absolute top-3 left-3">
+   368→          <span className="text-4xl font-bold text-white drop-shadow-lg" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+   369→            {rank}
+   370→          </span>
+   371→        </div>
+   372→
+   373→        {/* Bottom gradient + info */}
+   374→        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+   375→        <div className="absolute inset-x-0 bottom-0 p-3">
+   376→          <p className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{track.title}</p>
+   377→          <p className="text-[11px] text-white/50 mt-0.5 truncate">{track.channelTitle}</p>
+   378→        </div>
+   379→
+   380→        {/* Play overlay on hover */}
+   381→        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+   382→          <div className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+   383→            {isActive ? (
+   384→              <Volume2 className="w-5 h-5 text-black" />
+   385→            ) : (
+   386→              <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+   387→            )}
+   388→          </div>
+   389→        </div>
+   390→
+   391→        {/* Playing indicator */}
+   392→        {isActive && (
+   393→          <div className="absolute top-3 right-3 flex items-end gap-0.5 h-3.5">
+   394→            {[0, 1, 2].map((i) => (
+   395→              <motion.div
+   396→                key={i}
+   397→                className="w-[3px] bg-[#FA2D48] rounded-full"
+   398→                animate={{ height: [4, 14, 6, 12, 4] }}
+   399→                transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+   400→              />
+   401→            ))}
+   402→          </div>
+   403→        )}
+   404→      </div>
+   405→    </motion.button>
+   406→  );
+   407→}
+   408→
+   409→// ─── Track Row (list-style, Apple Music song row) ───────────────────────────
+   410→
+   411→function TrackRow({
+   412→  track,
+   413→  index,
+   414→  onPlay,
+   415→  isActive,
+   416→}: {
+   417→  track: YoutubeVideoResult;
+   418→  index: number;
+   419→  onPlay: () => void;
+   420→  isActive: boolean;
+   421→}) {
+   422→  const [imgError, setImgError] = useState(false);
+   423→  const [liked, setLiked] = useState(false);
+   424→
+   425→  return (
+   426→    <div
+   427→      role="button"
+   428→      tabIndex={0}
+   429→      onClick={onPlay}
+   430→      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPlay(); } }}
+   431→      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-colors group ${
+   432→        isActive ? 'bg-[#FA2D48]/10' : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
+   433→      }`}
+   434→    >
+   435→      {/* Index or playing indicator */}
+   436→      <div className="w-5 text-center shrink-0">
+   437→        {isActive ? (
+   438→          <div className="flex items-end justify-center gap-[2px] h-3.5">
+   439→            {[0, 1, 2].map((i) => (
+   440→              <motion.div
+   441→                key={i}
+   442→                className="w-[2px] bg-[#FA2D48] rounded-full"
+   443→                animate={{ height: [3, 10, 5, 8, 3] }}
+   444→                transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12, ease: 'easeInOut' }}
+   445→              />
+   446→            ))}
+   447→          </div>
+   448→        ) : (
+   449→          <span className={`text-xs tabular-nums ${isActive ? 'text-[#FA2D48]' : 'text-white/30 group-hover:hidden'}`}>{index + 1}</span>
+   450→        )}
+   451→        <Play className={`w-4 h-4 text-white/70 hidden group-hover:block ${isActive ? '!hidden' : ''}`} />
+   452→      </div>
+   453→
+   454→      {/* Thumbnail */}
+   455→      <div className="w-10 h-10 rounded-md overflow-hidden bg-white/[0.04] shrink-0">
+   456→        {!imgError ? (
+   457→          <img src={track.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
+   458→        ) : (
+   459→          <div className="w-full h-full flex items-center justify-center"><Music className="w-4 h-4 text-white/15" /></div>
+   460→        )}
+   461→      </div>
+   462→
+   463→      {/* Title & Artist */}
+   464→      <div className="flex-1 min-w-0">
+   465→        <p className={`text-[14px] font-medium leading-tight truncate ${isActive ? 'text-[#FA2D48]' : 'text-white/90'}`}>{track.title}</p>
+   466→        <p className="text-[12px] text-white/40 mt-0.5 truncate">{track.channelTitle}</p>
+   467→      </div>
+   468→
+   469→      {/* Duration */}
+   470→      <span className="text-[12px] text-white/30 tabular-nums shrink-0 mr-1 hidden sm:block">{formatDuration(track.duration)}</span>
+   471→
+   472→      {/* Views */}
+   473→      <span className="text-[12px] text-white/20 tabular-nums shrink-0 hidden md:block">{formatViews(track.viewCount)}</span>
+   474→
+   475→      {/* Like button */}
+   476→      <span
+   477→        role="button"
+   478→        tabIndex={0}
+   479→        onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
+   480→        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLiked(!liked); } }}
+   481→        className="p-1.5 cursor-pointer shrink-0"
+   482→      >
+   483→        <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : 'text-white/15 hover:text-white/40'}`} />
+   484→      </span>
+   485→    </div>
+   486→  );
+   487→}
+   488→
+   489→// ─── Full Screen Now Playing (Apple Music aesthetic — audio only) ─────────
+   490→
+   491→function FullScreenPlayer({
+   492→  track,
+   493→  onClose,
+   494→  onNext,
+   495→  onPrev,
+   496→  isPlaying,
+   497→  currentTime,
+   498→  duration,
+   499→  onTogglePlay,
+   500→  onSeek,
+   501→}: {
+   502→  track: YoutubeVideoResult;
+   503→  onClose: () => void;
+   504→  onNext: () => void;
+   505→  onPrev: () => void;
+   506→  isPlaying: boolean;
+   507→  currentTime: number;
+   508→  duration: number;
+   509→  onTogglePlay: () => void;
+   510→  onSeek: (sec: number) => void;
+   511→}) {
+   512→  const [imgError, setImgError] = useState(false);
+   513→  const [liked, setLiked] = useState(false);
+   514→  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+   515→
+   516→  return (
+   517→    <motion.div
+   518→      initial={{ y: '100%' }}
+   519→      animate={{ y: 0 }}
+   520→      exit={{ y: '100%' }}
+   521→      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   522→      className="fixed inset-0 z-[60] flex flex-col bg-black"
+   523→    >
+   524→      {/* Blurred background */}
+   525→      <div className="absolute inset-0 z-0">
+   526→        {!imgError ? (
+   527→          <img src={track.thumbnail} alt="" className="w-full h-full object-cover scale-150 blur-3xl opacity-30" onError={() => setImgError(true)} />
+   528→        ) : (
+   529→          <div className="w-full h-full bg-gradient-to-b from-zinc-900 to-black" />
+   530→        )}
+   531→        <div className="absolute inset-0 bg-black/50" />
+   532→      </div>
+   533→
+   534→      <div className="relative z-10 flex flex-col h-full">
+   535→        {/* Top bar */}
+   536→        <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top,12px)] pb-2">
+   537→          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+   538→            <ChevronDown className="w-6 h-6" />
+   539→          </button>
+   540→          <div className="text-center">
+   541→            <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider">Playing from</p>
+   542→            <p className="text-xs text-white/50 mt-0.5">YouTube Music</p>
+   543→          </div>
+   544→          <button onClick={() => setLiked(!liked)} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+   545→            <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : ''}`} />
+   546→          </button>
+   547→        </div>
+   548→
+   549→        {/* Album art */}
+   550→        <div className="flex-1 flex items-center justify-center px-8 py-4">
+   551→          <motion.div
+   552→            initial={{ scale: 0.8, opacity: 0 }}
+   553→            animate={{ scale: 1, opacity: 1 }}
+   554→            transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+   555→            className="w-full max-w-[300px] md:max-w-[360px] aspect-square rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
+   556→          >
+   557→            {!imgError ? (
+   558→              <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+   559→            ) : (
+   560→              <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+   561→                <Music className="w-16 h-16 text-white/20" />
+   562→              </div>
+   563→            )}
+   564→          </motion.div>
+   565→        </div>
+   566→
+   567→        {/* Track info + controls */}
+   568→        <div className="px-8 pb-[env(safe-area-inset-bottom,16px)]">
+   569→          <div className="flex items-start justify-between gap-3 mb-5">
+   570→            <div className="min-w-0 flex-1">
+   571→              <h2 className="text-xl font-bold text-white truncate">{track.title}</h2>
+   572→              <p className="text-[15px] text-white/50 truncate mt-0.5">{track.channelTitle}</p>
+   573→            </div>
+   574→            <a
+   575→              href={`https://www.youtube.com/watch?v=${track.videoId}`}
+   576→              target="_blank"
+   577→              rel="noopener noreferrer"
+   578→              className="shrink-0 p-2 text-white/30 hover:text-white/60 transition-colors mt-0.5"
+   579→            >
+   580→              <ExternalLink className="w-4 h-4" />
+   581→            </a>
+   582→          </div>
+   583→
+   584→          {/* Progress bar */}
+   585→          <div className="mb-5">
+   586→            <div
+   587→              className="relative w-full h-1 bg-white/10 rounded-full cursor-pointer group"
+   588→              onClick={(e) => {
+   589→                const rect = e.currentTarget.getBoundingClientRect();
+   590→                const pct = (e.clientX - rect.left) / rect.width;
+   591→                onSeek(pct * duration);
+   592→              }}
+   593→            >
+   594→              <div className="absolute left-0 top-0 h-full bg-white/80 rounded-full group-hover:bg-white transition-colors" style={{ width: `${Math.min(progressPct, 100)}%` }} />
+   595→            </div>
+   596→            <div className="flex justify-between mt-1.5">
+   597→              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(currentTime)}</span>
+   598→              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(duration)}</span>
+   599→            </div>
+   600→          </div>
+   601→
+   602→          {/* Controls */}
+   603→          <div className="flex items-center justify-between px-2">
+   604→            <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Shuffle className="w-5 h-5" /></button>
+   605→            <button onClick={onPrev} className="p-2 text-white hover:text-white transition-colors"><SkipBack className="w-6 h-6 fill-white" /></button>
+   606→            <button onClick={onTogglePlay} className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:scale-105 transition-transform">
+   607→              {isPlaying
+   608→                ? <Pause className="w-7 h-7 text-black fill-black" />
+   609→                : <Play className="w-7 h-7 text-black fill-black ml-1" />}
+   610→            </button>
+   611→            <button onClick={onNext} className="p-2 text-white hover:text-white transition-colors"><SkipForward className="w-6 h-6 fill-white" /></button>
+   612→            <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Repeat className="w-5 h-5" /></button>
+   613→          </div>
+   614→        </div>
+   615→      </div>
+   616→    </motion.div>
+   617→  );
+   618→}
+   619→
+   620→// ─── Mini Player (Apple Music style: 64px, blur, white play circle) ─────────
+   621→
+   622→function MiniPlayer({
+   623→  track,
+   624→  onExpand,
+   625→  onNext,
+   626→  onPrev,
+   627→  isPlaying,
+   628→  currentTime,
+   629→  duration,
+   630→  onTogglePlay,
+   631→}: {
+   632→  track: YoutubeVideoResult;
+   633→  onExpand: () => void;
+   634→  onNext: () => void;
+   635→  onPrev: () => void;
+   636→  isPlaying: boolean;
+   637→  currentTime: number;
+   638→  duration: number;
+   639→  onTogglePlay: () => void;
+   640→}) {
+   641→  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+   642→
+   643→  return (
+   644→    <motion.div
+   645→      initial={{ y: 80, opacity: 0 }}
+   646→      animate={{ y: 0, opacity: 1 }}
+   647→      exit={{ y: 80, opacity: 0 }}
+   648→      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   649→      className="fixed left-0 right-0 z-40 md:bottom-0"
+   650→      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}
+   651→    >
+   652→      {/* Thin progress line */}
+   653→      <div className="h-[2px] w-full bg-white/5">
+   654→        <div className="h-full bg-[#FA2D48] transition-all" style={{ width: `${Math.min(progressPct, 100)}%` }} />
+   655→      </div>
+   656→
+   657→      {/* Bar */}
+   658→      <div className="h-16 bg-[#1E1E1E]/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center gap-3 px-3">
+   659→        {/* Album art */}
+   660→        <button onClick={onExpand} className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white/10 shadow-md">
+   661→          <img src={track.thumbnail} alt="" className="w-full h-full object-cover" />
+   662→        </button>
+   663→
+   664→        {/* Title + Artist */}
+   665→        <button onClick={onExpand} className="flex-1 min-w-0 text-left">
+   666→          <p className="text-[14px] font-medium text-white truncate leading-tight">{track.title}</p>
+   667→          <p className="text-[12px] text-[#888] truncate mt-0.5">{track.channelTitle}</p>
+   668→        </button>
+   669→
+   670→        {/* Controls */}
+   671→        <div className="flex items-center gap-0.5 shrink-0">
+   672→          <button onClick={onPrev} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
+   673→            <SkipBack className="w-4 h-4" />
+   674→          </button>
+   675→
+   676→          {/* White play/pause circle */}
+   677→          <button onClick={onTogglePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md shadow-white/10">
+   678→            {isPlaying
+   679→              ? <Pause className="w-3.5 h-3.5 text-black fill-black" />
+   680→              : <Play className="w-3.5 h-3.5 text-black fill-black ml-0.5" />}
+   681→          </button>
+   682→
+   683→          <button onClick={onNext} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
+   684→            <SkipForward className="w-4 h-4" />
+   685→          </button>
+   686→        </div>
+   687→
+   688→        {/* Right actions */}
+   689→        <div className="flex items-center gap-0.5 shrink-0">
+   690→          <button className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white/60 transition-colors">
+   691→            <MoreHorizontal className="w-4 h-4" />
+   692→          </button>
+   693→        </div>
+   694→      </div>
+   695→    </motion.div>
+   696→  );
+   697→}
+   698→
+   699→// ─── Section Header (Apple style) ────────────────────────────────────────────
+   700→
+   701→function SectionHeader({ title, action }: { title: string; action?: string }) {
+   702→  return (
+   703→    <div className="flex items-center justify-between mb-3">
+   704→      <h2 className="text-[18px] font-bold text-white">{title}</h2>
+   705→      {action && (
+   706→        <button className="flex items-center gap-0.5 text-[13px] text-[#A1A1A1] hover:text-white/70 transition-colors">
+   707→          {action}
+   708→          <ChevronRight className="w-4 h-4" />
+   709→        </button>
+   710→      )}
+   711→    </div>
+   712→  );
+   713→}
+   714→
+   715→// ─── Main Component ─────────────────────────────────────────────────────────
+   716→
+   717→export function MusicPage({ visible = true }: { visible?: boolean }) {
+   718→  const [trending, setTrending] = useState<YoutubeVideoResult[]>([]);
+   719→  const [searchResults, setSearchResults] = useState<YoutubeVideoResult[]>([]);
+   720→  const [relatedResults, setRelatedResults] = useState<YoutubeVideoResult[]>([]);
+   721→  const [loading, setLoading] = useState(true);
+   722→  const [searchLoading, setSearchLoading] = useState(false);
+   723→  const [searchQuery, setSearchQuery] = useState('');
+   724→  const [activeMood, setActiveMood] = useState('');
+   725→  const [currentTrack, setCurrentTrack] = useState<YoutubeVideoResult | null>(null);
+   726→  const [showFullScreen, setShowFullScreen] = useState(false);
+   727→  const [queue, setQueue] = useState<YoutubeVideoResult[]>([]);
+   728→  const [queueIndex, setQueueIndex] = useState(0);
+   729→  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   730→  const searchInputRef = useRef<HTMLInputElement>(null);
+   731→  const handleNextRef = useRef<() => void>(() => {});
+   732→  const handlePrevRef = useRef<() => void>(() => {});
+   733→
+   734→  // Build track metadata for Media Session API (background / lock-screen)
+   735→  const trackMeta = currentTrack
+   736→    ? { title: currentTrack.title, artist: currentTrack.channelTitle, artwork: currentTrack.thumbnail }
+   737→    : null;
+   738→
+   739→  // YouTube audio player (native <audio> for background playback)
+   740→  const {
+   741→    isPlaying,
+   742→    currentTime: playerCurrentTime,
+   743→    duration: playerDuration,
+   744→    togglePlay,
+   745→    seekTo,
+   746→    setOnEnd,
+   747→    setOnNext,
+   748→    setOnPrev,
+   749→  } = useAudioPlayer(currentTrack?.videoId ?? null, trackMeta);
+   750→
+   751→  // Fetch trending on mount
+   752→  useEffect(() => {
+   753→    async function fetchTrending() {
+   754→      try {
+   755→        const res = await fetch('/api/youtube/trending');
+   756→        const data: ApiResponse = await res.json();
+   757→        setTrending(data.results || []);
+   758→      } catch (err) {
+   759→        console.error('Failed to fetch trending:', err);
+   760→      } finally {
+   761→        setLoading(false);
+   762→      }
+   763→    }
+   764→    fetchTrending();
+   765→  }, []);
+   766→
+   767→  // Search with debounce
+   768→  const handleSearchInput = useCallback((value: string) => {
+   769→    setSearchQuery(value);
+   770→    setActiveMood('');
+   771→    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+   772→    if (!value.trim()) {
+   773→      setSearchResults([]);
+   774→      setRelatedResults([]);
+   775→      return;
+   776→    }
+   777→    searchTimerRef.current = setTimeout(async () => {
+   778→      setSearchLoading(true);
+   779→      try {
+   780→        const res = await fetch(`/api/youtube/search?query=${encodeURIComponent(value)}`);
+   781→        const data: ApiResponse = await res.json();
+   782→        setSearchResults(data.results || []);
+   783→        if (data.results?.[0]) {
+   784→          const relatedRes = await fetch(`/api/youtube/related?videoId=${data.results[0].videoId}`);
+   785→          const relatedData: ApiResponse = await relatedRes.json();
+   786→          setRelatedResults(relatedData.results || []);
+   787→        } else {
+   788→          setRelatedResults([]);
+   789→        }
+   790→      } catch {
+   791→        setSearchResults([]);
+   792→        setRelatedResults([]);
+   793→      } finally {
+   794→        setSearchLoading(false);
+   795→      }
+   796→    }, 500);
+   797→  }, []);
+   798→
+   799→  // Mood card click
+   800→  const handleMoodClick = useCallback((mood: typeof MOOD_CATEGORIES[number]) => {
+   801→    const isCurrentlyActive = activeMood === mood.label;
+   802→    setActiveMood(isCurrentlyActive ? '' : mood.label);
+   803→    if (!isCurrentlyActive) {
+   804→      handleSearchInput(mood.query);
+   805→      if (searchInputRef.current) searchInputRef.current.value = mood.query;
+   806→    } else {
+   807→      setSearchQuery('');
+   808→      setSearchResults([]);
+   809→      setRelatedResults([]);
+   810→      if (searchInputRef.current) searchInputRef.current.value = '';
+   811→    }
+   812→  }, [activeMood, handleSearchInput]);
+   813→
+   814→  // Play a track
+   815→  const handlePlay = useCallback((track: YoutubeVideoResult, trackList?: YoutubeVideoResult[]) => {
+   816→    setCurrentTrack(track);
+   817→    setShowFullScreen(true);
+   818→    if (trackList) {
+   819→      const idx = trackList.findIndex((t) => t.videoId === track.videoId);
+   820→      setQueue(trackList);
+   821→      setQueueIndex(idx >= 0 ? idx : 0);
+   822→    }
+   823→  }, []);
+   824→
+   825→  const handleNext = useCallback(() => {
+   826→    if (queue.length === 0) return;
+   827→    const nextIdx = (queueIndex + 1) % queue.length;
+   828→    setQueueIndex(nextIdx);
+   829→    setCurrentTrack(queue[nextIdx]);
+   830→  }, [queue, queueIndex]);
+   831→
+   832→  const handlePrev = useCallback(() => {
+   833→    if (queue.length === 0) return;
+   834→    const prevIdx = (queueIndex - 1 + queue.length) % queue.length;
+   835→    setQueueIndex(prevIdx);
+   836→    setCurrentTrack(queue[prevIdx]);
+   837→  }, [queue, queueIndex]);
+   838→
+   839→  const handleClosePlayer = useCallback(() => {
+   840→    setShowFullScreen(false);
+   841→  }, []);
+   842→
+   843→  // Keep handleNext/handlePrev refs current for Media Session action handlers
+   844→  handleNextRef.current = handleNext;
+   845→  handlePrevRef.current = handlePrev;
+   846→  useEffect(() => { setOnEnd(() => handleNextRef.current()); }, [handleNext, setOnEnd]);
+   847→  useEffect(() => { setOnNext(() => handleNextRef.current()); }, [handleNext, setOnNext]);
+   848→  useEffect(() => { setOnPrev(() => handlePrevRef.current()); }, [handlePrev, setOnPrev]);
+   849→
+   850→  const isSearching = searchQuery.trim().length > 0;
+   851→
+   852→  // Top 6 for ranked cards, rest for list
+   853→  const rankedTracks = isSearching ? searchResults.slice(0, 6) : trending.slice(0, 6);
+   854→  const listTracks = isSearching ? searchResults.slice(6) : trending.slice(6);
+   855→
+   856→  return (
+   857→    <>
+   858→      {/* ── Browse UI (only visible when on music tab) ── */}
+   859→      {visible && (
+   860→        <div className="relative min-h-screen">
+   861→          {/* Ambient gradient glow */}
+   862→          <div
+   863→            className="fixed inset-0 pointer-events-none z-0"
+   864→            style={{
+   865→              background: 'radial-gradient(ellipse at 70% -10%, rgba(138,42,42,0.35) 0%, rgba(45,21,21,0.15) 30%, transparent 65%)',
+   866→            }}
+   867→          />
+   868→
+   869→          {/* ── Search Bar (sticky) ── */}
+   870→          <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
+   871→            <div className="px-4 pt-12 md:pt-3 pb-3">
+   872→              <div className="relative max-w-md">
+   873→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+   874→                <input
+   875→                  ref={searchInputRef}
+   876→                  type="text"
+   877→                  placeholder="Search songs, artists..."
+   878→                  defaultValue={searchQuery}
+   879→                  onChange={(e) => handleSearchInput(e.target.value)}
+   880→                  className="w-full pl-10 pr-10 h-9 rounded-lg bg-[#1C1C1C] border-0 text-white placeholder:text-white/30 text-[15px] font-normal focus:outline-none focus:ring-1 focus:ring-white/20 transition-shadow"
+   881→                />
+   882→                {searchQuery && (
+   883→                  <button
+   884→                    onClick={() => {
+   885→                      handleSearchInput('');
+   886→                      if (searchInputRef.current) searchInputRef.current.value = '';
+   887→                    }}
+   888→                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+   889→                  >
+   890→                    <X className="w-4 h-4" />
+   891→                  </button>
+   892→                )}
+   893→              </div>
+   894→            </div>
+   895→          </div>
+   896→
+   897→          {/* Content */}
+   898→          <div className="relative z-10">
+   899→            {/* ── Browse Categories (icon cards, no emoji) ── */}
+   900→            {!isSearching && (
+   901→              <div className="px-4 mb-8 mt-2">
+   902→                <SectionHeader title="Browse" />
+   903→                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   904→                  {loading
+   905→                    ? Array.from({ length: 5 }).map((_, i) => <CategorySkeleton key={i} />)
+   906→                    : MOOD_CATEGORIES.map((mood) => (
+   907→                        <CategoryCard
+   908→                          key={mood.label}
+   909→                          label={mood.label}
+   910→                          icon={mood.icon}
+   911→                          color={mood.color}
+   912→                          onClick={() => handleMoodClick(mood)}
+   913→                          isActive={activeMood === mood.label}
+   914→                        />
+   915→                      ))
+   916→                  }
+   917→                </div>
+   918→              </div>
+   919→            )}
+   920→    
+   921→            {/* ── Genre Pills (when searching) ── */}
+   922→            {isSearching && (
+   923→              <div className="px-4 mb-6 mt-2">
+   924→                <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 content-scroll">
+   925→                  {GENRE_PILLS.map((genre) => (
+   926→                    <button
+   927→                      key={genre}
+   928→                      onClick={() => {
+   929→                        handleSearchInput(genre);
+   930→                        if (searchInputRef.current) searchInputRef.current.value = genre;
+   931→                      }}
+   932→                      className="shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium bg-white/[0.06] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white/80 active:bg-white/15 active:text-white transition-colors"
+   933→                    >
+   934→                      {genre}
+   935→                    </button>
+   936→                  ))}
+   937→                </div>
+   938→              </div>
+   939→            )}
+   940→    
+   941→            {/* ── Hero stat text ── */}
+   942→            {!isSearching && !loading && trending.length > 0 && (
+   943→              <div className="px-4 mb-8">
+   944→                <p className="text-[22px] md:text-[24px] font-normal text-[#CCCCCC] leading-relaxed">
+   945→                  Discover what&apos;s trending in <span className="text-white font-bold">music right now</span>.
+   946→                </p>
+   947→              </div>
+   948→            )}
+   949→    
+   950→            {/* ── Ranked Cards (horizontal scroll) ── */}
+   951→            {isSearching ? (
+   952→              searchLoading ? (
+   953→                <div className="px-4 mb-8">
+   954→                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   955→                    {Array.from({ length: 4 }).map((_, i) => <RankCardSkeleton key={i} />)}
+   956→                  </div>
+   957→                </div>
+   958→              ) : rankedTracks.length > 0 ? (
+   959→                <div className="px-4 mb-8">
+   960→                  <SectionHeader title={isSearching ? searchQuery : 'Trending Now'} action="See All" />
+   961→                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   962→                    {rankedTracks.map((track, i) => (
+   963→                      <RankedCard
+   964→                        key={track.videoId}
+   965→                        track={track}
+   966→                        rank={i + 1}
+   967→                        onPlay={() => handlePlay(track, isSearching ? searchResults : trending)}
+   968→                        isActive={currentTrack?.videoId === track.videoId}
+   969→                      />
+   970→                    ))}
+   971→                  </div>
+   972→                </div>
+   973→              ) : null
+   974→            ) : loading ? (
+   975→              <div className="px-4 mb-8">
+   976→                <SectionHeader title="Trending Now" />
+   977→                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   978→                  {Array.from({ length: 4 }).map((_, i) => <RankCardSkeleton key={i} />)}
+   979→                </div>
+   980→              </div>
+   981→            ) : rankedTracks.length > 0 ? (
+   982→              <div className="px-4 mb-8">
+   983→                <SectionHeader title="Trending Now" action="See All" />
+   984→                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   985→                  {rankedTracks.map((track, i) => (
+   986→                    <RankedCard
+   987→                      key={track.videoId}
+   988→                      track={track}
+   989→                      rank={i + 1}
+   990→                      onPlay={() => handlePlay(track, trending)}
+   991→                      isActive={currentTrack?.videoId === track.videoId}
+   992→                    />
+   993→                  ))}
+   994→                </div>
+   995→              </div>
+   996→            ) : null}
+   997→    
+   998→            {/* ── Track List (Apple Music song rows) ── */}
+   999→            <div className="px-4">
+  1000→              {isSearching ? (
+  1001→                <>
+  1002→                  {listTracks.length > 0 && (
+  1003→                    <>
+  1004→                      <SectionHeader title="More Results" />
+  1005→                      <div className="rounded-xl overflow-hidden -mx-4">
+  1006→                        {listTracks.map((track, i) => (
+  1007→                          <TrackRow
+  1008→                            key={track.videoId}
+  1009→                            track={track}
+  1010→                            index={i + rankedTracks.length}
+  1011→                            onPlay={() => handlePlay(track, searchResults)}
+  1012→                            isActive={currentTrack?.videoId === track.videoId}
+  1013→                          />
+  1014→                        ))}
+  1015→                      </div>
+  1016→                    </>
+  1017→                  )}
+  1018→    
+  1019→                  {/* Related */}
+  1020→                  {relatedResults.length > 0 && (
+  1021→                    <>
+  1022→                      <SectionHeader title="You Might Also Like" action="See All" />
+  1023→                      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+  1024→                        {relatedResults.slice(0, 6).map((track, i) => (
+  1025→                          <RankedCard
+  1026→                            key={track.videoId}
+  1027→                            track={track}
+  1028→                            rank={i + 1}
+  1029→                            onPlay={() => handlePlay(track, relatedResults)}
+  1030→                            isActive={currentTrack?.videoId === track.videoId}
+  1031→                          />
+  1032→                        ))}
+  1033→                      </div>
+  1034→                      {relatedResults.length > 6 && (
+  1035→                        <div className="rounded-xl overflow-hidden -mx-4 mt-4">
+  1036→                          {relatedResults.slice(6).map((track, i) => (
+  1037→                            <TrackRow
+  1038→                              key={track.videoId}
+  1039→                              track={track}
+  1040→                              index={i + 1}
+  1041→                              onPlay={() => handlePlay(track, relatedResults)}
+  1042→                              isActive={currentTrack?.videoId === track.videoId}
+  1043→                            />
+  1044→                          ))}
+  1045→                        </div>
+  1046→                      )}
+  1047→                    </>
+  1048→                  )}
+  1049→    
+  1050→                  {!searchLoading && searchResults.length === 0 && (
+  1051→                    <div className="text-center py-20">
+  1052→                      <Music className="w-10 h-10 text-white/10 mx-auto mb-3" />
+  1053→                      <p className="text-white/25 text-sm">No results found</p>
+  1054→                    </div>
+  1055→                  )}
+  1056→                </>
+  1057→              ) : (
+  1058→                <>
+  1059→                  {loading ? (
+  1060→                    <div className="rounded-xl overflow-hidden -mx-4">
+  1061→                      {Array.from({ length: 6 }).map((_, i) => <TrackRowSkeleton key={i} />)}
+  1062→                    </div>
+  1063→                  ) : listTracks.length > 0 ? (
+  1064→                    <>
+  1065→                      <SectionHeader title="Popular Songs" action="See All" />
+  1066→                      <div className="rounded-xl overflow-hidden -mx-4">
+  1067→                        {listTracks.map((track, i) => (
+  1068→                          <TrackRow
+  1069→                            key={track.videoId}
+  1070→                            track={track}
+  1071→                            index={i + rankedTracks.length}
+  1072→                            onPlay={() => handlePlay(track, trending)}
+  1073→                            isActive={currentTrack?.videoId === track.videoId}
+  1074→                          />
+  1075→                        ))}
+  1076→                      </div>
+  1077→                    </>
+  1078→                  ) : null}
+  1079→                </>
+  1080→              )}
+  1081→            </div>
+  1082→    
+  1083→            {/* Footer */}
+  1084→            <div className="mt-10 border-t border-white/[0.04] pt-4 pb-24 md:pb-2 px-4 text-center">
+  1085→              <p className="text-[11px] text-white/15">StreamVault Music — Powered by YouTube</p>
+  1086→            </div>
+  1087→          </div>
+  1088→        </div>
+  1089→      )}
+  1090→
+  1091→      {/* ── Mini Player ── */}
+  1092→      <AnimatePresence>
+  1093→        {currentTrack && !showFullScreen && (
+  1094→          <MiniPlayer
+  1095→            key={currentTrack.videoId}
+  1096→            track={currentTrack}
+  1097→            onExpand={() => { setShowFullScreen(true); }}
+  1098→            onNext={handleNext}
+  1099→            onPrev={handlePrev}
+  1100→            isPlaying={isPlaying}
+  1101→            currentTime={playerCurrentTime}
+  1102→            duration={playerDuration}
+  1103→            onTogglePlay={togglePlay}
+  1104→          />
+  1105→        )}
+  1106→      </AnimatePresence>
+  1107→
+  1108→      {/* ── Full Screen Player ── */}
+  1109→      <AnimatePresence>
+  1110→        {currentTrack && showFullScreen && (
+  1111→          <FullScreenPlayer
+  1112→            key={currentTrack.videoId}
+  1113→            track={currentTrack}
+  1114→            onClose={handleClosePlayer}
+  1115→            onNext={handleNext}
+  1116→            onPrev={handlePrev}
+  1117→            isPlaying={isPlaying}
+  1118→            currentTime={playerCurrentTime}
+  1119→            duration={playerDuration}
+  1120→            onTogglePlay={togglePlay}
+  1121→            onSeek={seekTo}
+  1122→          />
+  1123→        )}
+  1124→      </AnimatePresence>
+  1125→    </>
+  1126→  );
+  1127→}
+  1128→

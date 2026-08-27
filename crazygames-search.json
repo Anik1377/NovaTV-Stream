@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://docs.crazygames.com/sdk/intro",
+    "name": "Introduction",
+    "snippet": "To check if the game is running on CrazyGames you can add a query parameter to your iframe URL when submitting, for example isCrazyGames=true",
+    "host_name": "docs.crazygames.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/16oc6el/a_website_with_html5_games_steals_projects_from",
+    "name": "A website with HTML5 games steals projects from other",
+    "snippet": "If you want to prevent this on CrazyGames , developers do have the option to select whether to allow embedding or not, A simple solution would ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.crazygames.com/resources/html5/sitelock",
+    "name": "Sitelock",
+    "snippet": "Sitelock helps prevent your HTML5 game from being copied and hosted on unauthorized websites. use this function to ensure your game runs on valid CrazyGames ...",
+    "host_name": "docs.crazygames.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wonderlandengine.com/tutorials/upsdk-crazygames",
+    "name": "Integrate the CrazyGames SDK",
+    "snippet": "This tutorial will cover how to integrate CrazyGames platform services. testing on a live URL that you intend to embed as iframe . submit your game as an iframe ...",
+    "host_name": "wonderlandengine.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.crazygames.com/faq",
+    "name": "FAQ & Contact",
+    "snippet": "We do not iframe games from competing browser game portals. We only iframe games hosted on independent domains, not from other browser game portals.",
+    "host_name": "docs.crazygames.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  }
+]

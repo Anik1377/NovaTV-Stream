@@ -1,0 +1,731 @@
+     1→---
+     2→Task ID: 1
+     3→Agent: main
+     4→Task: Fix critical bugs and verify movie streaming website
+     5→
+     6→Work Log:
+     7→- Reviewed entire existing codebase (10+ components, 8 API routes)
+     8→- Found and fixed 3 critical bugs:
+     9→  1. `VideoPlayer.tsx` line 1: `'client'` → `'use client'`
+    10→  2. `VideoPlayer.tsx` line 3: Missing `useEffect` import (used on line 35)
+    11→  3. `MovieCard.tsx` line 1: `'client'` → `'use client'`
+    12→- Started dev server and confirmed all API routes respond with 200
+    13→- Verified with Agent Browser:
+    14→  - Homepage: Hero carousel, genre pills, 5 content rows (Trending, Popular Movies, Popular TV, Top Rated, Coming Soon)
+    15→  - Movie Detail: Poster, metadata, genres, Play Movie button, cast, director, similar movies
+    16→  - Movie Player: Fullscreen iframe from vidsrc.sbs/embed/movie/{id}, close button, fullscreen toggle
+    17→  - TV Detail: Poster, metadata, season dropdown, episode list with thumbnails/ratings, cast, similar shows
+    18→  - TV Player: Episode player with S01E01 format title, correct iframe URL
+    19→  - Search: Debounced search returning combined movies + TV shows, sorted by popularity
+    20→  - Genre View: Filtered content with All/Movies/TV Shows tabs
+    21→
+    22→Stage Summary:
+    23→- All features working end-to-end
+    24→- TMDB API integration confirmed with user's API key
+    25→- Video embeds working via vidsrc.sbs for both movies and TV shows
+    26→- No runtime errors observed
+    27→
+    28→---
+    29→Task ID: 2
+    30→Agent: main
+    31→Task: Add Live TV feature with iptv-org free API and nav button
+    32→
+    33→Work Log:
+    34→- Added 'livetv' to ViewType in Zustand store + showLiveTV action
+    35→- Installed hls.js for HLS/M3U8 stream playback in browser
+    36→- Created /src/lib/live-tv.ts with channel types, country configs, fetch/filter helpers
+    37→- Created /src/app/api/live-tv/channels/route.ts - M3U parser backend that fetches from iptv-org GitHub Pages
+    38→  - Parses M3U playlist format (#EXTINF lines with tvg-logo, group-title, etc.)
+    39→  - Deduplicates channels by name, cleans resolution/geo-blocked tags from names
+    40→  - Normalizes compound categories (e.g. "Business;News" → "Business")
+    41→- Created /src/components/live-tv/LiveTV.tsx - Full Live TV UI component:
+    42→  - HLS.js video player with auto-retry on network/media errors
+    43→  - Country selector dropdown (India, USA, UK, Bangladesh, Pakistan, Japan, South Korea)
+    44→  - Category filter pills with dynamic counts from API data
+    45→  - Channel search input
+    46→  - Channel list with logos, names, category badges, LIVE indicator
+    47→  - Player controls: back, mute/unmute, fullscreen, play overlay
+    48→  - Channel info overlay with LIVE badge when playing
+    49→  - Error handling with retry button
+    50→- Updated Header.tsx: Added Radio icon + "Live TV" nav button with active state
+    51→- Updated page.tsx: Added LiveTV component rendering for 'livetv' view
+    52→- Verified with Agent Browser:
+    53→  - India: 681 channels, 39 categories (News 188, Entertainment 103, etc.)
+    54→  - USA: 1489 channels (News 100, Entertainment 128, Sports 69, etc.)
+    55→  - Aaj Tak channel played successfully with HLS stream
+    56→  - Country switching works with channel reload
+    57→  - Mobile responsive: stacked layout, touch-friendly
+    58→  - No runtime errors in dev log
+    59→
+    60→Stage Summary:
+    61→- Live TV fully functional with real iptv-org free M3U playlist API
+    62→- 7 countries available with hundreds of channels each
+    63→- HLS.js native playback with error recovery
+    64→- Clean dark theme UI consistent with StreamVault design
+    65→
+    66→---
+    67→Task ID: 3
+    68→Agent: main
+    69→Task: Add Anime tab with anime-themed design and content
+    70→
+    71→Work Log:
+    72→- Researched anime streaming site designs via web search (Crunchyroll, anime UI kits, color trends)
+    73→- Research findings: purple/pink neon accents, demographic genres (Shonen/Shoujo/Seinen/Isekai), hero banners, airing schedules
+    74→- Added 'anime' to ViewType in Zustand store + showAnime() action
+    75→- Created /src/app/api/tmdb/anime/route.ts with 6 endpoints: trending, popular, top-rated, airing, upcoming, movies, all-popular
+    76→  - Uses TMDB discover with with_genres=16 (Animation) and with_original_language=ja (Japanese)
+    77→  - Airing endpoint filters by with_status=returning_series for currently broadcasting anime
+    78→- Created /src/components/anime/AnimePage.tsx with full anime-themed design:
+    79→  - Purple/pink gradient hero section with auto-rotating backdrop (6s interval)
+    80→  - ANIME gradient badge and star rating on hero
+    81→  - 14 anime-specific genre pills: All Anime, Action, Shonen, Romance, Fantasy, Isekai, Comedy, Horror, Sci-Fi, Slice of Life, Sports, Mecha, Mystery, Seinen
+    82→  - Genre filtering with keyword matching for demographic categories
+    83→  - 5 content rows: Now Airing, Popular Anime, Top Rated, Trending This Week, Anime Movies
+    84→  - Purple-themed footer with StreamVault Anime branding
+    85→  - Loading spinner with purple Sparkles icon
+    86→- Updated ContentRow and MovieCard to accept accentColor='purple' prop
+    87→  - Purple play buttons, purple TV badges, purple-tinted row titles
+    88→- Updated Header.tsx with Sparkles icon Anime tab, purple active state for anime, mobile menu support
+    89→- Updated page.tsx to render AnimePage for 'anime' view
+    90→- Verified with Agent Browser:
+    91→  - Anime tab visible in nav (desktop + mobile)
+    92→  - Hero with purple/pink gradients showing anime backdrop
+    93→  - Genre pills with emoji icons scrollable
+    94→  - Content rows showing real anime: Mushoku Tensei, Jujutsu Kaisen, Frieren, Bleach, Re:ZERO, One Piece, etc.
+    95→  - Purple accent consistent on cards (play buttons, TV badges)
+    96→  - Mobile responsive layout
+    97→  - All API routes returning 200
+    98→
+    99→Stage Summary:
+   100→- Anime tab fully functional with research-backed design
+   101→- Purple/pink neon theme distinct from red main theme
+   102→- Real anime content from TMDB filtered by Japanese language + Animation genre
+   103→- 14 anime-specific genre filters including demographic categories
+   104→
+   105→---
+   106→Task ID: 4
+   107→Agent: main
+   108→Task: Fix anime trending carousel showing random TV shows instead of anime
+   109→
+   110→Work Log:
+   111→- Identified bug in /src/app/api/tmdb/anime/route.ts trending case
+   112→- Root cause: Line 22-23 filter `item.genre_ids?.includes(16) || item.media_type === 'tv'` — since `/trending/tv/week` returns only TV shows, the `|| media_type === 'tv'` condition made the filter pass for ALL shows, showing random TV content like House of the Dragon, Grey's Anatomy, etc.
+   113→- Fix: Replaced `/trending/tv/week` + broken filter with `/discover/tv` endpoint using `with_genres=16`, `with_original_language=ja`, `sort_by=popularity.desc`, `vote_count_gte=50` — guarantees only Japanese animation
+   114→- Verified with Agent Browser: All 5 rows (Hero, Now Airing, Popular, Top Rated, Trending, Movies) now show only actual Japanese anime
+   115→  - Hero: Shows Japanese anime with Japanese character names
+   116→  - Now Airing: Mushoku Tensei, Doraemon, Bleach, JUJUTSU KAISEN, Frieren
+   117→  - Popular: Secret Mission, Overflow, Mushoku Tensei, RE-MAIN, Doraemon, Bleach, JUJUTSU KAISEN, Frieren, Re:ZERO, Detective Conan, Pokémon, Dragon Ball Z, SPY x FAMILY
+   118→  - Top Rated: 薬屋のひとりごと, 葬送のフリーレン, クレヨンしんちゃん, Evangelion, Persona 3
+   119→  - Trending: All Japanese anime (fixed!)
+   120→  - Anime Movies: Demon Slayer, Spirited Away, Chainsaw Man, Howl's Moving Castle
+   121→
+   122→Stage Summary:
+   123→- Single-line filter logic bug fixed by switching to TMDB discover endpoint with proper anime parameters
+   124→- Trending carousel now shows exclusively Japanese anime, no more random TV shows
+   125→
+   126→---
+   127→Task ID: 5
+   128→Agent: main
+   129→Task: Add Games tab with browser-based games library
+   130→
+   131→Work Log:
+   132→- Added 'games' to ViewType in Zustand store + showGames() action (also refactored resetState DRY pattern)
+   133→- Created /src/lib/games-data.ts with 30 curated browser-based games:
+   134→  - 7 categories: Action (5), Puzzle (5), Racing (4), Sports (4), Arcade (4), Strategy (4), Multiplayer (4)
+   135→  - 5 featured games: Smash Karts, Cut the Rope, Moto X3M, Temple Run 2, Slither.io
+   136→  - Each game: id, title, description, category, embedUrl (CrazyGames official embed), CSS gradient, player count
+   137→  - No emojis — all category pills use Lucide icons
+   138→- Created /src/components/game/GamesPage.tsx:
+   139→  - Emerald/green accent color scheme (distinct from red=movies, purple=anime)
+   140→  - Hero banner with Gamepad2 icon, title "Games Library", subtitle
+   141→  - Search bar with clear button + game/category count stats
+   142→   - 8 category filter pills with Lucide icons and game counts
+   143→   - Featured Games section (horizontal grid of 5 featured)
+   144→  - All Games grid (responsive 2-6 columns)
+   145→  - GameCard component: gradient thumbnail with dot pattern overlay, play button on hover, featured badge, players badge, category pill
+   146→  - GamePlayer component: sticky header with back/reload/fullscreen buttons, 16:9 iframe with loading/error states, graceful error handling with retry
+   147→  - Inline player mode (same page, not modal)
+   148→  - Footer with StreamVault Games branding
+   149→- Updated Header.tsx: Added Gamepad2 icon "Games" tab with emerald green active state
+   150→  - Updated specialViews map to handle 'games' view
+   151→  - Updated isActive guard to exclude 'games' view
+   152→- Updated page.tsx: Added GamesPage import and rendering for 'games' view
+   153→- Verified with Agent Browser:
+   154→  - Games tab visible in nav (desktop + mobile)
+   155→  - Hero banner renders correctly
+   156→  - Category filters: All Games (30), Action (5), Puzzle (5), Racing (4), Sports (4), Arcade (4), Strategy (4), Multiplayer (4)
+   157→  - Action filter correctly shows only 5 action games
+   158→  - Search "kart" finds only Smash Karts
+   159→  - Search "tetris" shows 0 results with "no games found" empty state
+   160→  - Game player opens with 2048: header bar, reload/fullscreen buttons, iframe loads
+   161→  - Back button returns to library
+   162→  - Mobile responsive layout verified
+   163→  - Lint passes clean
+   164→
+   165→Stage Summary:
+   166→- Games tab fully functional with 30 curated browser games
+   167→- Emerald/green theme distinct from red (movies) and purple (anime)
+   168→- Category filtering, search, featured section, and full iframe player all working
+   169→
+   170→---
+   171→Task ID: 6
+   172→Agent: main
+   173→Task: Rebuild games as self-contained React components (fix iframe server refused connection)
+   174→
+   175→Work Log:
+   176→- Root cause: CrazyGames blocks iframe embedding from third-party domains (X-Frame-Options/CSP)
+   177→- Created useCanvasGame hook at /src/components/game/useCanvasGame.ts for shared canvas boilerplate (DPR-aware resize, cleanup)
+   178→- Launched 3 parallel subagents to build 10 games simultaneously:
+   179→  - Agent 1 (DOM games): Game2048, Minesweeper, MemoryMatch, TicTacToe
+   180→  - Agent 2 (canvas arcade): Snake, FlappyBird, SpaceInvaders
+   181→  - Agent 3 (canvas arcade): Tetris, Breakout, Pong
+   182→- Created GameRenderer.tsx with next/dynamic imports + SSR disabled for all 10 games
+   183→- Rewrote games-data.ts: removed embedUrl, added componentId/controls fields, 4 categories (action/puzzle/arcade/strategy), 10 games with 4 featured
+   184→- Rewrote GamesPage.tsx: removed iframe player, uses GameRenderer component with React key remount
+   185→- Fixed ESLint react-hooks/static-components error by moving dynamic imports to module-level map
+   186→- Fixed nav counter bug: added navCounter to Zustand store so clicking Games tab while in-game remounts the library
+   187→- All 10 games verified loading in browser: Snake, 2048, Tetris, Minesweeper, Memory Match, Flappy Bird, Breakout, Pong, Space Invaders, Tic Tac Toe
+   188→
+   189→Stage Summary:
+   190→- Replaced unreliable iframe embeds with 10 self-contained React/canvas games
+   191→- Zero external server dependencies - all games run entirely in the browser
+   192→- Code splitting via next/dynamic for fast initial page load
+   193→- navCounter pattern ensures Games tab click always returns to library
+   194→---
+   195→Task ID: games-opensource
+   196→Agent: main
+   197→Task: Replace self-built games with open-source HTML5 games from public repos
+   198→
+   199→Work Log:
+   200→- Searched GitHub for self-contained HTML5 game repos
+   201→- Found KoRifCan/Classic-Games repo with 16 self-contained single-file HTML5 games
+   202→- Downloaded all 16 games (snake, 2048, tetris, flappy, breakout, mine, memory, sudoku, ttt, connect4, space, dino, puzzle15, simon, pong, typing) to public/games/
+   203→- Updated games-data.ts: 16 games across 5 categories (action, puzzle, arcade, strategy, classic), added source attribution field
+   204→- Rewrote GameRenderer.tsx: replaced React component rendering with iframe-based embedding pointing to /games/{id}/index.html
+   205→- Updated GamesPage.tsx: updated category icons (replaced Users with Trophy), added attribution link to KoRifCan/Classic-Games repo in footer
+   206→- Removed old self-built game components (10 files in games/ directory + useCanvasGame.ts hook)
+   207→- Verified via agent-browser: Snake game loads and plays, 2048 loads, Tetris loads, category filtering works (6 puzzle games shown)
+   208→- Resolved merge conflicts and pushed to remote
+   209→
+   210→Stage Summary:
+   211→- 16 open-source HTML5 games from KoRifCan/Classic-Games now work via iframe embeds
+   212→- All games are self-contained single HTML files hosted locally in public/games/
+   213→- No more external dependency issues (was CrazyGames embeds, then self-built, now open-source local)
+   214→- Categories: Action (4), Puzzle (6), Arcade (3), Strategy (2), Classic (1)
+   215→
+   216→---
+   217→Task ID: 7
+   218→Agent: main
+   219→Task: Netflix-style TOP 10 trending section + real OTT platform logos
+   220→
+   221→Work Log:
+   222→- Created /api/tmdb/providers-list/route.ts to fetch provider logo paths from TMDB /watch/providers endpoint
+   223→  - Fixes TMDB response format (provider_id, not id; provider_name, not name)
+   224→  - 24-hour in-memory cache, fetches both movie and TV providers
+   225→  - 7/10 platforms found with logos: Netflix, Prime, Apple TV+, Disney+, Hulu, Peacock, Crunchyroll
+   226→  - 3 platforms (Max, Paramount+, MGM+) have no TMDB US logo — fallback to text initials
+   227→- Redesigned TrendingRanked.tsx as Netflix Top 10:
+   228→  - "TOP 10 in Streaming Today" header with red/white typography
+   229→  - Landscape backdrop-based cards (16:9 ratio) instead of poster cards
+   230→  - Large red outline numbers (clamp 4rem-8rem) with -webkit-text-stroke overlapping left edge of each card
+   231→  - Play button hover effect with red glow shadow
+   232→  - Type badge (Movie/TV Series) with dark backdrop blur
+   233→  - Framer Motion staggered entrance animations
+   234→  - Responsive width (50vw on mobile, max 320px on desktop)
+   235→  - Fallback to poster image when no backdrop available
+   236→- Redesigned PlatformSelector.tsx with actual OTT logos:
+   237→  - Platform cards now show TMDB logo images (w92 size) when available
+   238→  - Unselected logos: dimmed (brightness 0.7) + 30% grayscale for subtlety
+   239→  - Selected logo: full brightness, colored glow border/shadow matching platform color
+   240→  - Text initials fallback for platforms without TMDB logos (Max, Paramount+, MGM+)
+   241→  - Larger card size (88-100px wide, 52-60px tall) for better logo visibility
+   242→- Updated ott-platforms.ts: added logoPath field, mergeProviderLogos utility function
+   243→- Updated page.tsx: fetches provider-list API alongside other data, merges logos into platform state
+   244→- Browser verified: all 7 logos loaded (naturalWidth=92, complete=true), Netflix content filtering works, trending movie click opens detail page, no runtime errors
+   245→
+   246→Stage Summary:
+   247→- Netflix Top 10 trending with landscape cards, red outline numbers, and backdrop images
+   248→- Real OTT platform logos from TMDB for 7/10 platforms, graceful fallback for 3
+   249→- Platform selector with glow effects, dim/bright toggle on selection
+   250→- All pushed to GitHub
+   251→
+   252→---
+   253→Task ID: 8
+   254→Agent: main
+   255→Task: Add Netflix-style hover preview cards with trailer playback
+   256→
+   257→Work Log:
+   258→- Created /api/tmdb/preview/route.ts: single TMDB call with append_to_response=credits,videos
+   259→  - Returns: title, overview, backdrop, genres, runtime/seasons, tagline, cast (top 5), trailer_key
+   260→  - Trailer priority: Trailer > Teaser > any YouTube video
+   261→- Created HoverPreviewCard.tsx: 700ms hover delay triggers data fetch
+   262→  - 5-minute client-side Map cache (key: id-type, no re-fetch on re-hover)
+   263→  - Desktop only (hidden md:block), mobile/touch users see normal card
+   264→  - AnimatePresence entrance animation (opacity + y + scale)
+   265→  - Positioned absolute, centered under the card, z-50
+   266→  - Backdrop image with gradient overlay, Watch Trailer button on image
+   267→  - Info section: title, match %, year, runtime/seasons badge, HD badge, genres, overview (3 lines), cast names
+   268→  - Two trailer buttons: one on backdrop image, one in info section action row
+   269→  - More Info button (chevron) navigates to detail page
+   270→  - Proper mouseEnter/mouseLeave handling with timer cleanup on unmount
+   271→- Created TrailerModal.tsx: YouTube iframe with autoplay=1
+   272→  - Escape key listener, body overflow lock, backdrop blur overlay
+   273→  - Spring animation, click-outside-to-close
+   274→  - Max width 4xl, responsive
+   275→- Updated MovieCard.tsx: wrapped card JSX in HoverPreviewCard
+   276→  - Card click still works normally (navigates to detail)
+   277→- Browser verified:
+   278→  - Spider-Man: No Way Home hover: 79% Match, 2021, 148m, HD, Action/Adventure/Sci-Fi genres, cast
+   279→  - Breaking Bad hover: TV Series badge, 89% Match, 2008, 5 Seasons, Drama/Crime, Walter White cast
+   280→  - Trailer modal opens YouTube iframe with real trailer key (tzlY8XD1CGg)
+   281→  - Escape key closes trailer properly
+   282→  - Preview API cache working (8ms on cache hit vs 900ms cold)
+   283→  - No runtime errors
+   284→
+   285→Stage Summary:
+   286→- Netflix-style hover previews with 700ms delay, backdrop image, full metadata, and cast
+   287→- Watch Trailer opens YouTube modal with autoplay, closes on Escape or click-outside
+   288→- Efficient: single TMDB API call with append_to_response, 5-min client cache
+   289→- Desktop-only, gracefully hidden on mobile
+   290→
+   291→---
+   292→Task ID: 9
+   293→Agent: main
+   294→Task: Fix hover preview to render above all layers with auto-playing muted trailer
+   295→
+   296→Work Log:
+   297→- Root cause: ContentRow uses overflow-x-auto which clips absolutely-positioned popup
+   298→- Rewrote HoverPreviewCard to use createPortal(popup, document.body)
+   299→- Fixed positioning: getBoundingClientRect from cardRef, clamped horizontal/vertical
+   300→- z-index raised to z-[200] so popup renders above everything
+   301→- Replaced separate TrailerModal with inline muted YouTube trailer in the card
+   302→  - iframe with autoplay=1&mute=1&controls=0&loop=1&playlist=KEY
+   303→  - "Muted" badge overlay with Volume2 icon
+   304→- Position logic: try below card first, fall back to above, partial overflow acceptable
+   305→- Follows card on scroll (updates position via scroll listener on capture phase)
+   306→- requestAnimationFrame after visible state change for correct layout
+   307→- Browser verified at 1440x900: popup at y=781 below card (cardBottom=602), trailer playing
+   308→- Browser verified at 1280x800: popup at y=365 (fits below), fallback to below when above doesn't fit
+   309→- Cache hits at 7-9ms, no runtime errors
+   310→
+   311→Stage Summary:
+   312→- Hover preview now renders via portal at z-[200], never clipped by parent containers
+   313→- YouTube trailer auto-plays muted directly in the card (no separate modal)
+   314→- Position is viewport-aware: follows card on scroll, clamped to screen edges
+   315→- Desktop-only, gracefully hidden on mobile
+   316→
+   317→---
+   318→Task ID: 1
+   319→Agent: MobileTabBar
+   320→Task: Create mobile bottom tab navigation bar
+   321→
+   322→Work Log:
+   323→- Created /home/z/my-project/src/components/movie/MobileTabBar.tsx
+   324→- Updated /home/z/my-project/src/app/page.tsx to include MobileTabBar
+   325→- Updated HomePage padding from pb-20 to pb-24 to account for bottom tab bar
+   326→
+   327→Stage Summary:
+   328→- 5-tab bottom navigation: Home, Movies, TV, Anime, Games
+   329→- Only visible on mobile (md:hidden)
+   330→- Glass morphism effect with brand-colored active states
+   331→
+   332→---
+   333→Task ID: 10
+   334→Agent: main
+   335→Task: Add nav history, watchlist, and SiteFooter component
+   336→
+   337→Work Log:
+   338→- TASK A - Navigation history in Zustand store:
+   339→  - Added `navHistory: ViewType[]` field and `pushView`/`goBack` actions to AppState interface
+   340→  - Created internal `navigate(set, view)` helper that pushes current view to history before switching
+   341→  - Updated `selectMovie` to call `navigate(set, 'movie')` before setting selectedMovie
+   342→  - Updated `selectTv` to call `navigate(set, 'tv')` before setting selectedTv
+   343→  - Updated `selectGenre` to call `navigate(set, 'genre')` before setting genre data
+   344→  - `goBack` pops from history (falls back to 'home' if empty), applies resetState when navigating back
+   345→  - `goHome` now clears navHistory to `[]`
+   346→  - `showMovies`, `showTvShows`, `showLiveTV`, `showAnime`, `showGames` all clear navHistory (top-level nav)
+   347→- TASK B - Watchlist feature:
+   348→  - Added `watchlist: number[]` (TMDB IDs), `toggleWatchlist(id)`, `isInWatchlist(id)` to store
+   349→  - Loads from localStorage key 'streamvault-watchlist' on init with error handling
+   350→  - `toggleWatchlist` adds/removes ID and saves to localStorage
+   351→  - `isInWatchlist` checks if id exists in the array
+   352→- TASK C - Unified SiteFooter component:
+   353→  - Created `/src/components/movie/SiteFooter.tsx` as 'use client'
+   354→  - Extracted footer HTML from HomePage (logo, disclaimer, TMDB attribution)
+   355→  - Added safe area bottom padding: `pb-[max(2rem,env(safe-area-inset-bottom))]` for mobile tab bar + iOS
+   356→  - Replaced inline footer in page.tsx with `<SiteFooter />`
+   357→  - Removed unused `Clapperboard` import from page.tsx
+   358→- Lint passes clean, no runtime errors
+   359→
+   360→Stage Summary:
+   361→- Navigation history enables back-button support via `goBack()` and `pushView()`
+   362→- Watchlist persists to localStorage, ready for UI integration
+   363→- SiteFooter is a reusable component with iOS safe area support
+   364→
+   365→---
+   366→Task ID: 11
+   367→Agent: main
+   368→Task: Add PWA Download/Install App feature for Android, iOS and desktop users
+   369→
+   370→Work Log:
+   371→- Generated AI-powered app icon (512x512) and resized to 192x192 using sharp
+   372→- Created /public/manifest.json with standalone display, red theme, both icon sizes
+   373→- Updated /src/app/layout.tsx:
+   374→  - Added Viewport export with theme-color #dc2626, viewport-fit cover, user-scalable false
+   375→  - Added appleWebApp metadata (capable, black-translucent statusBar, title)
+   376→  - Added manifest link and apple-touch-icon link in <head>
+   377→- Created /src/components/movie/InstallAppModal.tsx with two exports:
+   378→  - `InstallAppModal`: Full-featured modal with:
+   379→    - Platform detection via useMemo (iOS/Android/Desktop)
+   380→    - 6 feature highlight cards (Lightning Fast, Full-Screen, Works Offline, Notifications, Home Screen, Safe & Private)
+   381→    - Platform-specific install instructions (iOS: Share > Add to Home Screen; Android: native prompt; Desktop: Chrome address bar)
+   382→    - Native beforeinstallprompt event handling for Android/Chrome
+   383→    - Spring animation modal with backdrop blur
+   384→    - Install button with loading state
+   385→    - Trust badges: Secure, Free Forever, No Ads
+   386→  - `InstallBanner`: Smart bottom banner that:
+   387→    - Appears after 3-second delay on first visit
+   388→    - Checks if already in standalone mode (dismisses if installed)
+   389→    - Persists dismissal to localStorage for 1 week
+   390→    - Spring animation slide-up with dismiss button
+   391→- Updated /src/components/movie/Header.tsx:
+   392→  - Added `onInstallClick` prop
+   393→  - Desktop: Download icon button with pulsing red dot indicator
+   394→  - Mobile dropdown: "Install App" item with red "NEW" badge
+   395→- Updated /src/app/page.tsx:
+   396→  - Added installModalOpen state
+   397→  - Passes onInstallClick to Header
+   398→  - Renders InstallBanner and InstallAppModal
+   399→- Verified via agent-browser:
+   400→  - Install button visible in desktop header with pulsing dot
+   401→  - Click opens modal with all 6 features and desktop instructions
+   402→  - Mobile menu shows "Install App NEW" button
+   403→  - Mobile menu correctly closes and opens modal
+   404→  - PWA meta tags: theme-color #dc2626, manifest /manifest.json, apple-touch-icon /icon-512.png
+   405→  - Manifest serves correctly with all fields
+   406→  - Zero console errors
+   407→- Lint passes clean
+   408→- Pushed to GitHub
+   409→
+   410→Stage Summary:
+   411→- Full PWA install experience for Android (native prompt), iOS (step-by-step), and desktop
+   412→- 6 feature highlights with colored icons explaining app installation benefits
+   413→- Smart install banner auto-shows once per week, respects standalone mode
+   414→- App icons (192+512), manifest, apple-touch-icon all configured
+   415→
+   416→---
+   417→Task ID: 12
+   418→Agent: main
+   419→Task: Add music streaming system with YouTube Data API v3
+   420→
+   421→Work Log:
+   422→- Added 'music' to ViewType in Zustand store + showMusic() action
+   423→- Created /src/lib/youtube.ts: server-side YouTube API helper with in-memory cache
+   424→  - ytFetch() generic fetcher with API key (server-side only)
+   425→- Created 4 YouTube API routes under /api/youtube/:
+   426→  - search: query-based music video search (5-min cache)
+   427→  - trending: US most popular music videos (30-min cache)
+   428→  - related: title+tag based related music (10-min cache)
+   429→  - playlists: music playlist search (30-min cache)
+   430→- Created /src/components/music/MusicPage.tsx:
+   431→  - Amber/orange theme (distinct from red=movies, purple=anime, green=games)
+   432→  - Hero section with gradient, search bar (500ms debounce)
+   433→  - 16 genre/mood pills (Pop, Hip Hop, Rock, R&B, Electronic, Jazz, Classical, Lo-fi, K-Pop, Bollywood, Arabic, Latin, Country, Metal, Indie, Reggae)
+   434→  - Trending music grid (20 videos from YouTube API)
+   435→  - Search results with Related Music section
+   436→  - Visible YouTube player embed (16:9 ratio, autoplay)
+   437→  - Now Playing mini bar with prev/play/next controls and animated progress bar
+   438→  - 'Open in YouTube' link for videos with embed restrictions
+   439→  - Active card indicator (PLAYING badge + amber ring)
+   440→  - Responsive grid (2-6 columns), skeleton loading states
+   441→- Updated Header.tsx: added Music nav item with amber accent colors
+   442→- Updated MobileTabBar.tsx: 6 tabs (Home, Movies, TV, Anime, Games, Music) with amber indicators
+   443→- Updated page.tsx: added MusicPage import and routing
+   444→- Fixed TypeScript errors: exported SnippetItem, converted viewCount string to number
+   445→- Verified via agent-browser:
+   446→  - Music tab in nav (desktop + mobile 6-tab bar)
+   447→  - 20 trending songs with thumbnails and durations
+   448→  - Search 'lofi hip hop' returns 20 real lo-fi results
+   449→  - Related Music section shows for searches
+   450→  - YouTube player embed appears when song clicked
+   451→  - Mini now-playing bar visible at bottom
+   452→  - Zero console errors
+   453→- Lint passes clean
+   454→- Pushed to GitHub
+   455→
+   456→Stage Summary:
+   457→- Full music streaming with YouTube Data API v3 (server-side key, never exposed)
+   458→- 4 cached API endpoints: search, trending, related, playlists
+   459→- Visible YouTube embed player with Open in YouTube fallback
+   460→- Amber/orange theme, 16 genre pills, responsive card grid, now-playing bar
+   461→
+   462→---
+   463→Task ID: 13
+   464→Agent: main
+   465→Task: Redesign music UI as mobile-first with full-screen player experience
+   466→
+   467→Work Log:
+   468→- Completely rewrote /src/components/music/MusicPage.tsx with mobile-first design:
+   469→  - **Sticky search bar** below header with amber focus ring, compact h-10 height
+   470→  - **10 Mood Cards** (Today's Hits, Chill Vibes, Workout, Romance, Hip Hop, K-Pop, Rock, Bollywood, Arabic, Latin) with gradient backgrounds and emoji icons in horizontal scroll
+   471→  - **15 Genre Pills** appear when searching (Pop, Hip Hop, Rock, R&B, Electronic, Jazz, Classical, Lo-fi, K-Pop, Bollywood, Arabic, Latin, Country, Metal, Indie)
+   472→  - **2-column track grid** on mobile (expands to 3-6 cols on larger screens) with gap-3
+   473→  - **TrackCard**: compact square art, duration badge, play overlay on tap, heart/like button, animated equalizer bars for active track
+   474→  - **FullScreenPlayer**: Spotify/Apple Music style full-screen player with:
+   475→    - Blurred album art background (scale-150, blur-3xl, opacity-40)
+   476→    - Large centered album art (max-w-300px, rounded-2xl)
+   477→    - "Playing from YouTube Music" header
+   478→    - Heart/Like button, YouTube external link
+   479→    - Custom amber progress bar (tap to seek, expandable on touch)
+   480→    - Time display (elapsed / total)
+   481→    - Full controls: Shuffle, SkipBack, Play/Pause (white circle), SkipForward, Repeat
+   482→    - YouTube embed iframe at bottom for audio playback
+   483→    - Spring slide-up animation, z-[60]
+   484→  - **MiniPlayer**: compact bar above tab bar (z-40) with:
+   485→    - 2px amber progress line at top
+   486→    - Thumbnail, title, artist, prev/pause/next controls
+   487→    - Tap to expand to full-screen player
+   488→    - Safe area bottom padding for iOS
+   489→  - Dynamic bottom padding: pb-[7.5rem] when mini player visible, pb-24 otherwise
+   490→- Fixed ESLint react-hooks/set-state-in-effect: replaced direct setProgress(0) in useEffect with key-based remounting (key={track.videoId} on FullScreenPlayer and MiniPlayer)
+   491→- Removed all unused imports and variables (formatViewCount, showQueue, handleStopCompletely, displayList, etc.)
+   492→- Verified via agent-browser (375x812 mobile viewport):
+   493→  - Music page loads with sticky search, mood cards, and 20 trending tracks
+   494→  - Clicking a track opens full-screen player with blurred background, large art, progress bar, controls
+   495→  - Closing full-screen player shows mini player above tab bar
+   496→  - Mood card click (Chill Vibes) auto-searches "Lo-fi Chill Beats" and shows relevant results
+   497→  - Search "Taylor Swift" returns real Taylor Swift music videos
+   498→  - Genre pills visible during search mode
+   499→  - Lint passes clean with zero errors
+   500→
+   501→Stage Summary:
+   502→- Complete mobile-first music UI redesign inspired by Spotify/Apple Music
+   503→- Full-screen now playing with blurred art background, progress bar, full controls
+   504→- Mini player above tab bar with progress line and expand-to-fullscreen
+   505→- 10 gradient mood cards for quick genre browsing
+   506→- 2-column compact grid with animated playing indicators
+   507→- All features verified working on mobile viewport
+   508→---
+   509→Task ID: 1
+   510→Agent: Main
+   511→Task: Fix TrackCard button nesting hydration error + Move top nav to collapsible left sidebar
+   512→
+   513→Work Log:
+   514→- Fixed MusicPage TrackCard hydration error: changed nested `<button>` to `<span role="button">` with keyboard handlers (line 237)
+   515→- Created new `/src/components/movie/Sidebar.tsx` — collapsible left-side navigation
+   516→  - Desktop: sticky sidebar with expanded (224px) / collapsed (64px) states
+   517→  - Mobile: hamburger button + slide-out drawer from left
+   518→  - Search bar integrated in sidebar (expanded) and drawer (mobile)
+   519→  - All 7 nav items: Home, Movies, TV Shows, Anime, Games, Music, Live TV
+   520→  - Install App button with red badge
+   521→  - Collapse/Expand toggle button at bottom
+   522→  - Animated label show/hide using Framer Motion AnimatePresence
+   523→  - Custom `SidebarLabel` component declared outside render to satisfy static-components lint rule
+   524→- Updated `page.tsx`: replaced `<Header>` + `<MobileTabBar>` with `<Sidebar>` in flex layout
+   525→- Updated MusicPage.tsx: removed bottom padding (pb-24), updated sticky search top position (was header-offset, now top-0 with pt-14 on mobile for hamburger button clearance), updated MiniPlayer bottom position (was above tab bar, now at bottom)
+   526→- Updated InstallAppModal InstallBanner: changed `bottom-20 md:bottom-6` to `bottom-6` (no more tab bar offset)
+   527→- All lint errors resolved, browser verification passed (desktop expanded, collapsed, mobile drawer, search, music page, no console errors)
+   528→
+   529→Stage Summary:
+   530→- Top navigation moved from fixed horizontal header to collapsible left sidebar
+   531→- Bottom tab bar (MobileTabBar) removed, replaced by mobile drawer
+   532→- Hydration error in MusicPage TrackCard fixed
+   533→- Zero lint errors, zero console errors
+   534→- Verified on desktop (1280x800) and mobile (iPhone 14) viewports
+   535→---
+   536→Task ID: 2
+   537→Agent: Main
+   538→Task: Add simple email/password login with SQLite database
+   539→
+   540→Work Log:
+   541→- Installed bcryptjs for password hashing
+   542→- Updated Prisma schema: User model (id, email, passwordHash, name) + Session model (id, token, userId, expiresAt) with cascade delete
+   543→- Pushed schema to SQLite DB
+   544→- Created 4 API routes:
+   545→  - /api/auth/register — hashes password with bcrypt(12), creates user + session, sets httpOnly cookie
+   546→  - /api/auth/login — verifies password, creates session, sets cookie
+   547→  - /api/auth/me — reads cookie, finds valid session, returns user (auto-cleans expired sessions)
+   548→  - /api/auth/logout — deletes session, clears cookie
+   549→- Created auth-store.ts (Zustand) with user state, fetchUser, login, register, logout actions
+   550→- Created AuthModal.tsx — animated modal with Login/Register toggle, email/password fields, show/hide password, error display, loading state
+   551→- Updated Sidebar.tsx: added LogIn/LogOut icons, auth user avatar with initial letter (collapsed + expanded), sign in button, logout button, mobile drawer auth section
+   552→- Updated page.tsx: imports AuthModal, fetches user session on mount, passes onAuthClick to Sidebar
+   553→
+   554→Stage Summary:
+   555→- Full email/password auth system working (register, login, logout, session persistence)
+   556→- 30-day session cookies (httpOnly, sameSite=lax)
+   557→- Passwords hashed with bcrypt (12 rounds)
+   558→- Session tokens: 32-byte random hex strings
+   559→- User avatar shown in sidebar (initial letter circle + name/email)
+   560→- Zero lint errors, verified register/login/logout on desktop and mobile
+   561→---
+   562→Task ID: 1
+   563→Agent: Main
+   564→Task: Set Videasy as primary provider and redesign Select Provider page
+   565→
+   566→Work Log:
+   567→- Read Videasy documentation from https://www.videasy.to/docs
+   568→- Updated src/lib/providers.ts: Added Videasy as first provider with `primary: true`, using player.videasy.net URLs with overlay, nextEpisode, episodeSelector, autoplayNextEpisode, and color params
+   569→- Updated src/store/app-store.ts: Changed default `selectedProvider` from 'vidsrc-sbs' to 'videasy'
+   570→- Rewrote src/components/movie/ProviderSelector.tsx: New clean design with Videasy as featured card (purple gradient, Recommended badge, HD Quality/Subtitles/Auto-Next feature pills), divider, and compact fallback provider list
+   571→- Updated src/components/movie/VideoPlayer.tsx: Added Crown icon for primary provider, dynamic color for loading spinner and active indicator
+   572→- Fixed src/components/movie/TvDetail.tsx: Replaced hardcoded vidsrc.sbs URL with getEmbedUrl() + proper provider system, added mediaType/tmdbId/season/episode props to VideoPlayer
+   573→- Updated src/components/movie/MovieDetail.tsx: Added Crown icon import and display for primary provider on source button
+   574→
+   575→Stage Summary:
+   576→- Videasy is now the default and primary streaming provider
+   577→- Provider selector has a clean 2-section layout (featured + alternatives)
+   578→- TV shows now properly use the provider system (was hardcoded before)
+   579→- Lint passes, browser verification confirms all elements render correctly
+   580→---
+   581→Task ID: 2
+   582→Agent: Main
+   583→Task: Redesign Music tab to match Apple Music UI reference (no emojis, use library icons)
+   584→
+   585→Work Log:
+   586→- Analyzed reference image (Apple Music Listen Now page) with VLM skill
+   587→- Identified key design elements: dark bg, ambient gradient glow, ranked cards with gradient overlays, list-style song rows, Apple-style mini player (64px, blur, white play circle), SF Symbols-style icons
+   588→- Completely rewrote src/components/music/MusicPage.tsx (847 lines → ~620 lines)
+   589→- Replaced all 10 emoji mood cards with Lucide icon-based CategoryCards (Flame, Headphones, Dumbbell, Heart, Mic, Globe, Music, Film, Moon, Radio)
+   590→- Added RankedCard component: horizontal scroll cards (w-40 h-52) with large rank numbers (#1, #2...), bottom gradient overlay, hover play button, red playing indicator bars
+   591→- Added TrackRow component: Apple Music list-style rows with index/playing indicator, thumbnail, title/artist, duration, views, heart button
+   592→- Added ambient background gradient (radial, burgundy/red glow at top-right)
+   593→- Redesigned search bar to Apple style (bg-[#1C1C1C], rounded-lg, h-9, subtle ring focus)
+   594→- Redesigned MiniPlayer: 64px bar, bg-[#1E1E1E]/95, backdrop-blur-2xl, white play circle button, SkipBack/Pause/SkipForward, MoreHorizontal, thin red progress line
+   595→- Redesigned FullScreenPlayer: black bg, white progress bar, white play circle, refined typography
+   596→- Added hero text section: 'Discover what's trending in music right now'
+   597→- Removed all imports of Button, Input, Skeleton from shadcn/ui (replaced with native elements)
+   598→- Accent color changed from amber to #FA2D48 (Apple Music red)
+   599→- Lint passes clean, browser verification confirms all 10 checks pass
+   600→
+   601→Stage Summary:
+   602→- Music tab now matches Apple Music aesthetic from reference photo
+   603→- Zero emojis anywhere — all icons are Lucide React SVGs
+   604→- Browser verified: ambient glow, ranked cards, list rows, mini player, full-screen player all render correctly
+   605→---
+   606→Task ID: 3
+   607→Agent: Main
+   608→Task: Bring back bottom tab bar on mobile for Anime and Music tabs
+   609→
+   610→Work Log:
+   611→- Updated Sidebar.tsx: Hides hamburger menu button on mobile when view is 'anime' or 'music'
+   612→- Updated page.tsx: Added MobileTabBar and MobileBackHome (home icon button) conditionally for anime/music views
+   613→- MobileBackHome positioned in iOS safe area: top: calc(env(safe-area-inset-top) + 8px)
+   614→- Updated MusicPage.tsx: Mini player bottom offset to calc(env(safe-area-inset-bottom) + 4rem) on mobile; footer pb-24 on mobile; search bar pt-12
+   615→- Updated AnimePage.tsx: Footer pb-28 on mobile for tab bar clearance
+   616→- Fixed MobileTabBar.tsx: Anime tab icon changed from Music to Sparkles
+   617→- Fixed duplicate InstallBanner in page.tsx
+   618→
+   619→Stage Summary:
+   620→- Mobile: Anime/Music pages show bottom tab bar (6 tabs) + home icon button at top-left in iOS safe area
+   621→- Mobile: All other pages show hamburger menu (no tab bar)
+   622→- Desktop: Unchanged (always shows sidebar, no tab bar)
+   623→- Browser verified: All 6 checks pass
+   624→
+   625→---
+   626→Task ID: 3
+   627→Agent: main
+   628→Task: Add search button on mobile phone view
+   629→
+   630→Work Log:
+   631→- Added `showSearch` action to Zustand store (`src/store/app-store.ts`)
+   632→- Added Search tab with blue accent color to `MobileTabBar.tsx` (6 tabs total)
+   633→- Updated `SearchResults.tsx` with mobile search input (hidden on desktop), debounced search, empty state, loading spinner
+   634→- Updated `page.tsx` to show MobileTabBar on search view and add bottom padding
+   635→- Removed `search` from `isSpecialView` check so Search tab highlights correctly
+   636→
+   637→Stage Summary:
+   638→- Mobile bottom tab bar now has 6 tabs: Home, Movies, TV, Anime, Games, Search
+   639→- Tapping Search opens a dedicated search view with auto-focused input field
+   640→- Search input has debounced API calls (400ms), clear button, and proper empty/loading/results states
+   641→- Blue accent color for Search tab to differentiate from red (content) tabs
+   642→- Lint passes clean
+   643→---
+   644→Task ID: 1
+   645→Agent: Main
+   646→Task: Redesign desktop sidebar with hover-to-expand behavior
+   647→
+   648→Work Log:
+   649→- Removed `collapsed` state and `toggleCollapse` callback
+   650→- Added `hovered` state, defaulting to collapsed (64px)
+   651→- Added `onMouseEnter`/`onMouseLeave` on `<aside>` to control `hovered`
+   652→- `expanded = hovered && !mobileOpen` — sidebar expands only on desktop hover
+   653→- Replaced all `collapsed` references with `!expanded` for centering logic
+   654→- Removed PanelLeftClose/PanelLeftOpen imports and the Collapse toggle button
+   655→- Centered logo in collapsed state with conditional `justify-center` class
+   656→- Added shadow and border enhancement on expand for depth effect
+   657→- Changed `transition-[width]` to `transition-all` for smoother overall animation
+   658→
+   659→Stage Summary:
+   660→- Sidebar starts at 64px (icons only, centered)
+   661→- On mouse hover → smoothly expands to 224px showing labels, search, logo text
+   662→- On mouse leave → collapses back to 64px
+   663→- Browser verified: 64px collapsed → 224px on hover → 64px on leave
+   664→- Lint passes clean, dev server no errors
+   665→---
+   666→Task ID: 2
+   667→Agent: Main
+   668→Task: Make sidebar animation smoother
+   669→
+   670→Work Log:
+   671→- Replaced plain `<aside>` with `motion.aside` using spring physics (stiffness: 350, damping: 30, mass: 0.8)
+   672→- Replaced CSS `transition-all` with framer-motion spring for width, boxShadow, and borderRightColor
+   673→- Rewrote SidebarLabel: replaced `width: 0/auto` (layout thrashing) with GPU-accelerated opacity + translateX(-6) + blur(2px)
+   674→- Label spring: stiffness: 500, damping: 35, mass: 0.5 — snappy but smooth
+   675→- Search bar animation also uses spring instead of duration-based transition
+   676→- Added `will-change-[opacity,transform,filter]` on labels and `will-change-[width,box-shadow]` on aside
+   677→- Fixed logo padding: always `px-3.5` (no instant jump between justify-center and px)
+   678→- Nav buttons: `h-10` always set (no height toggle), only padding/justify toggles
+   679→- Added `initial={false}` on AnimatePresence to prevent entry animation on page load
+   680→- Added `pointerEvents: none` on labels to prevent click interference
+   681→
+   682→Stage Summary:
+   683→- Sidebar now uses spring physics throughout — feels natural and fluid
+   684→- No layout thrashing — labels animate opacity/transform only (GPU composited)
+   685→- Icons stay perfectly centered during transition
+   686→- Verified: 64px→224px→64px with smooth spring animation, no errors
+   687→---
+   688→Task ID: 3
+   689→Agent: Main
+   690→Task: Prioritize Indian content in every category
+   691→
+   692→Work Log:
+   693→- Added `region=IN` to all TMDB API routes: trending, popular-movies, popular-tv, upcoming
+   694→- Switched top-rated from `/movie/top_rated` to `/discover/movie?region=IN&sort_by=vote_average.desc&vote_count.gte=300`
+   695→- Switched top-rated-tv from `/tv/top_rated` to `/discover/tv?region=IN&sort_by=vote_average.desc&vote_count.gte=200`
+   696→- Changed providers and providers-list from `watch_region=US` to `watch_region=IN`
+   697→- Added `prioritizeIndian()` helper to tmdb.ts — reorders existing results putting hi/ta/te/kn/ml/bn/gu/mr/pa/ur items first
+   698→- Added `fetchIndianBoost()` helper to tmdb.ts — fetches extra Hindi content and prepends (available but unused due to OOM)
+   699→- Created `/api/tmdb/indian-boost` endpoint — fetches Hindi movies, Hindi TV, Tamil movies, Telugu movies (sequential to reduce peak memory)
+   700→- Added lazy Indian boost in page.tsx — after initial page load, fetches indian-boost and prepends unique items to every category
+   701→- Changed `upcoming` vote_count_gte to '10' since upcoming movies have few votes
+   702→
+   703→Stage Summary:
+   704→- Every category now has `region=IN` for India-aware results
+   705→- `prioritizeIndian()` reorders any Indian-lang items to the top within each category
+   706→- Lazy `/api/tmdb/indian-boost` fetch (Hindi+Tamil+Telugu) prepends ~80 fresh Indian items to all categories
+   707→- Streaming providers switched to Indian region
+   708→- Verified: indian-boost returns DDLJ, 3 Idiots, Dangal, Jawan, PK, etc.
+   709→- Lint passes clean
+   710→---
+   711→Task ID: 4
+   712→Agent: Main
+   713→Task: 50/50 Indian/international split + trending shows 2025 releases only
+   714→
+   715→Work Log:
+   716→- Created /src/lib/content-split.ts with pure client-safe utilities:
+   717→  - isIndianLang() — checks if language is one of hi/ta/te/kn/ml/bn/gu/mr/pa/ur
+   718→  - splitFiftyFifty() — splits array into 50% Indian + 50% international, interleaved (indian[0], intl[0], indian[1], intl[1]...)
+   719→  - mergeWithFiftyFifty() — merges fresh Indian items into existing, enforces 50/50
+   720→- Rewrote trending endpoint: replaced /trending/all/week with /discover/movie + /discover/tv using primary_release_year=2025 and first_air_date_year=2025
+   721→- Updated all category routes (popular-movies, popular-tv, top-rated, top-rated-tv, upcoming) to use splitFiftyFifty
+   722→- Updated frontend Indian boost in page.tsx to use mergeWithFiftyFifty for 50/50 enforcement
+   723→- Cleaned tmdb.ts — removed split utilities (moved to content-split.ts)
+   724→- Extracted pure functions to content-split.ts to avoid importing server-only tmdb.ts in client component
+   725→
+   726→Stage Summary:
+   727→- Every category now shows alternating Indian/International content (~50/50)
+   728→- Trending tab only shows movies/TV actually released in 2025
+   729→- splitFiftyFifty interleaves: Indian, International, Indian, International...
+   730→- Lint passes clean
+   731→

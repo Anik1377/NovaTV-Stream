@@ -1,0 +1,912 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef, useCallback } from 'react';
+     4→import {
+     5→  Search,
+     6→  Play,
+     7→  Pause,
+     8→  SkipBack,
+     9→  SkipForward,
+    10→  X,
+    11→  TrendingUp,
+    12→  ChevronDown,
+    13→  ChevronRight,
+    14→  Volume2,
+    15→  Heart,
+    16→  Shuffle,
+    17→  Repeat,
+    18→  Music,
+    19→  Flame,
+    20→  Headphones,
+    21→  Dumbbell,
+    22→  Mic,
+    23→  Globe,
+    24→  Radio,
+    25→  Moon,
+    26→  Film,
+    27→  MoreHorizontal,
+    28→  ListMusic,
+    29→  Clock,
+    30→} from 'lucide-react';
+    31→import { motion, AnimatePresence } from 'framer-motion';
+    32→
+    33→// ─── Types ───────────────────────────────────────────────────────────────────
+    34→
+    35→interface SaavnTrack {
+    36→  id: string;
+    37→  title: string;
+    38→  artists: string;
+    39→  album: string;
+    40→  thumbnail: string;
+    41→  duration: number;
+    42→  audioUrl: string;
+    43→  year: string;
+    44→}
+    45→
+    46→interface ApiResponse {
+    47→  results: SaavnTrack[];
+    48→}
+    49→
+    50→// ─── Helpers ─────────────────────────────────────────────────────────────────
+    51→
+    52→function formatTime(sec: number): string {
+    53→  const m = Math.floor(sec / 60);
+    54→  const s = Math.floor(sec % 60);
+    55→  return `${m}:${s.toString().padStart(2, '0')}`;
+    56→}
+    57→
+    58→// ─── Constants ───────────────────────────────────────────────────────────────
+    59→
+    60→const MOOD_CATEGORIES = [
+    61→  { label: "Today's Hits", query: 'Top Hits 2025', icon: Flame, color: 'from-rose-600 to-orange-500' },
+    62→  { label: 'Chill Vibes', query: 'Lo-fi Chill Beats', icon: Headphones, color: 'from-violet-600 to-purple-500' },
+    63→  { label: 'Workout', query: 'Workout Music Mix', icon: Dumbbell, color: 'from-emerald-600 to-teal-500' },
+    64→  { label: 'Romance', query: 'Romantic Love Songs', icon: Heart, color: 'from-pink-600 to-rose-500' },
+    65→  { label: 'Hip Hop', query: 'Hip Hop Music 2025', icon: Mic, color: 'from-amber-600 to-yellow-500' },
+    66→  { label: 'K-Pop', query: 'K-Pop Music Playlist', icon: Globe, color: 'from-sky-600 to-blue-500' },
+    67→  { label: 'Rock', query: 'Rock Music Hits', icon: Music, color: 'from-red-700 to-red-500' },
+    68→  { label: 'Bollywood', query: 'Bollywood Hits 2025', icon: Film, color: 'from-orange-600 to-amber-500' },
+    69→  { label: 'Arabic', query: 'Arabic Music Hits', icon: Moon, color: 'from-teal-600 to-emerald-500' },
+    70→  { label: 'Latin', query: 'Latin Music Reggaeton', icon: Radio, color: 'from-fuchsia-600 to-pink-500' },
+    71→];
+    72→
+    73→const GENRE_PILLS = [
+    74→  'Pop', 'Hip Hop', 'Rock', 'R&B', 'Electronic',
+    75→  'Jazz', 'Classical', 'Lo-fi', 'K-Pop', 'Bollywood',
+    76→  'Arabic', 'Latin', 'Country', 'Metal', 'Indie',
+    77→];
+    78→
+    79→// ─── Skeleton Components ────────────────────────────────────────────────────
+    80→
+    81→function CategorySkeleton() {
+    82→  return (
+    83→    <div className="shrink-0 w-36">
+    84→      <div className="w-36 h-20 rounded-xl bg-white/[0.04] animate-pulse" />
+    85→      <div className="h-3 w-24 mt-2 rounded bg-white/[0.04] animate-pulse" />
+    86→    </div>
+    87→  );
+    88→}
+    89→
+    90→function RankCardSkeleton() {
+    91→  return (
+    92→    <div className="shrink-0 w-40">
+    93→      <div className="w-40 h-52 rounded-xl bg-white/[0.04] animate-pulse" />
+    94→    </div>
+    95→  );
+    96→}
+    97→
+    98→function TrackRowSkeleton() {
+    99→  return (
+   100→    <div className="flex items-center gap-3 px-4 py-2.5">
+   101→      <div className="w-10 h-10 rounded-lg bg-white/[0.04] animate-pulse shrink-0" />
+   102→      <div className="flex-1 min-w-0">
+   103→        <div className="h-3.5 w-3/4 rounded bg-white/[0.04] animate-pulse" />
+   104→        <div className="h-3 w-1/2 rounded bg-white/[0.04] animate-pulse mt-1.5" />
+   105→      </div>
+   106→      <div className="h-3 w-10 rounded bg-white/[0.04] animate-pulse" />
+   107→    </div>
+   108→  );
+   109→}
+   110→
+   111→// ─── Category Card ──────────────────────────────────────────────────────────
+   112→
+   113→function CategoryCard({
+   114→  label,
+   115→  icon: Icon,
+   116→  color,
+   117→  onClick,
+   118→  isActive,
+   119→}: {
+   120→  label: string;
+   121→  icon: React.ComponentType<{ className?: string }>;
+   122→  color: string;
+   123→  onClick: () => void;
+   124→  isActive: boolean;
+   125→}) {
+   126→  return (
+   127→    <motion.button
+   128→      whileTap={{ scale: 0.96 }}
+   129→      onClick={onClick}
+   130→      className={`shrink-0 w-36 text-left group ${isActive ? 'ring-1 ring-white/30' : ''}`}
+   131→    >
+   132→      <div className={`w-36 h-20 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center relative overflow-hidden`}>
+   133→        <Icon className="w-7 h-7 text-white/90 relative z-10 drop-shadow-lg" />
+   134→        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+   135→      </div>
+   136→      <p className="mt-2 text-[13px] font-medium text-white/80 truncate">{label}</p>
+   137→    </motion.button>
+   138→  );
+   139→}
+   140→
+   141→// ─── Ranked Card ────────────────────────────────────────────────────────────
+   142→
+   143→function RankedCard({
+   144→  track,
+   145→  rank,
+   146→  onPlay,
+   147→  isActive,
+   148→}: {
+   149→  track: SaavnTrack;
+   150→  rank: number;
+   151→  onPlay: () => void;
+   152→  isActive: boolean;
+   153→}) {
+   154→  const [imgError, setImgError] = useState(false);
+   155→
+   156→  return (
+   157→    <motion.button
+   158→      initial={{ opacity: 0, y: 12 }}
+   159→      animate={{ opacity: 1, y: 0 }}
+   160→      transition={{ duration: 0.3, delay: rank * 0.03 }}
+   161→      whileTap={{ scale: 0.97 }}
+   162→      onClick={onPlay}
+   163→      className="shrink-0 w-40 text-left group"
+   164→    >
+   165→      <div className="relative w-40 h-52 rounded-xl overflow-hidden bg-white/[0.04]">
+   166→        {!imgError ? (
+   167→          <img
+   168→            src={track.thumbnail}
+   169→            alt={track.title}
+   170→            className="w-full h-full object-cover"
+   171→            loading="lazy"
+   172→            onError={() => setImgError(true)}
+   173→          />
+   174→        ) : (
+   175→          <div className="w-full h-full bg-gradient-to-b from-white/[0.06] to-white/[0.02] flex items-center justify-center">
+   176→            <Music className="w-10 h-10 text-white/15" />
+   177→          </div>
+   178→        )}
+   179→
+   180→        <div className="absolute top-3 left-3">
+   181→          <span className="text-4xl font-bold text-white drop-shadow-lg" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+   182→            {rank}
+   183→          </span>
+   184→        </div>
+   185→
+   186→        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+   187→        <div className="absolute inset-x-0 bottom-0 p-3">
+   188→          <p className="text-[13px] font-semibold text-white leading-tight line-clamp-2">{track.title}</p>
+   189→          <p className="text-[11px] text-white/50 mt-0.5 truncate">{track.artists}</p>
+   190→        </div>
+   191→
+   192→        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+   193→          <div className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+   194→            {isActive ? (
+   195→              <Volume2 className="w-5 h-5 text-black" />
+   196→            ) : (
+   197→              <Play className="w-5 h-5 text-black fill-black ml-0.5" />
+   198→            )}
+   199→          </div>
+   200→        </div>
+   201→
+   202→        {isActive && (
+   203→          <div className="absolute top-3 right-3 flex items-end gap-0.5 h-3.5">
+   204→            {[0, 1, 2].map((i) => (
+   205→              <motion.div
+   206→                key={i}
+   207→                className="w-[3px] bg-[#FA2D48] rounded-full"
+   208→                animate={{ height: [4, 14, 6, 12, 4] }}
+   209→                transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+   210→              />
+   211→            ))}
+   212→          </div>
+   213→        )}
+   214→      </div>
+   215→    </motion.button>
+   216→  );
+   217→}
+   218→
+   219→// ─── Track Row ──────────────────────────────────────────────────────────────
+   220→
+   221→function TrackRow({
+   222→  track,
+   223→  index,
+   224→  onPlay,
+   225→  isActive,
+   226→}: {
+   227→  track: SaavnTrack;
+   228→  index: number;
+   229→  onPlay: () => void;
+   230→  isActive: boolean;
+   231→}) {
+   232→  const [imgError, setImgError] = useState(false);
+   233→  const [liked, setLiked] = useState(false);
+   234→
+   235→  return (
+   236→    <div
+   237→      role="button"
+   238→      tabIndex={0}
+   239→      onClick={onPlay}
+   240→      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPlay(); } }}
+   241→      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-colors group ${
+   242→        isActive ? 'bg-[#FA2D48]/10' : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
+   243→      }`}
+   244→    >
+   245→      <div className="w-5 text-center shrink-0">
+   246→        {isActive ? (
+   247→          <div className="flex items-end justify-center gap-[2px] h-3.5">
+   248→            {[0, 1, 2].map((i) => (
+   249→              <motion.div
+   250→                key={i}
+   251→                className="w-[2px] bg-[#FA2D48] rounded-full"
+   252→                animate={{ height: [3, 10, 5, 8, 3] }}
+   253→                transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12, ease: 'easeInOut' }}
+   254→              />
+   255→            ))}
+   256→          </div>
+   257→        ) : (
+   258→          <span className={`text-xs tabular-nums ${isActive ? 'text-[#FA2D48]' : 'text-white/30 group-hover:hidden'}`}>{index + 1}</span>
+   259→        )}
+   260→        <Play className={`w-4 h-4 text-white/70 hidden group-hover:block ${isActive ? '!hidden' : ''}`} />
+   261→      </div>
+   262→
+   263→      <div className="w-10 h-10 rounded-md overflow-hidden bg-white/[0.04] shrink-0">
+   264→        {!imgError ? (
+   265→          <img src={track.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
+   266→        ) : (
+   267→          <div className="w-full h-full flex items-center justify-center"><Music className="w-4 h-4 text-white/15" /></div>
+   268→        )}
+   269→      </div>
+   270→
+   271→      <div className="flex-1 min-w-0">
+   272→        <p className={`text-[14px] font-medium leading-tight truncate ${isActive ? 'text-[#FA2D48]' : 'text-white/90'}`}>{track.title}</p>
+   273→        <p className="text-[12px] text-white/40 mt-0.5 truncate">{track.artists}</p>
+   274→      </div>
+   275→
+   276→      <span className="text-[12px] text-white/30 tabular-nums shrink-0 mr-1 hidden sm:block">{formatTime(track.duration)}</span>
+   277→
+   278→      {track.year && (
+   279→        <span className="text-[12px] text-white/20 tabular-nums shrink-0 hidden md:block">{track.year}</span>
+   280→      )}
+   281→
+   282→      <span
+   283→        role="button"
+   284→        tabIndex={0}
+   285→        onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}
+   286→        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLiked(!liked); } }}
+   287→        className="p-1.5 cursor-pointer shrink-0"
+   288→      >
+   289→        <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : 'text-white/15 hover:text-white/40'}`} />
+   290→      </span>
+   291→    </div>
+   292→  );
+   293→}
+   294→
+   295→// ─── Full Screen Now Playing ────────────────────────────────────────────────
+   296→
+   297→function FullScreenPlayer({
+   298→  track,
+   299→  onClose,
+   300→  onNext,
+   301→  onPrev,
+   302→  isPlaying,
+   303→  onTogglePlay,
+   304→  currentTime,
+   305→  duration,
+   306→  onSeek,
+   307→}: {
+   308→  track: SaavnTrack;
+   309→  onClose: () => void;
+   310→  onNext: () => void;
+   311→  onPrev: () => void;
+   312→  isPlaying: boolean;
+   313→  onTogglePlay: () => void;
+   314→  currentTime: number;
+   315→  duration: number;
+   316→  onSeek: (pct: number) => void;
+   317→}) {
+   318→  const [imgError, setImgError] = useState(false);
+   319→  const [liked, setLiked] = useState(false);
+   320→
+   321→  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+   322→
+   323→  return (
+   324→    <motion.div
+   325→      initial={{ y: '100%' }}
+   326→      animate={{ y: 0 }}
+   327→      exit={{ y: '100%' }}
+   328→      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   329→      className="fixed inset-0 z-[60] flex flex-col bg-black"
+   330→    >
+   331→      <div className="absolute inset-0 z-0">
+   332→        {!imgError ? (
+   333→          <img src={track.thumbnail} alt="" className="w-full h-full object-cover scale-150 blur-3xl opacity-30" onError={() => setImgError(true)} />
+   334→        ) : (
+   335→          <div className="w-full h-full bg-gradient-to-b from-zinc-900 to-black" />
+   336→        )}
+   337→        <div className="absolute inset-0 bg-black/50" />
+   338→      </div>
+   339→
+   340→      <div className="relative z-10 flex flex-col h-full">
+   341→        <div className="flex items-center justify-between px-5 pt-[env(safe-area-inset-top,12px)] pb-2">
+   342→          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+   343→            <ChevronDown className="w-6 h-6" />
+   344→          </button>
+   345→          <div className="text-center">
+   346→            <p className="text-[11px] font-medium text-white/30 uppercase tracking-wider">Playing from</p>
+   347→            <p className="text-xs text-white/50 mt-0.5">JioSaavn</p>
+   348→          </div>
+   349→          <button onClick={() => setLiked(!liked)} className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+   350→            <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-[#FA2D48] fill-[#FA2D48]' : ''}`} />
+   351→          </button>
+   352→        </div>
+   353→
+   354→        <div className="flex-1 flex items-center justify-center px-8 py-4">
+   355→          <motion.div
+   356→            initial={{ scale: 0.8, opacity: 0 }}
+   357→            animate={{ scale: 1, opacity: 1 }}
+   358→            transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+   359→            className="w-full max-w-[300px] md:max-w-[360px] aspect-square rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
+   360→          >
+   361→            {!imgError ? (
+   362→              <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+   363→            ) : (
+   364→              <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+   365→                <Music className="w-16 h-16 text-white/20" />
+   366→              </div>
+   367→            )}
+   368→          </motion.div>
+   369→        </div>
+   370→
+   371→        <div className="px-8 pb-[env(safe-area-inset-bottom,16px)]">
+   372→          <div className="flex items-start justify-between gap-3 mb-5">
+   373→            <div className="min-w-0 flex-1">
+   374→              <h2 className="text-xl font-bold text-white truncate">{track.title}</h2>
+   375→              <p className="text-[15px] text-white/50 truncate mt-0.5">{track.artists}</p>
+   376→            </div>
+   377→          </div>
+   378→
+   379→          <div className="mb-5">
+   380→            <div
+   381→              className="relative w-full h-1 bg-white/10 rounded-full cursor-pointer group"
+   382→              onClick={(e) => {
+   383→                const rect = e.currentTarget.getBoundingClientRect();
+   384→                const pct = ((e.clientX - rect.left) / rect.width) * 100;
+   385→                onSeek(Math.max(0, Math.min(100, pct)));
+   386→              }}
+   387→            >
+   388→              <div className="absolute left-0 top-0 h-full bg-white/80 rounded-full group-hover:bg-white transition-colors" style={{ width: `${Math.min(progress, 100)}%` }} />
+   389→            </div>
+   390→            <div className="flex justify-between mt-1.5">
+   391→              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(currentTime)}</span>
+   392→              <span className="text-[11px] text-white/30 tabular-nums">{formatTime(duration)}</span>
+   393→            </div>
+   394→          </div>
+   395→
+   396→          <div className="flex items-center justify-between px-2 mb-5">
+   397→            <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Shuffle className="w-5 h-5" /></button>
+   398→            <button onClick={onPrev} className="p-2 text-white hover:text-white transition-colors"><SkipBack className="w-6 h-6 fill-white" /></button>
+   399→            <button onClick={onTogglePlay} className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg shadow-white/10 hover:scale-105 transition-transform">
+   400→              {isPlaying ? (
+   401→                <Pause className="w-7 h-7 text-black fill-black" />
+   402→              ) : (
+   403→                <Play className="w-7 h-7 text-black fill-black ml-1" />
+   404→              )}
+   405→            </button>
+   406→            <button onClick={onNext} className="p-2 text-white hover:text-white transition-colors"><SkipForward className="w-6 h-6 fill-white" /></button>
+   407→            <button className="p-2 text-white/40 hover:text-white/70 transition-colors"><Repeat className="w-5 h-5" /></button>
+   408→          </div>
+   409→        </div>
+   410→      </div>
+   411→    </motion.div>
+   412→  );
+   413→}
+   414→
+   415→// ─── Mini Player ────────────────────────────────────────────────────────────
+   416→
+   417→function MiniPlayer({
+   418→  track,
+   419→  onExpand,
+   420→  onNext,
+   421→  onPrev,
+   422→  isPlaying,
+   423→  onTogglePlay,
+   424→  currentTime,
+   425→  duration,
+   426→}: {
+   427→  track: SaavnTrack;
+   428→  onExpand: () => void;
+   429→  onNext: () => void;
+   430→  onPrev: () => void;
+   431→  isPlaying: boolean;
+   432→  onTogglePlay: () => void;
+   433→  currentTime: number;
+   434→  duration: number;
+   435→}) {
+   436→  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+   437→
+   438→  return (
+   439→    <motion.div
+   440→      initial={{ y: 80, opacity: 0 }}
+   441→      animate={{ y: 0, opacity: 1 }}
+   442→      exit={{ y: 80, opacity: 0 }}
+   443→      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   444→      className="fixed left-0 right-0 z-40 md:bottom-0"
+   445→      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}
+   446→    >
+   447→      <div className="h-[2px] w-full bg-white/5">
+   448→        <div className="h-full bg-[#FA2D48] transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
+   449→      </div>
+   450→
+   451→      <div className="h-16 bg-[#1E1E1E]/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center gap-3 px-3">
+   452→        <button onClick={onExpand} className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white/10 shadow-md">
+   453→          <img src={track.thumbnail} alt="" className="w-full h-full object-cover" />
+   454→        </button>
+   455→
+   456→        <button onClick={onExpand} className="flex-1 min-w-0 text-left">
+   457→          <p className="text-[14px] font-medium text-white truncate leading-tight">{track.title}</p>
+   458→          <p className="text-[12px] text-[#888] truncate mt-0.5">{track.artists}</p>
+   459→        </button>
+   460→
+   461→        <div className="flex items-center gap-0.5 shrink-0">
+   462→          <button onClick={onPrev} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
+   463→            <SkipBack className="w-4 h-4" />
+   464→          </button>
+   465→          <button onClick={onTogglePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md shadow-white/10">
+   466→            {isPlaying ? (
+   467→              <Pause className="w-3.5 h-3.5 text-black fill-black" />
+   468→            ) : (
+   469→              <Play className="w-3.5 h-3.5 text-black fill-black ml-0.5" />
+   470→            )}
+   471→          </button>
+   472→          <button onClick={onNext} className="w-10 h-10 flex items-center justify-center text-white/40 hover:text-white/70 active:text-white transition-colors">
+   473→            <SkipForward className="w-4 h-4" />
+   474→          </button>
+   475→        </div>
+   476→
+   477→        <div className="flex items-center gap-0.5 shrink-0">
+   478→          <button className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white/60 transition-colors">
+   479→            <MoreHorizontal className="w-4 h-4" />
+   480→          </button>
+   481→        </div>
+   482→      </div>
+   483→    </motion.div>
+   484→  );
+   485→}
+   486→
+   487→// ─── Section Header ─────────────────────────────────────────────────────────
+   488→
+   489→function SectionHeader({ title, action }: { title: string; action?: string }) {
+   490→  return (
+   491→    <div className="flex items-center justify-between mb-3">
+   492→      <h2 className="text-[18px] font-bold text-white">{title}</h2>
+   493→      {action && (
+   494→        <button className="flex items-center gap-0.5 text-[13px] text-[#A1A1A1] hover:text-white/70 transition-colors">
+   495→          {action}
+   496→          <ChevronRight className="w-4 h-4" />
+   497→        </button>
+   498→      )}
+   499→    </div>
+   500→  );
+   501→}
+   502→
+   503→// ─── Main Component ─────────────────────────────────────────────────────────
+   504→
+   505→export function MusicPage() {
+   506→  const [trending, setTrending] = useState<SaavnTrack[]>([]);
+   507→  const [searchResults, setSearchResults] = useState<SaavnTrack[]>([]);
+   508→  const [loading, setLoading] = useState(true);
+   509→  const [searchLoading, setSearchLoading] = useState(false);
+   510→  const [searchQuery, setSearchQuery] = useState('');
+   511→  const [activeMood, setActiveMood] = useState('');
+   512→  const [currentTrack, setCurrentTrack] = useState<SaavnTrack | null>(null);
+   513→  const [showFullScreen, setShowFullScreen] = useState(false);
+   514→  const [queue, setQueue] = useState<SaavnTrack[]>([]);
+   515→  const [queueIndex, setQueueIndex] = useState(0);
+   516→  const [isPlaying, setIsPlaying] = useState(false);
+   517→  const [currentTime, setCurrentTime] = useState(0);
+   518→  const [audioDuration, setAudioDuration] = useState(0);
+   519→
+   520→  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   521→  const searchInputRef = useRef<HTMLInputElement>(null);
+   522→  const audioRef = useRef<HTMLAudioElement | null>(null);
+   523→
+   524→  // Initialize audio element
+   525→  useEffect(() => {
+   526→    const audio = new Audio();
+   527→    audio.preload = 'auto';
+   528→
+   529→    audio.addEventListener('timeupdate', () => {
+   530→      setCurrentTime(audio.currentTime);
+   531→    });
+   532→    audio.addEventListener('loadedmetadata', () => {
+   533→      setAudioDuration(audio.duration);
+   534→    });
+   535→    audio.addEventListener('ended', () => {
+   536→      // Auto next
+   537→      setQueueIndex((prev) => {
+   538→        const next = (prev + 1) % queue.length;
+   539→        if (queue[next]) {
+   540→          setCurrentTrack(queue[next]);
+   541→          playSong(queue[next]);
+   542→        }
+   543→        return next;
+   544→      });
+   545→    });
+   546→    audio.addEventListener('play', () => setIsPlaying(true));
+   547→    audio.addEventListener('pause', () => setIsPlaying(false));
+   548→
+   549→    audioRef.current = audio;
+   550→    return () => {
+   551→      audio.pause();
+   552→      audio.src = '';
+   553→    };
+   554→  }, []);
+   555→
+   556→  // Update ended handler when queue changes
+   557→  useEffect(() => {
+   558→    const audio = audioRef.current;
+   559→    if (!audio) return;
+   560→
+   561→    const handleEnded = () => {
+   562→      setQueueIndex((prev) => {
+   563→        const next = (prev + 1) % queue.length;
+   564→        if (queue[next]) {
+   565→          setCurrentTrack(queue[next]);
+   566→          playSong(queue[next]);
+   567→        }
+   568→        return next;
+   569→      });
+   570→    };
+   571→    audio.addEventListener('ended', handleEnded);
+   572→    return () => audio.removeEventListener('ended', handleEnded);
+   573→  }, [queue]);
+   574→
+   575→  const playSong = useCallback((track: SaavnTrack) => {
+   576→    const audio = audioRef.current;
+   577→    if (!audio || !track.audioUrl) return;
+   578→    audio.src = track.audioUrl;
+   579→    audio.play().catch(() => {});
+   580→  }, []);
+   581→
+   582→  // Fetch trending on mount
+   583→  useEffect(() => {
+   584→    async function fetchTrending() {
+   585→      try {
+   586→        const res = await fetch('/api/saavn/trending?limit=25');
+   587→        const data: ApiResponse = await res.json();
+   588→        setTrending(data.results || []);
+   589→      } catch (err) {
+   590→        console.error('Failed to fetch trending:', err);
+   591→      } finally {
+   592→        setLoading(false);
+   593→      }
+   594→    }
+   595→    fetchTrending();
+   596→  }, []);
+   597→
+   598→  // Search with debounce
+   599→  const handleSearchInput = useCallback((value: string) => {
+   600→    setSearchQuery(value);
+   601→    setActiveMood('');
+   602→    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+   603→    if (!value.trim()) {
+   604→      setSearchResults([]);
+   605→      return;
+   606→    }
+   607→    searchTimerRef.current = setTimeout(async () => {
+   608→      setSearchLoading(true);
+   609→      try {
+   610→        const res = await fetch(`/api/saavn/search?query=${encodeURIComponent(value)}&limit=20`);
+   611→        const data: ApiResponse = await res.json();
+   612→        setSearchResults(data.results || []);
+   613→      } catch {
+   614→        setSearchResults([]);
+   615→      } finally {
+   616→        setSearchLoading(false);
+   617→      }
+   618→    }, 500);
+   619→  }, []);
+   620→
+   621→  const handleMoodClick = useCallback((mood: typeof MOOD_CATEGORIES[number]) => {
+   622→    const isCurrentlyActive = activeMood === mood.label;
+   623→    setActiveMood(isCurrentlyActive ? '' : mood.label);
+   624→    if (!isCurrentlyActive) {
+   625→      handleSearchInput(mood.query);
+   626→      if (searchInputRef.current) searchInputRef.current.value = mood.query;
+   627→    } else {
+   628→      setSearchQuery('');
+   629→      setSearchResults([]);
+   630→      if (searchInputRef.current) searchInputRef.current.value = '';
+   631→    }
+   632→  }, [activeMood, handleSearchInput]);
+   633→
+   634→  const handlePlay = useCallback((track: SaavnTrack, trackList?: SaavnTrack[]) => {
+   635→    setCurrentTrack(track);
+   636→    setShowFullScreen(true);
+   637→    playSong(track);
+   638→    if (trackList) {
+   639→      const idx = trackList.findIndex((t) => t.id === track.id);
+   640→      setQueue(trackList);
+   641→      setQueueIndex(idx >= 0 ? idx : 0);
+   642→    }
+   643→  }, [playSong]);
+   644→
+   645→  const handleNext = useCallback(() => {
+   646→    if (queue.length === 0) return;
+   647→    const nextIdx = (queueIndex + 1) % queue.length;
+   648→    setQueueIndex(nextIdx);
+   649→    setCurrentTrack(queue[nextIdx]);
+   650→    playSong(queue[nextIdx]);
+   651→  }, [queue, queueIndex, playSong]);
+   652→
+   653→  const handlePrev = useCallback(() => {
+   654→    if (queue.length === 0) return;
+   655→    const prevIdx = (queueIndex - 1 + queue.length) % queue.length;
+   656→    setQueueIndex(prevIdx);
+   657→    setCurrentTrack(queue[prevIdx]);
+   658→    playSong(queue[prevIdx]);
+   659→  }, [queue, queueIndex, playSong]);
+   660→
+   661→  const handleTogglePlay = useCallback(() => {
+   662→    const audio = audioRef.current;
+   663→    if (!audio) return;
+   664→    if (audio.paused) {
+   665→      audio.play().catch(() => {});
+   666→    } else {
+   667→      audio.pause();
+   668→    }
+   669→  }, []);
+   670→
+   671→  const handleSeek = useCallback((pct: number) => {
+   672→    const audio = audioRef.current;
+   673→    if (!audio || !audio.duration) return;
+   674→    audio.currentTime = (pct / 100) * audio.duration;
+   675→  }, []);
+   676→
+   677→  const handleClosePlayer = useCallback(() => {
+   678→    setShowFullScreen(false);
+   679→  }, []);
+   680→
+   681→  const isSearching = searchQuery.trim().length > 0;
+   682→  const hasPlayer = currentTrack !== null;
+   683→
+   684→  const rankedTracks = isSearching ? searchResults.slice(0, 6) : trending.slice(0, 6);
+   685→  const listTracks = isSearching ? searchResults.slice(6) : trending.slice(6);
+   686→
+   687→  return (
+   688→    <div className="relative min-h-screen">
+   689→      <div
+   690→        className="fixed inset-0 pointer-events-none z-0"
+   691→        style={{
+   692→          background: 'radial-gradient(ellipse at 70% -10%, rgba(138,42,42,0.35) 0%, rgba(45,21,21,0.15) 30%, transparent 65%)',
+   693→        }}
+   694→      />
+   695→
+   696→      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
+   697→        <div className="px-4 pt-12 md:pt-3 pb-3">
+   698→          <div className="relative max-w-md">
+   699→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+   700→            <input
+   701→              ref={searchInputRef}
+   702→              type="text"
+   703→              placeholder="Search songs, artists..."
+   704→              defaultValue={searchQuery}
+   705→              onChange={(e) => handleSearchInput(e.target.value)}
+   706→              className="w-full pl-10 pr-10 h-9 rounded-lg bg-[#1C1C1C] border-0 text-white placeholder:text-white/30 text-[15px] font-normal focus:outline-none focus:ring-1 focus:ring-white/20 transition-shadow"
+   707→            />
+   708→            {searchQuery && (
+   709→              <button
+   710→                onClick={() => {
+   711→                  handleSearchInput('');
+   712→                  if (searchInputRef.current) searchInputRef.current.value = '';
+   713→                }}
+   714→                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+   715→              >
+   716→                <X className="w-4 h-4" />
+   717→              </button>
+   718→            )}
+   719→          </div>
+   720→        </div>
+   721→      </div>
+   722→
+   723→      <div className="relative z-10">
+   724→        {!isSearching && (
+   725→          <div className="px-4 mb-8 mt-2">
+   726→            <SectionHeader title="Browse" />
+   727→            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   728→              {loading
+   729→                ? Array.from({ length: 5 }).map((_, i) => <CategorySkeleton key={i} />)
+   730→                : MOOD_CATEGORIES.map((mood) => (
+   731→                    <CategoryCard
+   732→                      key={mood.label}
+   733→                      label={mood.label}
+   734→                      icon={mood.icon}
+   735→                      color={mood.color}
+   736→                      onClick={() => handleMoodClick(mood)}
+   737→                      isActive={activeMood === mood.label}
+   738→                    />
+   739→                  ))
+   740→              }
+   741→            </div>
+   742→          </div>
+   743→        )}
+   744→
+   745→        {isSearching && (
+   746→          <div className="px-4 mb-6 mt-2">
+   747→            <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 content-scroll">
+   748→              {GENRE_PILLS.map((genre) => (
+   749→                <button
+   750→                  key={genre}
+   751→                  onClick={() => {
+   752→                    handleSearchInput(genre);
+   753→                    if (searchInputRef.current) searchInputRef.current.value = genre;
+   754→                  }}
+   755→                  className="shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium bg-white/[0.06] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white/80 active:bg-white/15 active:text-white transition-colors"
+   756→                >
+   757→                  {genre}
+   758→                </button>
+   759→              ))}
+   760→            </div>
+   761→          </div>
+   762→        )}
+   763→
+   764→        {!isSearching && !loading && trending.length > 0 && (
+   765→          <div className="px-4 mb-8">
+   766→            <p className="text-[22px] md:text-[24px] font-normal text-[#CCCCCC] leading-relaxed">
+   767→              Discover what&apos;s trending in <span className="text-white font-bold">music right now</span>.
+   768→            </p>
+   769→          </div>
+   770→        )}
+   771→
+   772→        {isSearching ? (
+   773→          searchLoading ? (
+   774→            <div className="px-4 mb-8">
+   775→              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   776→                {Array.from({ length: 4 }).map((_, i) => <RankCardSkeleton key={i} />)}
+   777→              </div>
+   778→            </div>
+   779→          ) : rankedTracks.length > 0 ? (
+   780→            <div className="px-4 mb-8">
+   781→              <SectionHeader title={isSearching ? searchQuery : 'Trending Now'} action="See All" />
+   782→              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   783→                {rankedTracks.map((track, i) => (
+   784→                  <RankedCard
+   785→                    key={track.id}
+   786→                    track={track}
+   787→                    rank={i + 1}
+   788→                    onPlay={() => handlePlay(track, isSearching ? searchResults : trending)}
+   789→                    isActive={currentTrack?.id === track.id}
+   790→                  />
+   791→                ))}
+   792→              </div>
+   793→            </div>
+   794→          ) : null
+   795→        ) : loading ? (
+   796→          <div className="px-4 mb-8">
+   797→            <SectionHeader title="Trending Now" />
+   798→            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   799→              {Array.from({ length: 4 }).map((_, i) => <RankCardSkeleton key={i} />)}
+   800→            </div>
+   801→          </div>
+   802→        ) : rankedTracks.length > 0 ? (
+   803→          <div className="px-4 mb-8">
+   804→            <SectionHeader title="Trending Now" action="See All" />
+   805→            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 content-scroll">
+   806→              {rankedTracks.map((track, i) => (
+   807→                <RankedCard
+   808→                  key={track.id}
+   809→                  track={track}
+   810→                  rank={i + 1}
+   811→                  onPlay={() => handlePlay(track, trending)}
+   812→                  isActive={currentTrack?.id === track.id}
+   813→                />
+   814→              ))}
+   815→            </div>
+   816→          </div>
+   817→        ) : null}
+   818→
+   819→        <div className="px-4">
+   820→          {isSearching ? (
+   821→            <>
+   822→              {listTracks.length > 0 && (
+   823→                <>
+   824→                  <SectionHeader title="More Results" />
+   825→                  <div className="rounded-xl overflow-hidden -mx-4">
+   826→                    {listTracks.map((track, i) => (
+   827→                      <TrackRow
+   828→                        key={track.id}
+   829→                        track={track}
+   830→                        index={i + rankedTracks.length}
+   831→                        onPlay={() => handlePlay(track, searchResults)}
+   832→                        isActive={currentTrack?.id === track.id}
+   833→                      />
+   834→                    ))}
+   835→                  </div>
+   836→                </>
+   837→              )}
+   838→
+   839→              {!searchLoading && searchResults.length === 0 && (
+   840→                <div className="text-center py-20">
+   841→                  <Music className="w-10 h-10 text-white/10 mx-auto mb-3" />
+   842→                  <p className="text-white/25 text-sm">No results found</p>
+   843→                </div>
+   844→              )}
+   845→            </>
+   846→          ) : (
+   847→            <>
+   848→              {loading ? (
+   849→                <div className="rounded-xl overflow-hidden -mx-4">
+   850→                  {Array.from({ length: 6 }).map((_, i) => <TrackRowSkeleton key={i} />)}
+   851→                </div>
+   852→              ) : listTracks.length > 0 ? (
+   853→                <>
+   854→                  <SectionHeader title="Popular Songs" action="See All" />
+   855→                  <div className="rounded-xl overflow-hidden -mx-4">
+   856→                    {listTracks.map((track, i) => (
+   857→                      <TrackRow
+   858→                        key={track.id}
+   859→                        track={track}
+   860→                        index={i + rankedTracks.length}
+   861→                        onPlay={() => handlePlay(track, trending)}
+   862→                        isActive={currentTrack?.id === track.id}
+   863→                      />
+   864→                    ))}
+   865→                  </div>
+   866→                </>
+   867→              ) : null}
+   868→            </>
+   869→          )}
+   870→        </div>
+   871→
+   872→        <div className="mt-10 border-t border-white/[0.04] pt-4 pb-24 md:pb-2 px-4 text-center">
+   873→          <p className="text-[11px] text-white/15">StreamVault Music — Powered by JioSaavn (320kbps)</p>
+   874→        </div>
+   875→      </div>
+   876→
+   877→      <AnimatePresence>
+   878→        {currentTrack && !showFullScreen && (
+   879→          <MiniPlayer
+   880→            key={currentTrack.id}
+   881→            track={currentTrack}
+   882→            onExpand={() => setShowFullScreen(true)}
+   883→            onNext={handleNext}
+   884→            onPrev={handlePrev}
+   885→            isPlaying={isPlaying}
+   886→            onTogglePlay={handleTogglePlay}
+   887→            currentTime={currentTime}
+   888→            duration={audioDuration}
+   889→          />
+   890→        )}
+   891→      </AnimatePresence>
+   892→
+   893→      <AnimatePresence>
+   894→        {currentTrack && showFullScreen && (
+   895→          <FullScreenPlayer
+   896→            key={currentTrack.id}
+   897→            track={currentTrack}
+   898→            onClose={handleClosePlayer}
+   899→            onNext={handleNext}
+   900→            onPrev={handlePrev}
+   901→            isPlaying={isPlaying}
+   902→            onTogglePlay={handleTogglePlay}
+   903→            currentTime={currentTime}
+   904→            duration={audioDuration}
+   905→            onSeek={handleSeek}
+   906→          />
+   907→        )}
+   908→      </AnimatePresence>
+   909→    </div>
+   910→  );
+   911→}
+   912→

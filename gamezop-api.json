@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://docs.platform.gamezop.com/publishers/gamezop/types-of-integration/all-games-api",
+    "name": "All Games API - Gamezop Business Developer Docs",
+    "snippet": "If you wish to open Gamezop's games within an iframe in your website , ask your Gamezop Account Manager to whitelist your Property ID for iframe usage.",
+    "host_name": "docs.platform.gamezop.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.niotron.com/t/how-add-game-api/9171",
+    "name": "How Add game API? - Discuss",
+    "snippet": "Jun 29, 2022 — Hi, For app monetization I have taken a game API from Gamezop . I want to Integrate that API In my app but I don't know how?",
+    "host_name": "community.niotron.com",
+    "rank": 1,
+    "date": "Jun 29, 2022",
+    "favicon": ""
+  },
+  {
+    "url": "https://business.gamezop.com/blog/how-to-embed-html5-games-in-website",
+    "name": "How To Embed HTML5 Games in Your Website",
+    "snippet": "Feb 4, 2026 — Learn how to embed HTML5 games on your website using iframes , unique links, APIs, and JavaScript SDKs—monetize. Copy the <iframe> code given to ...",
+    "host_name": "business.gamezop.com",
+    "rank": 2,
+    "date": "Feb 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://business.gamezop.com/publishers",
+    "name": "Use HTML5 games to boost engagement and revenue.",
+    "snippet": "Gamezop has 250+ HTML5 games that can help you increase your website revenue and engagement. Embed free online games on your website/app now.",
+    "host_name": "business.gamezop.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=iyp17MipC-Q",
+    "name": "How to Embed HTML5 Games in Apps & Grow App Revenue",
+    "snippet": "In this easy minigames integration tutorial, you'll learn how to embed games in your app using Gamezop's HTML5 game integration – perfect for ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.platform.gamezop.com/publishers/gamezop/types-of-integration/integrate-unique-link",
+    "name": "Integrate Gamezop Unique Link",
+    "snippet": "Gamezop Unique Links do not work within iframes . ​. Add Gamezop Unique Link to your app. There are 2 ways to embed the Gamezop Games Centre within your app:. Read more",
+    "host_name": "docs.platform.gamezop.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://guul.games/blog/embedded-games-a-guide-to-integration-and-key-advantages",
+    "name": "Embedded games integration: methods and options",
+    "snippet": "Aug 26, 2025 — Embedded games integration guide: iFrame vs API vs SDK, licensing vs custom build, and what to check before going live.",
+    "host_name": "guul.games",
+    "rank": 6,
+    "date": "Aug 26, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://business.gamezop.com/blog/integrate-games-into-your-website-or-app",
+    "name": "Integrate Games into Your Website or App",
+    "snippet": "Feb 12, 2026 — Gamezop has a rich library of 250+ premium HTML5/ instant games that you can embed within your app/site. These games work globally, and this ... Read more",
+    "host_name": "business.gamezop.com",
+    "rank": 7,
+    "date": "Feb 12, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/gamezop_how-to-embed-html5-games-in-apps-grow-app-activity-7326851533273231361-5Tvq",
+    "name": "How to Embed HTML5 Games in Apps & Grow App Revenue",
+    "snippet": "... Gamezop delivers real results for app developers around the world ... Explore content categories . Career · Productivity · Finance · Soft Skills ...",
+    "host_name": "www.linkedin.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  }
+]

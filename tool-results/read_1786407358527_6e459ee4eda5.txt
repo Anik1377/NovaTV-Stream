@@ -1,0 +1,699 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef, useCallback } from 'react';
+     4→import {
+     5→  Radio, ArrowLeft, Maximize2, Minimize2, RefreshCw, Tv,
+     6→  Search, ChevronRight, ChevronLeft, Loader2, Wifi,
+     7→  WifiOff, Volume2, VolumeX, Play, Signal, Globe, Zap, Filter, ChevronDown
+     8→} from 'lucide-react';
+     9→import { motion, AnimatePresence } from 'framer-motion';
+    10→import Hls from 'hls.js';
+    11→import { useAppStore } from '@/store/app-store';
+    12→import { channelCategories } from '@/lib/live-tv-channels';
+    13→import type { LiveChannel } from '@/lib/live-tv-channels';
+    14→
+    15→export function LiveTV() {
+    16→  const { goHome, selectedLiveChannel, setSelectedLiveChannel } = useAppStore();
+    17→  const [channels, setChannels] = useState<LiveChannel[]>([]);
+    18→  const [allChannels, setAllChannels] = useState<LiveChannel[]>([]);
+    19→  const [loadingChannels, setLoadingChannels] = useState(true);
+    20→  const [channelError, setChannelError] = useState('');
+    21→  const [activeCategory, setActiveCategory] = useState('all');
+    22→  const [searchQuery, setSearchQuery] = useState('');
+    23→  const [sidebarOpen, setSidebarOpen] = useState(true);
+    24→  const [searchDebounce, setSearchDebounce] = useState('');
+    25→  const [totalInCategory, setTotalInCategory] = useState(0);
+    26→  const [allTotal, setAllTotal] = useState(0);
+    27→  const [loadingMore, setLoadingMore] = useState(false);
+    28→
+    29→  // Player state
+    30→  const [activeChannel, setActiveChannel] = useState<LiveChannel | null>(null);
+    31→  const [resolving, setResolving] = useState(false);
+    32→  const [hlsError, setHlsError] = useState(false);
+    33→  const [hlsReady, setHlsReady] = useState(false);
+    34→  const [isFullscreen, setIsFullscreen] = useState(false);
+    35→  const [muted, setMuted] = useState(false);
+    36→  const [retrying, setRetrying] = useState(false);
+    37→
+    38→  const videoContainerRef = useRef<HTMLDivElement>(null);
+    39→  const videoRef = useRef<HTMLVideoElement>(null);
+    40→  const hlsRef = useRef<Hls | null>(null);
+    41→  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+    42→
+    43→  // All hooks before early returns
+    44→  const toggleFullscreen = useCallback(async () => {
+    45→    if (!videoContainerRef.current) return;
+    46→    try {
+    47→      if (!document.fullscreenElement) {
+    48→        await videoContainerRef.current.requestFullscreen();
+    49→        setIsFullscreen(true);
+    50→      } else {
+    51→        await document.exitFullscreen();
+    52→        setIsFullscreen(false);
+    53→      }
+    54→    } catch { /* ignore */ }
+    55→  }, []);
+    56→
+    57→  const destroyHls = useCallback(() => {
+    58→    if (hlsRef.current) {
+    59→      hlsRef.current.destroy();
+    60→      hlsRef.current = null;
+    61→    }
+    62→    setHlsError(false);
+    63→    setHlsReady(false);
+    64→  }, []);
+    65→
+    66→  const initHls = useCallback((url: string) => {
+    67→    const video = videoRef.current;
+    68→    if (!video) return;
+    69→
+    70→    destroyHls();
+    71→    const proxyUrl = `/api/livetv/proxy?url=${encodeURIComponent(url)}`;
+    72→
+    73→    if (Hls.isSupported()) {
+    74→      const hls = new Hls({
+    75→        enableWorker: true,
+    76→        lowLatencyMode: true,
+    77→        maxBufferLength: 30,
+    78→        maxMaxBufferLength: 60,
+    79→        startLevel: -1,
+    80→        xhrSetup: (xhr, requestUrl) => {
+    81→          // Route all HLS segment requests through CORS proxy
+    82→          if (!requestUrl.startsWith('/api/')) {
+    83→            xhr.open('GET', '/api/livetv/proxy?url=' + encodeURIComponent(requestUrl), true);
+    84→          }
+    85→        },
+    86→      });
+    87→      hlsRef.current = hls;
+    88→
+    89→      hls.loadSource(proxyUrl);
+    90→      hls.attachMedia(video);
+    91→
+    92→      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+    93→        video.play().catch(() => {});
+    94→        setHlsReady(true);
+    95→        setResolving(false);
+    96→        setRetrying(false);
+    97→      });
+    98→
+    99→      hls.on(Hls.Events.ERROR, (_event, data) => {
+   100→        if (data.fatal) {
+   101→          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+   102→            // Try to recover
+   103→            setRetrying(true);
+   104→            setTimeout(() => {
+   105→              hls.startLoad();
+   106→              setRetrying(false);
+   107→            }, 2000);
+   108→          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+   109→            hls.recoverMediaError();
+   110→          } else {
+   111→            setHlsError(true);
+   112→            setResolving(false);
+   113→            setRetrying(false);
+   114→          }
+   115→        }
+   116→      });
+   117→    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+   118→      // Native HLS (Safari)
+   119→      video.src = proxyUrl;
+   120→      video.addEventListener('loadedmetadata', () => {
+   121→        video.play().catch(() => {});
+   122→        setHlsReady(true);
+   123→        setResolving(false);
+   124→      }, { once: true });
+   125→      video.addEventListener('error', () => {
+   126→        setHlsError(true);
+   127→        setResolving(false);
+   128→      }, { once: true });
+   129→    }
+   130→  }, [destroyHls]);
+   131→
+   132→  const playChannel = useCallback(async (channel: LiveChannel) => {
+   133→    setActiveChannel(channel);
+   134→    setSelectedLiveChannel(channel.id);
+   135→    setResolving(true);
+   136→    destroyHls();
+   137→    setHlsError(false);
+   138→    setHlsReady(false);
+   139→    setRetrying(false);
+   140→
+   141→    // Start playing directly — the stream URL comes from iptv-org
+   142→    // We skip the resolve API check for speed; HLS.js will handle errors
+   143→    initHls(channel.url);
+   144→  }, [setSelectedLiveChannel, destroyHls, initHls]);
+   145→
+   146→  const closeChannel = useCallback(() => {
+   147→    destroyHls();
+   148→    setActiveChannel(null);
+   149→    setSelectedLiveChannel(null);
+   150→    setResolving(false);
+   151→    setHlsError(false);
+   152→    setHlsReady(false);
+   153→  }, [destroyHls, setSelectedLiveChannel]);
+   154→
+   155→  const refreshStream = useCallback(() => {
+   156→    if (activeChannel) playChannel(activeChannel);
+   157→  }, [activeChannel, playChannel]);
+   158→
+   159→  const toggleMute = useCallback(() => {
+   160→    if (videoRef.current) {
+   161→      videoRef.current.muted = !videoRef.current.muted;
+   162→      setMuted(prev => !prev);
+   163→    }
+   164→  }, []);
+   165→
+   166→  const PAGE_SIZE = 150;
+   167→
+   168→  // Fetch channels from API
+   169→  const fetchChannels = useCallback(async (offset = 0, append = false) => {
+   170→    if (append) setLoadingMore(true);
+   171→    else Promise.resolve().then(() => { setLoadingChannels(true); setChannelError(''); });
+   172→
+   173→    try {
+   174→      const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
+   175→      if (activeCategory !== 'all') params.set('category', activeCategory);
+   176→      if (searchDebounce) params.set('search', searchDebounce);
+   177→
+   178→      const res = await fetch('/api/livetv/channels?' + params);
+   179→      const data = await res.json();
+   180→
+   181→      if (data.error) {
+   182→        Promise.resolve().then(() => setChannelError(data.error));
+   183→      } else {
+   184→        const newChannels = data.channels || [];
+   185→        Promise.resolve().then(() => {
+   186→          if (append) {
+   187→            setChannels(prev => [...prev, ...newChannels]);
+   188→          } else {
+   189→            setChannels(newChannels);
+   190→            setAllChannels(newChannels);
+   191→          }
+   192→          setTotalInCategory(data.total || 0);
+   193→          setAllTotal(data.allTotal || 0);
+   194→        });
+   195→      }
+   196→    } catch (err) {
+   197→      if (!append) {
+   198→        Promise.resolve().then(() => setChannelError(err instanceof Error ? err.message : 'Failed to fetch channels'));
+   199→      }
+   200→    } finally {
+   201→      Promise.resolve().then(() => {
+   202→        setLoadingChannels(false);
+   203→        setLoadingMore(false);
+   204→      });
+   205→    }
+   206→  }, [activeCategory, searchDebounce]);
+   207→
+   208→  // Fetch on mount and when category/search changes
+   209→  useEffect(() => {
+   210→    fetchChannels(0, false);
+   211→  }, [fetchChannels]);
+   212→
+   213→  // Track scroll position for load-more
+   214→  const scrollContainerRef = useRef<HTMLDivElement>(null);
+   215→
+   216→  const handleScroll = useCallback(() => {
+   217→    const el = scrollContainerRef.current;
+   218→    if (!el || loadingMore || channels.length >= totalInCategory) return;
+   219→    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+   220→    if (nearBottom) {
+   221→      fetchChannels(channels.length, true);
+   222→    }
+   223→  }, [loadingMore, channels.length, totalInCategory, fetchChannels]);
+   224→
+   225→  // Debounced search
+   226→  useEffect(() => {
+   227→    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+   228→    searchTimeoutRef.current = setTimeout(() => {
+   229→      setSearchDebounce(searchQuery);
+   230→    }, 200);
+   231→    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
+   232→  }, [searchQuery]);
+   233→
+   234→  // Apply search filter
+   235→  const filteredChannels = searchDebounce
+   236→    ? channels.filter(c => {
+   237→        const q = searchDebounce.toLowerCase();
+   238→        return c.name.toLowerCase().includes(q) ||
+   239→          c.language.toLowerCase().includes(q) ||
+   240→          c.country.toLowerCase().includes(q) ||
+   241→          c.group.toLowerCase().includes(q);
+   242→      })
+   243→    : channels;
+   244→
+   245→  // Count categories from allTotal (approximate — we don't fetch all upfront)
+   246→  // We use totalInCategory and allTotal for display
+   247→  const categoryCounts: Record<string, number> = { all: allTotal };
+   248→
+   249→  // Fullscreen change listener
+   250→  useEffect(() => {
+   251→    const h = () => setIsFullscreen(!!document.fullscreenElement);
+   252→    document.addEventListener('fullscreenchange', h);
+   253→    return () => document.removeEventListener('fullscreenchange', h);
+   254→  }, []);
+   255→
+   256→  // Cleanup HLS on unmount
+   257→  useEffect(() => {
+   258→    return () => {
+   259→      if (hlsRef.current) {
+   260→        hlsRef.current.destroy();
+   261→        hlsRef.current = null;
+   262→      }
+   263→    };
+   264→  }, []);
+   265→
+   266→  // Auto-restore selected channel from store
+   267→  useEffect(() => {
+   268→    if (selectedLiveChannel && !activeChannel && allChannels.length > 0) {
+   269→      const ch = allChannels.find(c => c.id === selectedLiveChannel);
+   270→      if (ch) {
+   271→        Promise.resolve().then(() => setActiveChannel(ch));
+   272→      }
+   273→    }
+   274→  }, [selectedLiveChannel, activeChannel, allChannels]);
+   275→
+   276→  return (
+   277→    <motion.div
+   278→      initial={{ opacity: 0 }}
+   279→      animate={{ opacity: 1 }}
+   280→      transition={{ duration: 0.3 }}
+   281→      className="min-h-screen bg-[#0a0a0a] flex flex-col"
+   282→    >
+   283→      {/* Breadcrumb bar */}
+   284→      <div className="flex items-center gap-2 px-4 h-10 bg-[#0d0d0d] border-b border-white/[0.04] shrink-0 text-xs text-white/30">
+   285→        <button onClick={goHome} className="hover:text-white/60 transition-colors">Home</button>
+   286→        <span>•</span>
+   287→        <span className="text-white/60">Live TV</span>
+   288→        <span className="ml-auto flex items-center gap-1.5 text-emerald-400/60">
+   289→          <span className="relative flex h-2 w-2">
+   290→            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />\n            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+   291→          </span>
+   292→          LIVE
+   293→        </span>
+   294→      </div>
+   295→
+   296→      {/* Main layout */}
+   297→      <div className="flex-1 flex overflow-hidden">
+   298→        {/* Sidebar toggle when closed */}
+   299→        {!sidebarOpen && (
+   300→          <button
+   301→            onClick={() => setSidebarOpen(true)}
+   302→            className="absolute top-14 left-3 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white text-xs font-medium transition-colors"
+   303→          >
+   304→            <ChevronLeft className="w-3.5 h-3.5" />
+   305→            Channels
+   306→            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold">{allChannels.length}</span>
+   307→          </button>
+   308→        )}
+   309→
+   310→        {/* LEFT: Channel sidebar */}
+   311→        <AnimatePresence>
+   312→          {sidebarOpen && (
+   313→            <motion.aside
+   314→              initial={{ width: 0, opacity: 0 }}
+   315→              animate={{ width: 320, opacity: 1 }}
+   316→              exit={{ width: 0, opacity: 0 }}
+   317→              transition={{ duration: 0.2 }}
+   318→              className="shrink-0 bg-[#0f1117] border-r border-white/[0.04] flex flex-col overflow-hidden"
+   319→            >
+   320→              {/* Sidebar header */}
+   321→              <div className="px-4 py-3 border-b border-white/[0.04] space-y-3">
+   322→                <div className="flex items-center justify-between">
+   323→                  <div className="flex items-center gap-2">
+   324→                    <Radio className="w-4 h-4 text-emerald-400" />
+   325→                    <span className="text-white/80 text-sm font-bold">Channels</span>
+   326→                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">{allChannels.length}</span>
+   327→                  </div>
+   328→                  <button onClick={() => setSidebarOpen(false)} className="text-white/30 hover:text-white/60 transition-colors">
+   329→                    <ChevronRight className="w-4 h-4" />
+   330→                  </button>
+   331→                </div>
+   332→
+   333→                {/* Search */}
+   334→                <div className="relative">
+   335→                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+   336→                  <input
+   337→                    value={searchQuery}
+   338→                    onChange={(e) => setSearchQuery(e.target.value)}
+   339→                    placeholder="Search channels..."
+   340→                    className="w-full h-8 pl-8 pr-3 rounded-lg bg-white/[0.06] border border-white/[0.06] text-white/80 text-xs placeholder:text-white/20 focus:outline-none focus:border-emerald-500/40"
+   341→                  />
+   342→                </div>
+   343→              </div>
+   344→
+   345→              {/* Category tabs — scrollable */}
+   346→              <div className="px-3 py-2 border-b border-white/[0.04] overflow-x-auto no-scrollbar">
+   347→                <div className="flex gap-1">
+   348→                  {channelCategories.filter(c => c.id === 'all' || (categoryCounts[c.id] || 0) > 0).map(cat => (
+   349→                    <button
+   350→                      key={cat.id}
+   351→                      onClick={() => setActiveCategory(cat.id)}
+   352→                      className={
+   353→                        'shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 border ' +
+   354→                        (activeCategory === cat.id
+   355→                          ? 'bg-white text-[#0a0a0a] border-white'
+   356→                          : 'bg-white/[0.04] text-white/40 border-white/[0.04] hover:bg-white/[0.08] hover:text-white/60')
+   357→                      }
+   358→                    >
+   359→                      <span>{cat.icon}</span>
+   360→                      <span className="hidden xl:inline">{cat.name}</span>
+   361→                      <span className="text-[8px] opacity-60">{categoryCounts[cat.id] || 0}</span>
+   362→                    </button>
+   363→                  ))}
+   364→                </div>
+   365→              </div>
+   366→
+   367→              {/* Channel list */}
+   368→              <div className="flex-1 overflow-y-auto content-scroll p-2 space-y-0.5">
+   369→                {loadingChannels ? (
+   370→                  <div className="flex flex-col items-center justify-center py-16 text-white/30">
+   371→                    <Loader2 className="w-6 h-6 animate-spin mb-3 text-emerald-400/60" />\n                    <p className="text-xs font-medium">Loading channels...</p>
+   372→                    <p className="text-[10px] mt-1 text-white/15">Fetching from iptv-org</p>
+   373→                  </div>
+   374→                ) : channelError ? (
+   375→                  <div className="flex flex-col items-center justify-center py-16 text-white/30">
+   376→                    <WifiOff className="w-6 h-6 mb-3 text-red-400/60" />
+   377→                    <p className="text-xs font-medium">Failed to load</p>
+   378→                    <p className="text-[10px] mt-1 text-white/15 max-w-[200px] text-center">{channelError}</p>
+   379→                    <button
+   380→                      onClick={() => window.location.reload()}
+   381→                      className="mt-3 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/[0.06] text-white/50 text-[10px] hover:bg-white/[0.1] transition-colors"
+   382→                    >
+   383→                      <RefreshCw className="w-3 h-3" /> Retry
+   384→                    </button>
+   385→                  </div>
+   386→                ) : filteredChannels.length === 0 ? (
+   387→                  <div className="flex flex-col items-center justify-center py-16 text-white/20">
+   388→                    <Tv className="w-8 h-8 mb-2" />
+   389→                    <p className="text-xs">No channels found</p>
+   390→                    {searchDebounce && (
+   391→                      <button
+   392→                        onClick={() => setSearchQuery('')}
+   393→                        className="mt-2 text-[10px] text-emerald-400/60 hover:text-emerald-400"
+   394→                      >Clear search</button>
+   395→                    )}
+   396→                  </div>
+   397→                ) : (
+   398→                  filteredChannels.map((channel, idx) => {
+   399→                    const isActive = activeChannel?.id === channel.id;
+   400→                    return (
+   401→                      <motion.button
+   402→                        key={channel.id}
+   403→                        initial={{ opacity: 0, x: -10 }}
+   404→                        animate={{ opacity: 1, x: 0 }}
+   405→                        transition={{ delay: Math.min(idx * 0.01, 0.3), duration: 0.15 }}
+   406→                        onClick={() => playChannel(channel)}
+   407→                        className={
+   408→                          'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 group border ' +
+   409→                          (isActive
+   410→                            ? 'bg-emerald-500/10 border-emerald-500/20'
+   411→                            : 'bg-transparent border-transparent hover:bg-white/[0.04]')
+   412→                        }
+   413→                      >
+   414→                        {/* Logo or placeholder */}
+   415→                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 bg-white/[0.06] overflow-hidden">
+   416→                          {channel.tvgLogo ? (
+   417→                            <img
+   418→                              src={channel.tvgLogo}
+   419→                              alt=""
+   420→                              className="w-full h-full object-contain p-0.5"
+   421→                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+   422→                            />
+   423→                          ) : (
+   424→                            <Tv className="w-4 h-4 text-white/30" />
+   425→                          )}
+   426→                        </div>
+   427→
+   428→                        {/* Info */}
+   429→                        <div className="flex-1 min-w-0">
+   430→                          <div className="flex items-center gap-1.5">
+   431→                            <span className={'text-[11px] font-semibold truncate ' + (isActive ? 'text-white' : 'text-white/80 group-hover:text-white')}>
+   432→                              {channel.name}
+   433→                            </span>
+   434→                            {isActive && !resolving && !hlsError && (
+   435→                              <span className="shrink-0 flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[7px] font-bold uppercase tracking-wider">
+   436→                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+   437→                                Live
+   438→                              </span>
+   439→                            )}
+   440→                          </div>
+   441→                          <div className="flex items-center gap-1 mt-0.5">
+   442→                            {channel.country && (
+   443→                              <span className="text-[9px] text-white/25 font-medium">{channel.country}</span>
+   444→                            )}
+   445→                            {channel.language && (
+   446→                              <>
+   447→                                <span className="text-[9px] text-white/15">•</span>
+   448→                                <span className="text-[9px] text-white/25">{channel.language}</span>
+   449→                              </>
+   450→                            )}
+   451→                          </div>
+   452→                        </div>
+   453→
+   454→                        {/* Play indicator */}
+   455→                        <div className={
+   456→                          'w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all ' +
+   457→                          (isActive
+   458→                            ? 'bg-emerald-500 text-white'
+   459→                            : 'bg-white/[0.04] text-white/20 opacity-0 group-hover:opacity-100')
+   460→                        }>
+   461→                          <Play className="w-2.5 h-2.5 ml-0.5" />
+   462→                        </div>
+   463→                      </motion.button>
+   464→                    );
+   465→                  })
+   466→                )}
+   467→              </div>
+   468→
+   469→              {/* Sidebar footer */}
+   470→              <div className="px-4 py-2 border-t border-white/[0.04] text-[9px] text-white/15 flex items-center gap-1">
+   471→                <Signal className="w-3 h-3" />
+   472→                <span>Powered by iptv-org • {allChannels.length} channels</span>
+   473→              </div>
+   474→            </motion.aside>
+   475→          )}
+   476→        </AnimatePresence>
+   477→
+   478→        {/* CENTER: Video player or welcome */}
+   479→        <div className="flex-1 flex flex-col min-w-0">
+   480→          {activeChannel ? (
+   481→            <>
+   482→              {/* Video container */}
+   483→              <div ref={videoContainerRef} className="relative w-full bg-black">
+   484→                <div className="relative w-full aspect-video max-h-[75vh] mx-auto">
+   485→
+   486→                  {/* Resolving state */}
+   487→                  {resolving && !hlsReady && (
+   488→                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   489→                      <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+   490→                      <p className="text-white/50 text-sm font-medium">Connecting...</p>
+   491→                      <p className="text-white/25 text-xs">Tuning into {activeChannel.name}</p>
+   492→                    </div>
+   493→                  )}
+   494→
+   495→                  {/* Retrying indicator */}
+   496→                  {retrying && !hlsError && (
+   497→                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-sm">
+   498→                      <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+   499→                      <span className="text-white/60 text-[11px]">Reconnecting...</span>
+   500→                    </div>
+   501→                  )}
+   502→
+   503→                  {/* Error state */}
+   504→                  {hlsError && !resolving && (
+   505→                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   506→                      <WifiOff className="w-12 h-12 text-red-400/60" />
+   507→                      <p className="text-white/60 text-sm font-medium">Stream Unavailable</p>
+   508→                      <p className="text-white/30 text-xs max-w-sm text-center">
+   509→                        This channel may be offline or geo-blocked. Try another channel or refresh.
+   510→                      </p>
+   511→                      <div className="flex gap-2 mt-2">
+   512→                        <button
+   513→                          onClick={refreshStream}
+   514→                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+   515→                        >
+   516→                          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+   517→                        </button>
+   518→                        <button
+   519→                          onClick={closeChannel}
+   520→                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.06] text-white/50 text-xs font-medium hover:bg-white/[0.1] transition-colors"
+   521→                        >
+   522→                          <ArrowLeft className="w-3.5 h-3.5" /> Back
+   523→                        </button>
+   524→                      </div>
+   525→                    </div>
+   526→                  )}
+   527→
+   528→                  {/* HLS Video element */}
+   529→                  <video
+   530→                    ref={videoRef}
+   531→                    className="w-full h-full"
+   532→                    controls
+   533→                    autoPlay
+   534→                    playsInline
+   535→                    style={{ display: (hlsError || (resolving && !hlsReady)) ? 'none' : 'block' }}
+   536→                  />
+   537→                </div>
+   538→              </div>
+   539→
+   540→              {/* Player info bar */}
+   541→              <div className="flex items-center justify-between px-4 py-2 bg-[#0d0d0d] border-b border-white/[0.04]">
+   542→                <div className="flex items-center gap-2.5 min-w-0">
+   543→                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+   544→                    <span className="relative flex h-1.5 w-1.5">
+   545→                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+   546→                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+   547→                    </span>
+   548→                    <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+   549→                      {hlsReady ? 'LIVE' : resolving ? 'LOADING' : 'OFFLINE'}
+   550→                    </span>
+   551→                  </div>
+   552→                  <div className="flex items-center gap-2 min-w-0">
+   553→                    {activeChannel.tvgLogo && (
+   554→                      <img src={activeChannel.tvgLogo} alt="" className="w-5 h-5 rounded object-contain bg-white/[0.06] shrink-0" />
+   555→                    )}
+   556→                    <span className="text-white text-xs font-semibold truncate">{activeChannel.name}</span>
+   557→                  </div>
+   558→                  <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 text-[9px] font-semibold">
+   559→                    <Zap className="w-2.5 h-2.5" /> HLS
+   560→                  </span>
+   561→                  <span className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] text-[10px] text-white/40">
+   562→                    <Globe className="w-2.5 h-2.5" />
+   563→                    {activeChannel.country}{activeChannel.language ? ` • ${activeChannel.language}` : ''}
+   564→                  </span>
+   565→                </div>
+   566→                <div className="flex items-center gap-1.5 shrink-0">
+   567→                  {hlsReady && (
+   568→                    <button
+   569→                      onClick={toggleMute}
+   570→                      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   571→                    >
+   572→                      {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+   573→                    </button>
+   574→                  )}
+   575→                  <button
+   576→                    onClick={refreshStream}
+   577→                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   578→                  >
+   579→                    <RefreshCw className="w-3 h-3" />
+   580→                  </button>
+   581→                  <button
+   582→                    onClick={toggleFullscreen}
+   583→                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   584→                  >
+   585→                    {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+   586→                  </button>
+   587→                  <button
+   588→                    onClick={closeChannel}
+   589→                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   590→                  >
+   591→                    <ArrowLeft className="w-3 h-3" /> Close
+   592→                  </button>
+   593→                </div>
+   594→              </div>
+   595→
+   596→              {/* Channel info panel below player */}
+   597→              <div className="flex-1 overflow-y-auto p-6">
+   598→                <div className="max-w-2xl mx-auto space-y-4">
+   599→                  <div className="flex items-start gap-4">
+   600→                    {activeChannel.tvgLogo && (
+   601→                      <div className="w-16 h-16 rounded-xl bg-white/[0.06] flex items-center justify-center overflow-hidden shrink-0">
+   602→                        <img src={activeChannel.tvgLogo} alt={activeChannel.name} className="w-full h-full object-contain p-2" />
+   603→                      </div>
+   604→                    )}
+   605→                    <div className="min-w-0">
+   606→                      <h2 className="text-white text-lg font-bold">{activeChannel.name}</h2>
+   607→                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
+   608→                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] text-white/50 text-[10px] font-medium">
+   609→                          <Globe className="w-2.5 h-2.5" /> {activeChannel.country || 'Unknown'}
+   610→                        </span>
+   611→                        <span className="px-2 py-0.5 rounded-full bg-white/[0.06] text-white/50 text-[10px] font-medium">
+   612→                          {activeChannel.language || 'Unknown Language'}
+   613→                        </span>
+   614→                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-medium">
+   615→                          <Filter className="w-2.5 h-2.5" /> {activeChannel.group}
+   616→                        </span>
+   617→                      </div>
+   618→                    </div>
+   619→                  </div>
+   620→
+   621→                  {/* Now Playing info */}
+   622→                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+   623→                    <div className="flex items-center gap-2 mb-2">
+   624→                      <span className="relative flex h-2 w-2">
+   625→                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+   626→                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+   627→                      </span>
+   628→                      <span className="text-white/50 text-xs font-medium">Now Playing</span>
+   629→                    </div>
+   630→                    <p className="text-white/30 text-xs">
+   631→                      {hlsReady
+   632→                        ? 'Stream is playing. Use the video controls for volume, fullscreen, etc.'
+   633→                        : hlsError
+   634→                          ? 'This stream is currently unavailable. Try refreshing or select another channel.'
+   635→                          : 'Connecting to stream...'}
+   636→                    </p>
+   637→                  </div>
+   638→
+   639→                  {/* Quick channel switch hint */}
+   640→                  <p className="text-white/15 text-[10px] text-center">
+   641→                    Select a different channel from the sidebar to switch instantly
+   642→                  </p>
+   643→                </div>
+   644→              </div>
+   645→            </>
+   646→          ) : (
+   647→            /* Welcome / empty state */
+   648→            <div className="flex-1 flex flex-col items-center justify-center px-6">
+   649→              <motion.div
+   650→                initial={{ scale: 0.8, opacity: 0 }}
+   651→                animate={{ scale: 1, opacity: 1 }}
+   652→                transition={{ duration: 0.5, type: 'spring' }}
+   653→                className="text-center"
+   654→              >
+   655→                <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+   656→                  <Radio className="w-10 h-10 text-emerald-400" />
+   657→                </div>
+   658→                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Live TV</h1>
+   659→                <p className="text-white/40 text-sm max-w-md mb-3">
+   660→                  Watch free live TV channels from India and around the world.
+   661→                  Powered by real HLS streams from iptv-org.
+   662→                </p>
+   663→                <div className="flex flex-wrap gap-2 justify-center mb-8">
+   664→                  <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[11px] font-medium">
+   665→                    <Wifi className="w-3 h-3" /> Real HLS Streams
+   666→                  </span>
+   667→                  <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium">
+   668→                    <Zap className="w-3 h-3" /> {allChannels.length || '---'} Channels
+   669→                  </span>
+   670→                </div>
+   671→                <p className="text-white/25 text-xs mb-6">
+   672→                  {loadingChannels
+   673→                    ? 'Loading available channels...'
+   674→                    : 'Select a channel from the sidebar to start watching'}
+   675→                </p>
+   676→                {!loadingChannels && (
+   677→                  <div className="flex flex-wrap gap-3 justify-center">
+   678→                    {channelCategories.filter(c => c.id !== 'all' && (categoryCounts[c.id] || 0) > 0).slice(0, 6).map(cat => (
+   679→                      <button
+   680→                        key={cat.id}
+   681→                        onClick={() => setActiveCategory(cat.id)}
+   682→                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] text-white/60 hover:text-white transition-all duration-200"
+   683→                      >
+   684→                        <span className="text-lg">{cat.icon}</span>
+   685→                        <span className="text-xs font-medium">{cat.name}</span>
+   686→                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/30">{categoryCounts[cat.id] || 0}</span>
+   687→                      </button>
+   688→                    ))}
+   689→                  </div>
+   690→                )}
+   691→              </motion.div>
+   692→            </div>
+   693→          )}
+   694→        </div>
+   695→      </div>
+   696→    </motion.div>
+   697→  );
+   698→}
+   699→

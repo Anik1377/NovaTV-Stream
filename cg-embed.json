@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://docs.crazygames.com/faq",
+    "name": "FAQ & Contact",
+    "snippet": "We do not iframe games from competing browser game portals. We only iframe games hosted on independent domains, not from other browser game portals.",
+    "host_name": "docs.crazygames.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.crazygames.com",
+    "name": "CrazyGames Developer Portal | Publish Unity and HTML5",
+    "snippet": "Publish, manage, and monetize your browser games . Reach 20000000 players with your HTML5 and WebGL games. We support game engines including Unity WebGL ...",
+    "host_name": "developer.crazygames.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/16oc6el/a_website_with_html5_games_steals_projects_from",
+    "name": "A website with HTML5 games steals projects from other",
+    "snippet": "Importantly there are mechanisms to stop someone including your content via an iframe and that's how the game publisher should deal with it.",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://business.gamezop.com/blog/how-to-embed-html5-games-in-website",
+    "name": "How To Embed HTML5 Games in Your Website",
+    "snippet": "Feb 4, 2026 — Learn how to embed HTML5 games on your website using iframes , unique links, APIs, and JavaScript SDKs—monetize your site and earn revenue by ...",
+    "host_name": "business.gamezop.com",
+    "rank": 3,
+    "date": "Feb 4, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.crazygames.com/resources/html5/sitelock",
+    "name": "Sitelock",
+    "snippet": "Sitelock helps prevent your HTML5 game from being copied and hosted on unauthorized websites. ... To prevent iframe embedding , configure the CSP header ...",
+    "host_name": "docs.crazygames.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.crazygames.com/sdk/html5-v2/intro",
+    "name": "HTML5 v2 SDK",
+    "snippet": "When integrating the CrazyGames SDK, guide you in terms of technical, gameplay, ads and account integration requirements.",
+    "host_name": "docs.crazygames.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gamedistribution.com/publishers/embedded-links",
+    "name": "Direct Game Integration through Embedded Links",
+    "snippet": "Games are displayed on your site via an embedded link, which you can simply drag and drop from our catalog. This solution uses an iframe to present any game ...",
+    "host_name": "gamedistribution.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://guul.games/blog/embedded-games-a-guide-to-integration-and-key-advantages",
+    "name": "Embedded games integration: methods and options",
+    "snippet": "Aug 26, 2025 — iFrame game integration places an HTML5 game within a platform's existing page using a standard HTML iFrame element. The game runs on the ...",
+    "host_name": "guul.games",
+    "rank": 7,
+    "date": "Aug 26, 2025",
+    "favicon": ""
+  }
+]

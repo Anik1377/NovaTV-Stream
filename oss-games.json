@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/michelpereira/awesome-open-source-games",
+    "name": "michelpereira/awesome-open-source-games",
+    "snippet": "Collection of Games that have the source code available on GitHub … using HTML5 & websockets. An open source , cross-platform game engine designed for indie ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/html5-games?l=html&o=asc&s=updated",
+    "name": "html5-games · GitHub Topics",
+    "snippet": "A collection of beautiful browser games that run instantly without. Self-hosted web games portal with HTML5 games and retro console emulation via EmulatorJS",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/opensourcegames/comments/c3as3t/open_source_games_list_with_links_to_code",
+    "name": "Open source games list with links to code repositories",
+    "snippet": "Hi, I collected infos about more than 400 open source games and put them in a Github repository (game entries in text format). Read more",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/topics/html5-game",
+    "name": "html5-game · GitHub Topics",
+    "snippet": "Egret is a brand new open mobile game and application engine. Contains hundreds of source code examples and related media for the Phaser HTML5 Game Framework. ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/proyecto26/awesome-jsgames",
+    "name": "A curated list of awesome JavaScript Games",
+    "snippet": "An open - source , cross-platform game engine. A fast, free and fun open source framework for Canvas and WebGL powered browser games . Buy HTML5 games , customize ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.html5gamedevs.com/topic/6909-list-of-games-on-github",
+    "name": "List of Games on GitHub",
+    "snippet": "Jun 3, 2014 — OpenHTML5Games.com will be a portal with the open source games hosted on GitHub , so people can see the games , play them and at the same time ...",
+    "host_name": "www.html5gamedevs.com",
+    "rank": 5,
+    "date": "Jun 3, 2014",
+    "favicon": ""
+  },
+  {
+    "url": "https://end3r.com/blog/host-your-html5-games-on-github-pages.html",
+    "name": "Host your HTML5 games on GitHub Pages",
+    "snippet": "Feb 2, 2014 — Thanks to GitHub you can use their Pages to host any website without backend directly from your repository. HTML5 games are not different ...",
+    "host_name": "end3r.com",
+    "rank": 6,
+    "date": "Feb 2, 2014",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cloudron.io/topic/3803/self-hostable-games",
+    "name": "Self-hostable Games?",
+    "snippet": "Nov 27, 2020 — Discuss Self -hostable Games ? Some of these might be multi-player: https:// github .com/leereilly/ games #user-content-browser-based com/ open - source ...",
+    "host_name": "forum.cloudron.io",
+    "rank": 7,
+    "date": "Nov 27, 2020",
+    "favicon": ""
+  }
+]

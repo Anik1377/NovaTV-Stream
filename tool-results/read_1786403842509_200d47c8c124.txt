@@ -1,0 +1,610 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef, useCallback } from 'react';
+     4→import {
+     5→  Radio, ArrowLeft, Maximize2, Minimize2, Shield, RefreshCw, Tv,
+     6→  Search, ChevronRight, Globe, AlertTriangle, Loader2, Wifi, WifiOff,
+     7→  Volume2, VolumeX, Play
+     8→} from 'lucide-react';
+     9→import { motion, AnimatePresence } from 'framer-motion';
+    10→import Hls from 'hls.js';
+    11→import { useAppStore } from '@/store/app-store';
+    12→import { liveChannels, channelCategories, getChannelsByCategory } from '@/lib/live-tv-channels';
+    13→import type { LiveChannel } from '@/lib/live-tv-channels';
+    14→
+    15→interface ResolvedStream {
+    16→  type: 'youtube' | 'hls';
+    17→  videoId?: string;
+    18→  embedUrl?: string;
+    19→  hlsUrl?: string;
+    20→  title?: string;
+    21→  thumbnail?: string;
+    22→  isLive?: boolean;
+    23→  error?: string;
+    24→}
+    25→
+    26→export function LiveTV() {
+    27→  const { goHome, selectedLiveChannel, setSelectedLiveChannel } = useAppStore();
+    28→  const [activeCategory, setActiveCategory] = useState('all');
+    29→  const [searchQuery, setSearchQuery] = useState('');
+    30→  const [sidebarOpen, setSidebarOpen] = useState(true);
+    31→  const [resolvedStream, setResolvedStream] = useState<ResolvedStream | null>(null);
+    32→  const [resolving, setResolving] = useState(false);
+    33→  const [iframeLoading, setIframeLoading] = useState(false);
+    34→  const [hlsError, setHlsError] = useState(false);
+    35→  const [hlsReady, setHlsReady] = useState(false);
+    36→  const [isFullscreen, setIsFullscreen] = useState(false);
+    37→  const [adShield, setAdShield] = useState(false);
+    38→  const [muted, setMuted] = useState(false);
+    39→
+    40→  const videoContainerRef = useRef<HTMLDivElement>(null);
+    41→  const iframeRef = useRef<HTMLIFrameElement>(null);
+    42→  const videoRef = useRef<HTMLVideoElement>(null);
+    43→  const hlsRef = useRef<Hls | null>(null);
+    44→
+    45→  // Block popups
+    46→  useEffect(() => {
+    47→    const orig = window.open;
+    48→    window.open = () => null;
+    49→    return () => { window.open = orig; };
+    50→  }, []);
+    51→
+    52→  // Cleanup HLS on unmount or channel change
+    53→  useEffect(() => {
+    54→    return () => {
+    55→      if (hlsRef.current) {
+    56→        hlsRef.current.destroy();
+    57→        hlsRef.current = null;
+    58→      }
+    59→    };
+    60→  }, []);
+    61→
+    62→  const toggleFullscreen = useCallback(async () => {
+    63→    if (!videoContainerRef.current) return;
+    64→    try {
+    65→      if (!document.fullscreenElement) {
+    66→        await videoContainerRef.current.requestFullscreen();
+    67→        setIsFullscreen(true);
+    68→      } else {
+    69→        await document.exitFullscreen();
+    70→        setIsFullscreen(false);
+    71→      }
+    72→    } catch { /* ignore */ }
+    73→  }, []);
+    74→
+    75→  useEffect(() => {
+    76→    const h = () => setIsFullscreen(!!document.fullscreenElement);
+    77→    document.addEventListener('fullscreenchange', h);
+    78→    return () => document.removeEventListener('fullscreenchange', h);
+    79→  }, []);
+    80→
+    81→  const filteredChannels = getChannelsByCategory(activeCategory).filter(c => {
+    82→    if (!searchQuery) return true;
+    83→    const q = searchQuery.toLowerCase();
+    84→    return c.name.toLowerCase().includes(q) ||
+    85→      (c.language || '').toLowerCase().includes(q) ||
+    86→      c.category.toLowerCase().includes(q) ||
+    87→      (c.description || '').toLowerCase().includes(q);
+    88→  });
+    89→
+    90→  const activeChannel = liveChannels.find(c => c.id === selectedLiveChannel) || null;
+    91→
+    92→  // Destroy HLS instance
+    93→  const destroyHls = useCallback(() => {
+    94→    if (hlsRef.current) {
+    95→      hlsRef.current.destroy();
+    96→      hlsRef.current = null;
+    97→    }
+    98→    setHlsError(false);
+    99→    setHlsReady(false);
+   100→  }, []);
+   101→
+   102→  // Resolve and play a channel
+   103→  const playChannel = useCallback(async (channel: LiveChannel) => {
+   104→    setSelectedLiveChannel(channel.id);
+   105→    setResolving(true);
+   106→    setResolvedStream(null);
+   107→    destroyHls();
+   108→    setAdShield(false);
+   109→
+   110→    try {
+   111→      let apiUrl: string;
+   112→      if (channel.streamType === 'hls') {
+   113→        apiUrl = `/api/livetv/resolve?channelId=${encodeURIComponent(channel.hlsUrl!)}&type=hls`;
+   114→      } else if (channel.youtubeChannelId) {
+   115→        apiUrl = `/api/livetv/resolve?channelId=${channel.youtubeChannelId}&type=youtube`;
+   116→      } else {
+   117→        apiUrl = `/api/livetv/resolve?userName=${channel.youtubeUser}&type=youtube`;
+   118→      }
+   119→
+   120→      const res = await fetch(apiUrl);
+   121→      const data: ResolvedStream = await res.json();
+   122→
+   123→      if (data.error && !data.embedUrl && !data.hlsUrl) {
+   124→        setResolvedStream({ ...data, type: channel.streamType });
+   125→        setResolving(false);
+   126→        return;
+   127→      }
+   128→
+   129→      setResolvedStream(data);
+   130→
+   131→      if (data.type === 'youtube' && data.embedUrl) {
+   132→        setIframeLoading(true);
+   133→        setAdShield(true);
+   134→      }
+   135→
+   136→      if (data.type === 'hls' && data.hlsUrl) {
+   137→        // HLS will be initialized in a separate effect
+   138→        setResolving(false);
+   139→      } else {
+   140→        setResolving(false);
+   141→      }
+   142→    } catch {
+   143→      setResolvedStream({
+   144→        type: channel.streamType,
+   145→        error: 'Failed to connect to stream',
+   146→      });
+   147→      setResolving(false);
+   148→    }
+   149→  }, [setSelectedLiveChannel, destroyHls]);
+   150→
+   151→  // Initialize HLS when resolved stream is HLS type
+   152→  useEffect(() => {
+   153→    if (resolvedStream?.type !== 'hls' || !resolvedStream.hlsUrl || !videoRef.current) return;
+   154→
+   155→    Promise.resolve().then(() => { destroyHls(); });
+   156→    const video = videoRef.current;
+   157→
+   158→    if (Hls.isSupported()) {
+   159→      const hls = new Hls({
+   160→        enableWorker: true,
+   161→        lowLatencyMode: true,
+   162→        maxBufferLength: 30,
+   163→        maxMaxBufferLength: 60,
+   164→        startLevel: -1, // Auto quality
+   165→      });
+   166→      hlsRef.current = hls;
+   167→
+   168→      hls.loadSource(resolvedStream.hlsUrl);
+   169→      hls.attachMedia(video);
+   170→
+   171→      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+   172→        video.play().catch(() => {
+   173→          // Autoplay blocked, user needs to click play
+   174→        });
+   175→        setHlsReady(true);
+   176→      });
+   177→
+   178→      hls.on(Hls.Events.ERROR, (_event, data) => {
+   179→        if (data.fatal) {
+   180→          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+   181→            hls.startLoad();
+   182→          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+   183→            hls.recoverMediaError();
+   184→          } else {
+   185→            setHlsError(true);
+   186→          }
+   187→        }
+   188→      });
+   189→    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+   190→      // Native HLS support (Safari)
+   191→      video.src = resolvedStream.hlsUrl;
+   192→      video.addEventListener('loadedmetadata', () => {
+   193→        video.play().catch(() => {});
+   194→        setHlsReady(true);
+   195→      }, { once: true });
+   196→    }
+   197→  }, [resolvedStream, destroyHls]);
+   198→
+   199→  const handleIframeLoad = useCallback(() => {
+   200→    setIframeLoading(false);
+   201→    setTimeout(() => setAdShield(false), 1500);
+   202→  }, []);
+   203→
+   204→  const handleIframeError = useCallback(() => {
+   205→    setIframeLoading(false);
+   206→  }, []);
+   207→
+   208→  // Toggle mute for HLS
+   209→  const toggleMute = useCallback(() => {
+   210→    if (videoRef.current) {
+   211→      videoRef.current.muted = !videoRef.current.muted;
+   212→      setMuted(!muted);
+   213→    }
+   214→  }, [muted]);
+   215→
+   216→  // Count channels per category
+   217→  const categoryCounts: Record<string, number> = {};
+   218→  for (const c of liveChannels) {
+   219→    categoryCounts[c.category] = (categoryCounts[c.category] || 0) + 1;
+   220→  }
+   221→
+   222→  const isYouTube = resolvedStream?.type === 'youtube';
+   223→  const isHLS = resolvedStream?.type === 'hls';
+   224→  const hasError = resolvedStream?.error && !resolvedStream?.embedUrl && !resolvedStream?.hlsUrl;
+   225→
+   226→  return (
+   227→    <motion.div
+   228→      initial={{ opacity: 0 }}
+   229→      animate={{ opacity: 1 }}
+   230→      transition={{ duration: 0.3 }}
+   231→      className="min-h-screen bg-[#0a0a0a] flex flex-col"
+   232→    >
+   233→      {/* Breadcrumb */}
+   234→      <div className="flex items-center gap-2 px-4 h-10 bg-[#0d0d0d] border-b border-white/[0.04] shrink-0 text-xs text-white/30">
+   235→        <button onClick={goHome} className="hover:text-white/60 transition-colors">Home</button>
+   236→        <span>•</span>
+   237→        <span className="text-white/60">Live TV</span>
+   238→        <span className="ml-auto flex items-center gap-1.5 text-emerald-400/60">
+   239→          <span className="relative flex h-2 w-2">
+   240→            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+   241→            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+   242→          </span>
+   243→          LIVE
+   244→        </span>
+   245→      </div>
+   246→
+   247→      {/* Main layout */}
+   248→      <div className="flex-1 flex overflow-hidden">
+   249→        {/* LEFT: Channel sidebar */}
+   250→        <AnimatePresence>
+   251→          {sidebarOpen && (
+   252→            <motion.aside
+   253→              initial={{ width: 0, opacity: 0 }}
+   254→              animate={{ width: 320, opacity: 1 }}
+   255→              exit={{ width: 0, opacity: 0 }}
+   256→              transition={{ duration: 0.2 }}
+   257→              className="shrink-0 bg-[#0f1117] border-r border-white/[0.04] flex flex-col overflow-hidden"
+   258→            >
+   259→              {/* Sidebar header */}
+   260→              <div className="px-4 py-3 border-b border-white/[0.04] space-y-3">
+   261→                <div className="flex items-center justify-between">
+   262→                  <div className="flex items-center gap-2">
+   263→                    <Radio className="w-4 h-4 text-emerald-400" />
+   264→                    <span className="text-white/80 text-sm font-bold">Channels</span>
+   265→                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">{filteredChannels.length}</span>
+   266→                  </div>
+   267→                  <button onClick={() => setSidebarOpen(false)} className="text-white/30 hover:text-white/60 transition-colors">
+   268→                    <ChevronRight className="w-4 h-4" />
+   269→                  </button>
+   270→                </div>
+   271→
+   272→                {/* Search */}
+   273→                <div className="relative">
+   274→                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+   275→                  <input
+   276→                    value={searchQuery}
+   277→                    onChange={(e) => setSearchQuery(e.target.value)}
+   278→                    placeholder="Search channels..."
+   279→                    className="w-full h-8 pl-8 pr-3 rounded-lg bg-white/[0.06] border border-white/[0.06] text-white/80 text-xs placeholder:text-white/20 focus:outline-none focus:border-emerald-500/40"
+   280→                  />
+   281→                </div>
+   282→              </div>
+   283→
+   284→              {/* Category tabs */}
+   285→              <div className="px-4 py-2 border-b border-white/[0.04] overflow-x-auto no-scrollbar">
+   286→                <div className="flex gap-1">
+   287→                  {channelCategories.map(cat => (
+   288→                    <button
+   289→                      key={cat.id}
+   290→                      onClick={() => setActiveCategory(cat.id)}
+   291→                      className={
+   292→                        'shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 border ' +
+   293→                        (activeCategory === cat.id
+   294→                          ? 'bg-white text-[#0a0a0a] border-white'
+   295→                          : 'bg-white/[0.04] text-white/40 border-white/[0.04] hover:bg-white/[0.08] hover:text-white/60')
+   296→                      }
+   297→                    >
+   298→                      <span>{cat.icon}</span>
+   299→                      {cat.name}
+   300→                    </button>
+   301→                  ))}
+   302→                </div>
+   303→              </div>
+   304→
+   305→              {/* Channel list */}
+   306→              <div className="flex-1 overflow-y-auto content-scroll p-2 space-y-0.5">
+   307→                {filteredChannels.length === 0 ? (
+   308→                  <div className="flex flex-col items-center justify-center py-12 text-white/20">
+   309→                    <Tv className="w-8 h-8 mb-2" />
+   310→                    <p className="text-xs">No channels found</p>
+   311→                  </div>
+   312→                ) : (
+   313→                  filteredChannels.map((channel, idx) => {
+   314→                    const isActive = activeChannel?.id === channel.id;
+   315→                    const isStreamHls = channel.streamType === 'hls';
+   316→                    return (
+   317→                      <motion.button
+   318→                        key={channel.id}
+   319→                        initial={{ opacity: 0, x: -10 }}
+   320→                        animate={{ opacity: 1, x: 0 }}
+   321→                        transition={{ delay: idx * 0.02, duration: 0.2 }}
+   322→                        onClick={() => playChannel(channel)}
+   323→                        className={
+   324→                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 group border ' +
+   325→                          (isActive
+   326→                            ? 'bg-emerald-500/10 border-emerald-500/20'
+   327→                            : 'bg-transparent border-transparent hover:bg-white/[0.04]')
+   328→                        }
+   329→                      >
+   330→                        {/* Channel logo */}
+   331→                        <div
+   332→                          className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
+   333→                          style={{ backgroundColor: channel.color + '15' }}
+   334→                        >
+   335→                          {channel.logo}
+   336→                        </div>
+   337→
+   338→                        {/* Channel info */}
+   339→                        <div className="flex-1 min-w-0">
+   340→                          <div className="flex items-center gap-1.5">
+   341→                            <span className={'text-xs font-semibold truncate ' + (isActive ? 'text-white' : 'text-white/80 group-hover:text-white')}>
+   342→                              {channel.name}
+   343→                            </span>
+   344→                            {isActive && !resolving && !hasError && (
+   345→                              <span className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[8px] font-bold uppercase tracking-wider">
+   346→                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+   347→                                Live
+   348→                              </span>
+   349→                            )}
+   350→                            <span className={
+   351→                              'shrink-0 px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider ' +
+   352→                              (isStreamHls ? 'bg-sky-500/15 text-sky-400' : 'bg-red-500/15 text-red-400')
+   353→                            }>
+   354→                              {isStreamHls ? 'HLS' : 'YT'}
+   355→                            </span>
+   356→                          </div>
+   357→                          <div className="flex items-center gap-1.5 mt-0.5">
+   358→                            {channel.country && (
+   359→                              <span className="text-[9px] text-white/25 font-medium uppercase">{channel.country}</span>
+   360→                            )}
+   361→                            {channel.language && (
+   362→                              <span className="text-[9px] text-white/20">•</span>
+   363→                            )}
+   364→                            {channel.language && (
+   365→                              <span className="text-[9px] text-white/25">{channel.language}</span>
+   366→                            )}
+   367→                          </div>
+   368→                          {channel.description && (
+   369→                            <p className="text-[9px] text-white/20 mt-0.5 truncate">{channel.description}</p>
+   370→                          )}
+   371→                        </div>
+   372→
+   373→                        {/* Play icon */}
+   374→                        <div className={
+   375→                          'w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ' +
+   376→                          (isActive
+   377→                            ? 'bg-emerald-500 text-white'
+   378→                            : 'bg-white/[0.04] text-white/20 opacity-0 group-hover:opacity-100')
+   379→                        }>
+   380→                          <Radio className="w-3 h-3" />
+   381→                        </div>
+   382→                      </motion.button>
+   383→                    );
+   384→                  })
+   385→                )}
+   386→              </div>
+   387→            </motion.aside>
+   388→          )}
+   389→        </AnimatePresence>
+   390→
+   391→        {/* CENTER: Video player or welcome */}
+   392→        <div className="flex-1 flex flex-col min-w-0">
+   393→          {activeChannel ? (
+   394→            <>
+   395→              {/* Video container */}
+   396→              <div ref={videoContainerRef} className="relative w-full bg-black">
+   397→                <div className="relative w-full aspect-video max-h-[75vh] mx-auto">
+   398→                  {!sidebarOpen && (
+   399→                    <button
+   400→                      onClick={() => setSidebarOpen(true)}
+   401→                      className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-white/70 hover:text-white text-xs font-medium transition-colors"
+   402→                    >
+   403→                      Channels
+   404→                    </button>
+   405→                  )}
+   406→
+   407→                  {/* Resolving state */}
+   408→                  {resolving && (
+   409→                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   410→                      <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+   411→                      <p className="text-white/50 text-sm font-medium">Finding stream...</p>
+   412→                      <p className="text-white/25 text-xs">Resolving {activeChannel.name}</p>
+   413→                    </div>
+   414→                  )}
+   415→
+   416→                  {/* Error state */}
+   417→                  {hasError && !resolving && (
+   418→                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   419→                      <WifiOff className="w-12 h-12 text-red-400/60" />
+   420→                      <p className="text-white/60 text-sm font-medium">Stream Unavailable</p>
+   421→                      <p className="text-white/30 text-xs max-w-sm text-center">{resolvedStream?.error}</p>
+   422→                      <button
+   423→                        onClick={() => activeChannel && playChannel(activeChannel)}
+   424→                        className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+   425→                      >
+   426→                        <RefreshCw className="w-3.5 h-3.5" /> Try Again
+   427→                      </button>
+   428→                    </div>
+   429→                  )}
+   430→
+   431→                  {/* YouTube iframe */}
+   432→                  {isYouTube && resolvedStream?.embedUrl && !resolving && !hasError && (
+   433→                    <>
+   434→                      {iframeLoading && (
+   435→                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   436→                          <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+   437→                          <p className="text-white/30 text-xs">Loading {activeChannel.name}...</p>
+   438→                        </div>
+   439→                      )}
+   440→                      {adShield && (
+   441→                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/5 pointer-events-none">
+   442→                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm">
+   443→                            <Shield className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+   444→                            <span className="text-white/60 text-[11px]">Loading stream...</span>
+   445→                          </div>
+   446→                        </div>
+   447→                      )}
+   448→                      <iframe
+   449→                        ref={iframeRef}
+   450→                        key={resolvedStream.videoId || activeChannel.id}
+   451→                        src={resolvedStream.embedUrl}
+   452→                        className="w-full h-full"
+   453→                        allowFullScreen
+   454→                        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+   455→                        onLoad={handleIframeLoad}
+   456→                        onError={handleIframeError}
+   457→                        title={activeChannel.name}
+   458→                        referrerPolicy="no-referrer"
+   459→                      />
+   460→                    </>
+   461→                  )}
+   462→
+   463→                  {/* HLS Video player */}
+   464→                  {isHLS && resolvedStream?.hlsUrl && !resolving && !hasError && (
+   465→                    <>
+   466→                      {!hlsReady && !hlsError && (
+   467→                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-3">
+   468→                          <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+   469→                          <p className="text-white/30 text-xs">Connecting to {activeChannel.name}...</p>
+   470→                        </div>
+   471→                      )}
+   472→                      {hlsError && (
+   473→                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/90 gap-3">
+   474→                          <AlertTriangle className="w-10 h-10 text-amber-400/60" />
+   475→                          <p className="text-white/60 text-sm font-medium">Stream Error</p>
+   476→                          <p className="text-white/30 text-xs">Unable to play this stream. It may be offline or geo-blocked.</p>
+   477→                          <button
+   478→                            onClick={() => activeChannel && playChannel(activeChannel)}
+   479→                            className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium hover:bg-emerald-500/30 transition-colors"
+   480→                          >
+   481→                            <RefreshCw className="w-3.5 h-3.5" /> Retry
+   482→                          </button>
+   483→                        </div>
+   484→                      )}
+   485→                      <video
+   486→                        ref={videoRef}
+   487→                        className="w-full h-full"
+   488→                        controls
+   489→                        autoPlay
+   490→                        playsInline
+   491→                        style={{ display: hlsError ? 'none' : 'block' }}
+   492→                      />
+   493→                    </>
+   494→                  )}
+   495→                </div>
+   496→              </div>
+   497→
+   498→              {/* Player info bar */}
+   499→              <div className="flex items-center justify-between px-4 py-2 bg-[#0d0d0d] border-b border-white/[0.04]">
+   500→                <div className="flex items-center gap-2.5">
+   501→                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+   502→                    <span className="relative flex h-1.5 w-1.5">
+   503→                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+   504→                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+   505→                    </span>
+   506→                    <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">LIVE</span>
+   507→                  </div>
+   508→                  <div className="flex items-center gap-1.5">
+   509→                    <span className="text-lg" style={{ color: activeChannel.color }}>{activeChannel.logo}</span>
+   510→                    <span className="text-white text-xs font-semibold">{activeChannel.name}</span>
+   511→                  </div>
+   512→                  <span className={
+   513→                    'px-1.5 py-0.5 rounded text-[9px] font-semibold ' +
+   514→                    (isHLS ? 'bg-sky-500/15 text-sky-400' : 'bg-red-500/15 text-red-400')
+   515→                  }>
+   516→                    {isHLS ? 'Direct Stream' : 'YouTube'}
+   517→                  </span>
+   518→                  {resolvedStream?.title && (
+   519→                    <span className="hidden md:inline text-[10px] text-white/30 truncate max-w-xs">{resolvedStream.title}</span>
+   520→                  )}
+   521→                  {activeChannel.country && (
+   522→                    <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] text-[10px] text-white/40">
+   523→                      <Globe className="w-2.5 h-2.5" />
+   524→                      {activeChannel.country} {activeChannel.language && `• ${activeChannel.language}`}
+   525→                    </span>
+   526→                  )}
+   527→                </div>
+   528→                <div className="flex items-center gap-2">
+   529→                  {isHLS && hlsReady && (
+   530→                    <button
+   531→                      onClick={toggleMute}
+   532→                      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   533→                    >
+   534→                      {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+   535→                    </button>
+   536→                  )}
+   537→                  <button
+   538→                    onClick={() => activeChannel && playChannel(activeChannel)}
+   539→                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   540→                  >
+   541→                    <RefreshCw className="w-3 h-3" /> Refresh
+   542→                  </button>
+   543→                  <button
+   544→                    onClick={toggleFullscreen}
+   545→                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   546→                  >
+   547→                    {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />} Expand
+   548→                  </button>
+   549→                  <button
+   550→                    onClick={() => {
+   551→                      setSelectedLiveChannel(null);
+   552→                      setResolvedStream(null);
+   553→                      destroyHls();
+   554→                    }}
+   555→                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 text-xs font-medium transition-colors"
+   556→                  >
+   557→                    <ArrowLeft className="w-3 h-3" /> Close
+   558→                  </button>
+   559→                </div>
+   560→              </div>
+   561→            </>
+   562→          ) : (
+   563→            /* Welcome / empty state */
+   564→            <div className="flex-1 flex flex-col items-center justify-center px-6">
+   565→              <motion.div
+   566→                initial={{ scale: 0.8, opacity: 0 }}
+   567→                animate={{ scale: 1, opacity: 1 }}
+   568→                transition={{ duration: 0.5, type: 'spring' }}
+   569→                className="text-center"
+   570→              >
+   571→                <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+   572→                  <Radio className="w-10 h-10 text-emerald-400" />
+   573→                </div>
+   574→                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Live TV</h1>
+   575→                <p className="text-white/40 text-sm max-w-md mb-3">
+   576→                  Watch live TV channels from India and around the world.
+   577→                </p>
+   578→                <div className="flex flex-wrap gap-2 justify-center mb-8">
+   579→                  <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[11px] font-medium">
+   580→                    <Wifi className="w-3 h-3" /> HLS Direct Streams
+   581→                  </span>
+   582→                  <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-medium">
+   583→                    <Play className="w-3 h-3" /> YouTube Live
+   584→                  </span>
+   585→                </div>
+   586→                <p className="text-white/25 text-xs mb-6">
+   587→                  Select a channel from the sidebar to start watching
+   588→                </p>
+   589→                <div className="flex flex-wrap gap-3 justify-center">
+   590→                  {channelCategories.filter(c => c.id !== 'all').map(cat => (
+   591→                    <button
+   592→                      key={cat.id}
+   593→                      onClick={() => setActiveCategory(cat.id)}
+   594→                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/[0.1] text-white/60 hover:text-white transition-all duration-200"
+   595→                    >
+   596→                      <span className="text-lg">{cat.icon}</span>
+   597→                      <span className="text-xs font-medium">{cat.name}</span>
+   598→                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/30">{categoryCounts[cat.id] || 0}</span>
+   599→                    </button>
+   600→                  ))}
+   601→                </div>
+   602→              </motion.div>
+   603→            </div>
+   604→          )}
+   605→        </div>
+   606→      </div>
+   607→    </motion.div>
+   608→  );
+   609→}
+   610→

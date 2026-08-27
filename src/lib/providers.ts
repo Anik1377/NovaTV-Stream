@@ -79,6 +79,15 @@ export const providers: Provider[] = [
     tvUrl: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`,
   },
   {
+    id: 'vidlove',
+    name: 'VidLove',
+    description: 'Fast streams, wide library',
+    color: '#f43f5e',
+    icon: '♥',
+    movieUrl: (id) => `https://vidlove.cc/embed/movie/${id}`,
+    tvUrl: (id, s, e) => `https://vidlove.cc/embed/tv/${id}/${s}/${e}`,
+  },
+  {
     id: 'embed-su',
     name: 'Embed.su',
     description: 'Direct streams, minimal ads',

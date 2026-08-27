@@ -1,0 +1,48 @@
+{
+  "code": 200,
+  "data": {
+    "description": "Traffic Tap Puzzle",
+    "external": {
+      "apple-touch-icon": {
+        "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/icons/icon-128.png": {
+          "sizes": "128x128"
+        },
+        "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/icons/icon-256.png": {
+          "sizes": "256x256"
+        },
+        "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/icons/icon-512.png": {
+          "sizes": "512x512"
+        }
+      },
+      "icon": {
+        "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/icons/icon-512.png": {
+          "type": "image/png"
+        }
+      },
+      "manifest": {
+        "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/appmanifest.json": {},
+        "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/manifest.json": {}
+      }
+    },
+    "html": "<html style=\"--construct-scale: 0.6666666666666666;\"><head><meta charset=\"UTF-8\"><title>Grand Fruit Connect</title><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no\"><meta name=\"generator\" content=\"Scirra Construct\"><meta name=\"author\" content=\"DoonDookStudio\"><meta name=\"description\" content=\"Traffic Tap Puzzle\"><link rel=\"manifest\" href=\"appmanifest.json\"><link rel=\"apple-touch-icon\" sizes=\"128x128\" href=\"icons/icon-128.png\"><link rel=\"apple-touch-icon\" sizes=\"256x256\" href=\"icons/icon-256.png\"><link rel=\"apple-touch-icon\" sizes=\"512x512\" href=\"icons/icon-512.png\"><link rel=\"icon\" type=\"image/png\" href=\"icons/icon-512.png\"><link rel=\"stylesheet\" href=\"style.css\"><link rel=\"stylesheet\" href=\"assets/css/orientation.css\"><link rel=\"stylesheet\" href=\"assets/css/aeria_ymenu.css\"><script id=\"gamedistribution-jssdk\" src=\"//html5.api.gamedistribution.com/main.min.js\"></script><script src=\"https://assets.msn.com/staticsb/statics/latest/msstart-games-sdk/msstart-v1.0.0-rc.20.min.js\"></script><link rel=\"manifest\" href=\"https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/manifest.json\"><script src=\"https://static.gamedistribution.com/h5-azerion-branding.umd.min.js\" defer=\"defer\"></script><script src=\"azerion-libs.js\" defer=\"defer\"></script><script defer=\"defer\" src=\"main.js\"></script><script type=\"module\" src=\"scripts/c3main.js\"></script></head><body style=\"\"><header role=\"banner\" id=\"menu-header\"><div class=\"drawer-header\"><button type=\"button\" id=\"menu-button\" class=\"drawer-toggle drawer-hamburger\"></button></div><div id=\"menu-content\" class=\"drawer-main\" style=\"left: -300px\"><div class=\"side-menu\" id=\"side-menu\" style=\"transition-timing-function: cubic-bezier(0.1, 0.57, 0.1, 1); transition-duration: 0ms; transform: translate(0px, 0px) translateZ(0px);\"><iframe id=\"menu_yg\" src=\"https://frame.games.yahoo.co.jp/AE/menu/pc/ae-azer-347\" scrolling=\"yes\" frameborder=\"0\" seamless=\"\"></iframe></div></div></header><script>if (location.protocol.substr(0, 4) === \"file\")\n{\n\talert(\"Web exports won't work until you upload them. (When running on the file: protocol, browsers block many features from working for security reasons.)\");\n}</script><noscript><div id=\"notSupportedWrap\"><h2 id=\"notSupportedTitle\">This content requires JavaScript</h2><p class=\"notSupportedMessage\">JavaScript appears to be disabled. Please enable it to view this content.</p></div></noscript><script src=\"scripts/modernjscheck.js\"></script><script src=\"scripts/supportcheck.js\"></script><script src=\"scripts/main.js\" type=\"module\"></script><div id=\"orientation\"></div><canvas style=\"width: 1280px; height: 1280px; margin-left: 0px; margin-top: 0px;\" width=\"1280\" height=\"1280\"></canvas><div class=\"c3htmlwrap\" interactive=\"\" style=\"width: 1280px; height: 1280px; margin-left: 0px; margin-top: 0px;\"></div><div class=\"c3-screen-reader-text\" aria-live=\"polite\"></div><div id=\"_azExtraContainer\" tabindex=\"0\" style=\"height: 100vh; width: 100vw; display: none; position: absolute; top: 0px; left: 0px; background-color: rgba(0, 0, 0, 0.9); z-index: 999;\"><p style=\"position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0px; font-size: 40px; font-family: Aquino-Demo; color: white; text-align: center;\">Click to Resume</p></div><div style=\"position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;\"></div></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "metadata": {
+      "author": "DoonDookStudio",
+      "description": "Traffic Tap Puzzle",
+      "generator": "Scirra Construct",
+      "viewport": "width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"
+    },
+    "title": "Grand Fruit Connect",
+    "url": "https://html5.gamedistribution.com/rvvASMiM/579a9818703d4aaba116bca2616432fe/index.html",
+    "usage": {
+      "tokens": 1009
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 1009
+    }
+  },
+  "status": 200
+}
