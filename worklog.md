@@ -1799,3 +1799,24 @@ Stage Summary:
 - Monetag verification meta tag is now in the page <head> for site ownership verification
 - Ad system was already fully updated to Monetag format from previous session (alwingulla.com + data-zone attribute)
 - CSP cleaned up: removed old propellerads a.magsrv.com, kept alwingulla.com and highperformanceformat.com (adsterra fallback)
+---
+Task ID: 1
+Agent: Main
+Task: Re-implement Monetag ads with new banner zone 11671790
+
+Work Log:
+- Analyzed user-provided script: dynamic body-append approach with zone 11671790 on nap5k.com
+- Updated src/lib/ads.ts: changed domain to nap5k.com, set all zones to 11671790, fixed script URL to /tag.min.js
+- Updated src/app/layout.tsx: removed old multitag script (quge5.com/273907), added new inline script in body that dynamically appends to document.body
+- Updated src/middleware.ts: added nap5k.com to CSP script-src, img-src, and connect-src directives
+- Ran lint check - passed clean
+- Pushed to GitHub: commit 5e584cb
+- Verified deployment on https://stvault.vercel.app/
+
+Stage Summary:
+- Old quge5.com/273907 multitag script completely removed from source
+- New nap5k.com/11671790 banner script deployed using body-append technique (bypasses Next.js head hoisting)
+- All 4 ad containers (banner-top, banner-mid, banner-bottom, native) correctly loading nap5k.com/tag.min.js with zone 11671790
+- CSP whitelisting nap5k.com - no blocked requests
+- Zero console errors on live site
+- Ad scripts returning HTTP 200, Monetag tag injecting 90px-height containers
