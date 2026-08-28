@@ -10,7 +10,6 @@ interface AdNativeProps {
   showPlaceholder?: boolean;
 }
 
-/** Placeholder when ads are disabled */
 function NativePlaceholder({ className }: { className?: string }) {
   return (
     <div className={`w-full max-w-sm mx-auto ${className}`}>
@@ -27,26 +26,19 @@ function NativePlaceholder({ className }: { className?: string }) {
   );
 }
 
-/** Active native ad that injects the script */
 function ActiveAdNative({ slot, className }: AdNativeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const zoneId = getZoneId(slot);
-  const config = getAdConfig();
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !zoneId) return;
-
-    const script = createAdScript(zoneId, config.network);
+    const script = createAdScript(zoneId);
     if (!script) return;
-
     container.innerHTML = '';
     container.appendChild(script);
-
-    return () => {
-      if (container) container.innerHTML = '';
-    };
-  }, [zoneId, config.network]);
+    return () => { if (container) container.innerHTML = ''; };
+  }, [zoneId]);
 
   if (!zoneId) return null;
 
@@ -68,16 +60,8 @@ function ActiveAdNative({ slot, className }: AdNativeProps) {
   );
 }
 
-/**
- * AdNative — In-content native ad that blends with surrounding content.
- * Displays as a subtle card-like element with a small "Sponsored" label.
- */
 export function AdNative({ slot, className = '', showPlaceholder = false }: AdNativeProps) {
   const config = getAdConfig();
-
-  if (!config.enabled) {
-    return showPlaceholder ? <NativePlaceholder className={className} /> : null;
-  }
-
+  if (!config.enabled) return showPlaceholder ? <NativePlaceholder className={className} /> : null;
   return <ActiveAdNative slot={slot} className={className} />;
 }

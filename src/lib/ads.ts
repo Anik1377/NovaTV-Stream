@@ -1,45 +1,35 @@
 /**
  * Ad Network Configuration — Monetag (by PropellerAds)
  *
- * Monetag is the best Google AdSense alternative for streaming sites.
- * Sign up at https://publishers.monetag.com/
+ * Monetag Multitag (zone 273907) is loaded in layout.tsx — it handles
+ * Push Notifications, In-Page Push, and Vignette Banner automatically.
  *
- * All placements are non-aggressive: banners, native, sticky bar only.
- * No popunders, no interstitials, no redirect ads.
- *
- * To activate:
- *   1. Create zones in your Monetag dashboard
- *   2. Copy the zone IDs (the number in data-zone="XXXXXX")
- *   3. Paste them below and set enabled = true
+ * The zones below are for BANNER ads — create them in your Monetag dashboard:
+ *   1. Go to https://publishers.monetag.com/
+ *   2. Click "Add zone" → choose "Banner" format
+ *   3. Copy the zone ID from the script tag
+ *   4. Paste it below
  */
 
 export interface AdConfig {
   enabled: boolean;
-  network: 'monetag' | 'adsterra';
-  /** Publisher-specific Monetag script domain (e.g. 'quge5.com') */
   monetagDomain: string;
   zones: {
-    // Banner ad zones (create "Banner 320x50" and "Banner 728x90" in Monetag)
-    bannerTop: string;      // Leaderboard below hero
-    bannerMid: string;      // Banner between content rows
-    bannerBottom: string;   // Banner above footer
-    // Native ad zones (create "Native Banner" in Monetag)
+    bannerTop: string;      // 728x90 below hero
+    bannerMid: string;      // 728x90 between content rows
+    bannerBottom: string;   // 728x90 above footer
     nativeHome: string;     // Native ad on homepage
     nativeDetail: string;   // Native ad on movie/tv detail
-    // Sticky bar zone (create "Social Bar" in Monetag)
     stickyBar: string;      // Bottom sticky bar
-    // Video player area
     playerBanner: string;   // Banner near video player
   };
 }
 
-/* ─── Default config — replace zone IDs with your own from Monetag dashboard ─── */
 const defaultConfig: AdConfig = {
   enabled: true,
-  network: 'monetag',
-  monetagDomain: 'quge5.com', // Your publisher-specific Monetag script domain
+  monetagDomain: 'quge5.com',
   zones: {
-    bannerTop: '273907',
+    bannerTop: '',
     bannerMid: '',
     bannerBottom: '',
     nativeHome: '',
@@ -49,12 +39,10 @@ const defaultConfig: AdConfig = {
   },
 };
 
-/** Get ad config */
 export function getAdConfig(): AdConfig {
   return defaultConfig;
 }
 
-/** Ad slot type definitions */
 export type AdSlot =
   | 'banner-top'
   | 'banner-mid'
@@ -64,7 +52,6 @@ export type AdSlot =
   | 'sticky-bar'
   | 'player-banner';
 
-/** Get zone ID for a slot */
 export function getZoneId(slot: AdSlot): string {
   const config = getAdConfig();
   const zoneMap: Record<AdSlot, keyof AdConfig['zones']> = {
@@ -79,29 +66,14 @@ export function getZoneId(slot: AdSlot): string {
   return config.zones[zoneMap[slot]];
 }
 
-/**
- * Build the <script> element for a given zone.
- * Monetag format:
- *   <script async src="https://{PUBLISHER_DOMAIN}/88/tag.min.js" data-zone="ZONE_ID" data-cfasync="false"></script>
- *
- * Adsterra format:
- *   <script async src="https://www.highperformanceformat.com/ZONE_ID"></script>
- */
-export function createAdScript(zoneId: string, network: AdConfig['network']): HTMLScriptElement | null {
+export function createAdScript(zoneId: string): HTMLScriptElement | null {
   if (!zoneId) return null;
-
+  const config = getAdConfig();
+  const domain = config.monetagDomain || 'alwingulla.com';
   const script = document.createElement('script');
   script.async = true;
-
-  if (network === 'monetag') {
-    const config = getAdConfig();
-    const domain = config.monetagDomain || 'alwingulla.com';
-    script.src = `https://${domain}/88/tag.min.js`;
-    script.setAttribute('data-zone', zoneId);
-    script.setAttribute('data-cfasync', 'false');
-  } else if (network === 'adsterra') {
-    script.src = `//www.highperformanceformat.com/${zoneId}`;
-  }
-
+  script.src = `https://${domain}/88/tag.min.js`;
+  script.setAttribute('data-zone', zoneId);
+  script.setAttribute('data-cfasync', 'false');
   return script;
 }

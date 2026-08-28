@@ -6,11 +6,9 @@ import { getAdConfig, getZoneId, createAdScript, type AdSlot } from '@/lib/ads';
 interface AdBannerProps {
   slot: AdSlot;
   className?: string;
-  /** Show a placeholder outline when ads are disabled (for layout preview) */
   showPlaceholder?: boolean;
 }
 
-/** Placeholder when ads are disabled */
 function AdPlaceholder({ className }: { className?: string }) {
   return (
     <div className={`flex items-center justify-center w-full ${className}`}>
@@ -25,26 +23,19 @@ function AdPlaceholder({ className }: { className?: string }) {
   );
 }
 
-/** Active ad banner that injects the Monetag/Adsterra script */
 function ActiveAdBanner({ slot, className }: AdBannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const zoneId = getZoneId(slot);
-  const config = getAdConfig();
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !zoneId) return;
-
-    const script = createAdScript(zoneId, config.network);
+    const script = createAdScript(zoneId);
     if (!script) return;
-
     container.innerHTML = '';
     container.appendChild(script);
-
-    return () => {
-      if (container) container.innerHTML = '';
-    };
-  }, [zoneId, config.network]);
+    return () => { if (container) container.innerHTML = ''; };
+  }, [zoneId]);
 
   if (!zoneId) return null;
 
@@ -62,20 +53,8 @@ function ActiveAdBanner({ slot, className }: AdBannerProps) {
   );
 }
 
-/**
- * AdBanner — Horizontal display ad (728x90 desktop, 320x50 mobile)
- * Non-aggressive, blends into the page layout.
- *
- * Usage:
- *   <AdBanner slot="banner-top" />
- *   <AdBanner slot="banner-mid" className="my-8" />
- */
 export function AdBanner({ slot, className = '', showPlaceholder = false }: AdBannerProps) {
   const config = getAdConfig();
-
-  if (!config.enabled) {
-    return showPlaceholder ? <AdPlaceholder className={className} /> : null;
-  }
-
+  if (!config.enabled) return showPlaceholder ? <AdPlaceholder className={className} /> : null;
   return <ActiveAdBanner slot={slot} className={className} />;
 }

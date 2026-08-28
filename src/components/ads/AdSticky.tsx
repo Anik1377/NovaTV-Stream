@@ -5,11 +5,6 @@ import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAdConfig, createAdScript } from '@/lib/ads';
 
-/**
- * AdSticky — Subtle sticky bottom ad bar.
- * Can be dismissed by the user. Reappears on next page navigation.
- * Very non-aggressive: small, closeable, respects safe areas.
- */
 export function AdSticky() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -20,20 +15,15 @@ export function AdSticky() {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !config.enabled || !zoneId) return;
-
-    const script = createAdScript(zoneId, config.network);
+    if (!container || !zoneId) return;
+    const script = createAdScript(zoneId);
     if (!script) return;
-
     container.innerHTML = '';
     container.appendChild(script);
+    return () => { if (container) container.innerHTML = ''; };
+  }, [zoneId]);
 
-    return () => {
-      if (container) container.innerHTML = '';
-    };
-  }, [config.enabled, config.network, zoneId]);
-
-  if (!config.enabled || !zoneId || dismissed) return null;
+  if (!zoneId || dismissed) return null;
 
   return (
     <AnimatePresence>
