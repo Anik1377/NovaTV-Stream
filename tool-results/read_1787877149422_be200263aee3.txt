@@ -1,0 +1,717 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef, useEffect, useCallback } from 'react';
+     4→import {
+     5→  X, Loader2, ArrowLeft, Play, Tv, ChevronDown,
+     6→  Zap, AlertTriangle, RefreshCw, MonitorPlay, LayoutGrid,
+     7→  Star, Calendar, Clock, Film, Minus, Check,
+     8→} from 'lucide-react';
+     9→import { motion, AnimatePresence } from 'framer-motion';
+    10→import { providers, getProvider, getEmbedUrl } from '@/lib/providers';
+    11→import { useAppStore } from '@/store/app-store';
+    12→import { useAuthStore } from '@/store/auth-store';
+    13→import { useIsMobile } from '@/hooks/use-mobile';
+    14→import { recordWatchHistory } from '@/lib/watch-history';
+    15→import { getImageUrl } from '@/lib/tmdb';
+    16→import type { Episode } from '@/lib/types';
+    17→
+    18→interface VideoPlayerProps {
+    19→  src: string;
+    20→  title?: string;
+    21→  onClose: () => void;
+    22→  mediaType: 'movie' | 'tv';
+    23→  tmdbId: number;
+    24→  season?: number;
+    25→  episode?: number;
+    26→}
+    27→
+    28→function useIOSFullscreenDetect(onReturn: () => void) {
+    29→  useEffect(() => {
+    30→    const h = () => onReturn();
+    31→    document.addEventListener('webkitendfullscreen', h);
+    32→    return () => document.removeEventListener('webkitendfullscreen', h);
+    33→  }, [onReturn]);
+    34→}
+    35→
+    36→/* Animated equalizer bars for "now playing" indicator */
+    37→function PlayingBars({ color, size = 'sm' }: { color: string; size?: 'sm' | 'md' }) {
+    38→  const h = size === 'sm' ? 'h-3' : 'h-4';
+    39→  const gap = size === 'sm' ? 'gap-[2px]' : 'gap-[3px]';
+    40→  const barW = size === 'sm' ? 'w-[3px]' : 'w-[4px]';
+    41→  return (
+    42→    <div className={`flex items-end ${gap} ${h}`}>
+    43→      {[0, 1, 2].map((i) => (
+    44→        <motion.div
+    45→          key={i}
+    46→          className={`${barW} rounded-full`}
+    47→          style={{ backgroundColor: color }}
+    48→          animate={{ height: ['40%', '100%', '60%', '100%', '40%'] }}
+    49→          transition={{
+    50→            duration: 1.2,
+    51→            repeat: Infinity,
+    52→            delay: i * 0.2,
+    53→            ease: 'easeInOut',
+    54→          }}
+    55→        />
+    56→      ))}
+    57→    </div>
+    58→  );
+    59→}
+    60→
+    61→export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, episode }: VideoPlayerProps) {
+    62→  const [loading, setLoading] = useState(true);
+    63→  const [error, setError] = useState(false);
+    64→  const [eps, setEps] = useState<Episode[]>([]);
+    65→  const [epsLoading, setEpsLoading] = useState(false);
+    66→  const [showEps, setShowEps] = useState(mediaType === 'tv');
+    67→  const [curSrc, setCurSrc] = useState(src);
+    68→  const [curSeason, setCurSeason] = useState(season || 1);
+    69→  const [showServerMenu, setShowServerMenu] = useState(false);
+    70→  const [showInfo, setShowInfo] = useState(false);
+    71→  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    72→  const iframeRef = useRef<HTMLIFrameElement>(null);
+    73→  const serverMenuRef = useRef<HTMLDivElement>(null);
+    74→  const { selectedProvider, setSelectedProvider, selectedMovie, selectedTv } = useAppStore();
+    75→  const user = useAuthStore(s => s.user);
+    76→  const isMobile = useIsMobile();
+    77→  const provider = getProvider(selectedProvider);
+    78→
+    79→  /* Content info from store */
+    80→  const contentItem = mediaType === 'tv' ? selectedTv : selectedMovie;
+    81→  const contentYear = mediaType === 'movie'
+    82→    ? (selectedMovie?.release_date || '').split('-')[0]
+    83→    : (selectedTv?.first_air_date || '').split('-')[0];
+    84→  const contentRating = contentItem?.vote_average;
+    85→  const contentPoster = contentItem?.poster_path;
+    86→  const contentRuntime = selectedMovie?.runtime;
+    87→
+    88→  useEffect(() => {
+    89→    if (timerRef.current) clearTimeout(timerRef.current);
+    90→    timerRef.current = setTimeout(() => setLoading(false), isMobile ? 5000 : 10000);
+    91→    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    92→  }, [curSrc, isMobile]);
+    93→
+    94→  const fetchEps = useCallback(async (id: number, s: number) => {
+    95→    setEpsLoading(true);
+    96→    try {
+    97→      const r = await fetch(`/api/tmdb/tv/${id}/season/${s}`);
+    98→      const d = await r.json();
+    99→      setEps(d.episodes || []);
+   100→    } catch { setEps([]); }
+   101→    finally { setEpsLoading(false); }
+   102→  }, []);
+   103→
+   104→  useEffect(() => {
+   105→    if (mediaType === 'tv') fetchEps(tmdbId, curSeason);
+   106→  }, [mediaType, tmdbId, curSeason, fetchEps]);
+   107→
+   108→  useEffect(() => {
+   109→    if (!title) return;
+   110→    const item = mediaType === 'tv' ? selectedTv : selectedMovie;
+   111→    recordWatchHistory({ tmdbId, title, posterPath: item?.poster_path || null, backdropPath: item?.backdrop_path || null, mediaType, season: season ?? null, episode: episode ?? null });
+   112→    if (user) { fetch('/api/profile/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tmdbId, title, posterPath: item?.poster_path || null, mediaType, season: season ?? null, episode: episode ?? null }) }).catch(() => {}); }
+   113→  }, [tmdbId, mediaType, season, episode, title, user, selectedMovie, selectedTv]);
+   114→
+   115→  useEffect(() => {
+   116→    const y = window.scrollY;
+   117→    document.body.style.setProperty('--player-scroll-y', `${y}px`);
+   118→    document.body.classList.add('player-open');
+   119→    document.body.style.top = `-${y}px`;
+   120→    return () => { document.body.classList.remove('player-open'); document.body.style.top = ''; window.scrollTo(0, y); };
+   121→  }, []);
+   122→
+   123→  useIOSFullscreenDetect(onClose);
+   124→
+   125→  useEffect(() => {
+   126→    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+   127→    window.addEventListener('keydown', fn);
+   128→    return () => window.removeEventListener('keydown', fn);
+   129→  }, [onClose]);
+   130→
+   131→  /* Close server menu on outside click */
+   132→  useEffect(() => {
+   133→    if (!showServerMenu) return;
+   134→    const handler = (e: MouseEvent) => {
+   135→      if (serverMenuRef.current && !serverMenuRef.current.contains(e.target as Node)) {
+   136→        setShowServerMenu(false);
+   137→      }
+   138→    };
+   139→    document.addEventListener('mousedown', handler);
+   140→    return () => document.removeEventListener('mousedown', handler);
+   141→  }, [showServerMenu]);
+   142→
+   143→  const switchServer = (id: string) => {
+   144→    setSelectedProvider(id);
+   145→    setCurSrc(getEmbedUrl(id, mediaType, tmdbId, season, episode));
+   146→    setLoading(true); setError(false);
+   147→    setShowServerMenu(false);
+   148→  };
+   149→
+   150→  const playEp = (ep: Episode) => {
+   151→    setCurSrc(getEmbedUrl(selectedProvider, 'tv', tmdbId, curSeason, ep.episode_number));
+   152→    setLoading(true); setError(false);
+   153→    useAppStore.getState().setSelectedEpisode(ep);
+   154→  };
+   155→
+   156→  const doRetry = () => {
+   157→    setError(false); setLoading(true);
+   158→    const sep = curSrc.includes('?') ? '&' : '?';
+   159→    setCurSrc(curSrc + sep + '_r=' + Date.now());
+   160→  };
+   161→
+   162→  const curEp = eps.find(e => e.episode_number === episode);
+   163→  const epLabel = mediaType === 'tv' && season && episode ? `S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}` : '';
+   164→
+   165→  /* ── Tier labels for server groups ── */
+   166→  const tierConfig = [
+   167→    { label: 'Recommended', sub: 'Best quality & reliability', providers: providers.slice(0, 3) },
+   168→    { label: 'Alternatives', sub: 'Good backups if primary fails', providers: providers.slice(3, 10) },
+   169→    { label: 'Fallbacks', sub: 'Last resort options', providers: providers.slice(10) },
+   170→  ];
+   171→
+   172→  /* ── Episode panel content (shared between mobile & desktop) ── */
+   173→  const epsContent = (
+   174→    <div className="flex flex-col h-full">
+   175→      {/* Season tabs */}
+   176→      <div className="flex items-center gap-1 px-3 py-2.5 border-b border-white/[0.06] overflow-x-auto no-scrollbar shrink-0">
+   177→        <LayoutGrid className="w-3.5 h-3.5 text-white/20 shrink-0 mr-1" />
+   178→        {Array.from({ length: 20 }, (_, i) => i + 1).map((s) => (
+   179→          <button
+   180→            key={s}
+   181→            onClick={() => { setCurSeason(s); fetchEps(tmdbId, s); }}
+   182→            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[34px] ${
+   183→              curSeason === s
+   184→                ? 'bg-white text-black shadow-sm'
+   185→                : 'text-white/30 hover:text-white/60 hover:bg-white/[0.06] active:text-white/80 active:bg-white/10'
+   186→            }`}
+   187→          >S{s}</button>
+   188→        ))}
+   189→      </div>
+   190→
+   191→      {/* Episode list */}
+   192→      <div className="flex-1 overflow-y-auto content-scroll">
+   193→        {epsLoading ? (
+   194→          <div className="p-3 space-y-2">
+   195→            {Array.from({ length: 5 }).map((_, i) => (
+   196→              <div key={i} className="h-[72px] bg-white/[0.03] rounded-2xl animate-pulse" />
+   197→            ))}
+   198→          </div>
+   199→        ) : eps.length === 0 ? (
+   200→          <div className="flex flex-col items-center justify-center py-16 text-white/20 text-xs gap-2">
+   201→            <Tv className="w-6 h-6" />
+   202→            <span>No episodes found</span>
+   203→          </div>
+   204→        ) : (
+   205→          <div className="p-2 space-y-0.5">
+   206→            {eps.map((ep) => {
+   207→              const cur = ep.episode_number === episode;
+   208→              return (
+   209→                <button
+   210→                  key={ep.id}
+   211→                  onClick={() => playEp(ep)}
+   212→                  className={`w-full flex items-center gap-3 p-2 rounded-2xl text-left transition-all duration-200 group ${
+   213→                    cur
+   214→                      ? 'bg-white/[0.08] ring-1 ring-white/[0.06]'
+   215→                      : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
+   216→                  }`}
+   217→                >
+   218→                  {/* Thumbnail */}
+   219→                  <div className="relative w-[88px] aspect-video rounded-xl overflow-hidden bg-white/[0.04] shrink-0">
+   220→                    {ep.still_path ? (
+   221→                      <img
+   222→                        src={getImageUrl(ep.still_path, 'w300')}
+   223→                        alt={ep.name}
+   224→                        className="w-full h-full object-cover"
+   225→                        loading="lazy"
+   226→                      />
+   227→                    ) : (
+   228→                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-white/[0.06]">
+   229→                        <Play className="w-4 h-4 text-white/10" />
+   230→                      </div>
+   231→                    )}
+   232→
+   233→                    {/* Currently playing overlay */}
+   234→                    {cur && (
+   235→                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
+   236→                        <PlayingBars color={provider.color} />
+   237→                      </div>
+   238→                    )}
+   239→
+   240→                    {/* Hover play overlay */}
+   241→                    {!cur && (
+   242→                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/40">
+   243→                        <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+   244→                          <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+   245→                        </div>
+   246→                      </div>
+   247→                    )}
+   248→
+   249→                    {/* Runtime badge */}
+   250→                    {ep.runtime && (
+   251→                      <div className="absolute bottom-1 right-1 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[9px] text-white/70 font-medium">
+   252→                        {ep.runtime}m
+   253→                      </div>
+   254→                    )}
+   255→                  </div>
+   256→
+   257→                  {/* Info */}
+   258→                  <div className="flex-1 min-w-0 py-0.5">
+   259→                    <div className="flex items-center gap-1.5">
+   260→                      <span className={`text-[11px] font-mono font-semibold tabular-nums ${cur ? 'text-white/50' : 'text-white/25'}`}>
+   261→                        E{String(ep.episode_number).padStart(2, '0')}
+   262→                      </span>
+   263→                      {ep.vote_average > 0 && (
+   264→                        <span className="text-[10px] text-amber-400/70 font-medium">
+   265→                          ★ {ep.vote_average.toFixed(1)}
+   266→                        </span>
+   267→                      )}
+   268→                    </div>
+   269→                    <p className={`text-xs font-medium truncate mt-0.5 ${cur ? 'text-white' : 'text-white/50'}`}>
+   270→                      {ep.name}
+   271→                    </p>
+   272→                    {ep.overview && (
+   273→                      <p className="text-[10px] text-white/20 line-clamp-1 mt-0.5 leading-relaxed">
+   274→                        {ep.overview}
+   275→                      </p>
+   276→                    )}
+   277→                  </div>
+   278→                </button>
+   279→              );
+   280→            })}
+   281→          </div>
+   282→        )}
+   283→      </div>
+   284→    </div>
+   285→  );
+   286→
+   287→  /* ── Server selector dropdown ── */
+   288→  const serverMenu = (
+   289→    <AnimatePresence>
+   290→      {showServerMenu && (
+   291→        <motion.div
+   292→          ref={serverMenuRef}
+   293→          initial={{ opacity: 0, y: 8, scale: 0.97 }}
+   294→          animate={{ opacity: 1, y: 0, scale: 1 }}
+   295→          exit={{ opacity: 0, y: 8, scale: 0.97 }}
+   296→          transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+   297→          className="absolute bottom-full left-0 mb-2 w-[280px] bg-[#141414]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-50"
+   298→        >
+   299→          <div className="px-4 py-3 border-b border-white/[0.06]">
+   300→            <p className="text-white/40 text-[11px] font-semibold uppercase tracking-wider">Select Server</p>
+   301→          </div>
+   302→          <div className="max-h-[340px] overflow-y-auto content-scroll py-1.5">
+   303→            {tierProviders.map((tier, tIdx) => (
+   304→              <div key={tIdx}>
+   305→                <div className="px-4 pt-2 pb-1">
+   306→                  <p className="text-white/20 text-[10px] font-semibold uppercase tracking-widest">{tierLabels[tIdx]}</p>
+   307→                </div>
+   308→                {tier.map((p) => {
+   309→                  const active = p.id === selectedProvider;
+   310→                  return (
+   311→                    <button
+   312→                      key={p.id}
+   313→                      onClick={() => switchServer(p.id)}
+   314→                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 ${
+   315→                        active ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
+   316→                      }`}
+   317→                    >
+   318→                      <div
+   319→                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs"
+   320→                        style={{ backgroundColor: active ? p.color + '25' : 'rgba(255,255,255,0.04)' }}
+   321→                      >
+   322→                        <span style={{ color: active ? p.color : 'rgba(255,255,255,0.3)' }}>{p.icon}</span>
+   323→                      </div>
+   324→                      <div className="flex-1 min-w-0">
+   325→                        <div className="flex items-center gap-2">
+   326→                          <span className={`text-sm font-medium ${active ? 'text-white' : 'text-white/60'}`}>
+   327→                            {p.name}
+   328→                          </span>
+   329→                          {p.primary && (
+   330→                            <span className="px-1.5 py-0.5 rounded-md bg-amber-400/10 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
+   331→                              Best
+   332→                            </span>
+   333→                          )}
+   334→                        </div>
+   335→                        <p className="text-white/25 text-[11px] truncate">{p.description}</p>
+   336→                      </div>
+   337→                      {active && (
+   338→                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+   339→                      )}
+   340→                    </button>
+   341→                  );
+   342→                })}
+   343→              </div>
+   344→            ))}
+   345→          </div>
+   346→        </motion.div>
+   347→      )}
+   348→    </AnimatePresence>
+   349→  );
+   350→
+   351→  /* ── Content info card (expandable) ── */
+   352→  const contentInfoCard = (
+   353→    <AnimatePresence>
+   354→      {showInfo && contentItem && (
+   355→        <motion.div
+   356→          initial={{ height: 0, opacity: 0 }}
+   357→          animate={{ height: 'auto', opacity: 1 }}
+   358→          exit={{ height: 0, opacity: 0 }}
+   359→          transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+   360→          className="overflow-hidden"
+   361→        >
+   362→          <div className="px-4 py-3 border-t border-white/[0.05]">
+   363→            <div className="flex gap-3">
+   364→              {/* Poster thumbnail */}
+   365→              {contentPoster && (
+   366→                <div className="w-12 h-[68px] rounded-lg overflow-hidden bg-white/[0.04] shrink-0 border border-white/[0.06]">
+   367→                  <img
+   368→                    src={getImageUrl(contentPoster, 'w92')}
+   369→                    alt=""
+   370→                    className="w-full h-full object-cover"
+   371→                  />
+   372→                </div>
+   373→              )}
+   374→              {/* Info */}
+   375→              <div className="flex-1 min-w-0">
+   376→                <h4 className="text-white text-sm font-semibold truncate">{title || 'Now Playing'}</h4>
+   377→                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
+   378→                  {contentYear && (
+   379→                    <span className="flex items-center gap-1 text-white/40 text-xs">
+   380→                      <Calendar className="w-3 h-3" />{contentYear}
+   381→                    </span>
+   382→                  )}
+   383→                  {contentRating && contentRating > 0 && (
+   384→                    <span className="flex items-center gap-1 text-amber-400/80 text-xs font-medium">
+   385→                      <Star className="w-3 h-3 fill-amber-400" />{contentRating.toFixed(1)}
+   386→                    </span>
+   387→                  )}
+   388→                  {contentRuntime && contentRuntime > 0 && (
+   389→                    <span className="flex items-center gap-1 text-white/40 text-xs">
+   390→                      <Clock className="w-3 h-3" />{Math.floor(contentRuntime / 60)}h {contentRuntime % 60}m
+   391→                    </span>
+   392→                  )}
+   393→                  {mediaType === 'tv' && epLabel && (
+   394→                    <span
+   395→                      className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider"
+   396→                      style={{ backgroundColor: provider.color + '20', color: provider.color }}
+   397→                    >
+   398→                      {epLabel}
+   399→                    </span>
+   400→                  )}
+   401→                </div>
+   402→                {contentItem?.overview && (
+   403→                  <p className="text-white/30 text-xs leading-relaxed line-clamp-2 mt-1.5">
+   404→                    {contentItem.overview}
+   405→                  </p>
+   406→                )}
+   407→              </div>
+   408→            </div>
+   409→          </div>
+   410→        </motion.div>
+   411→      )}
+   412→    </AnimatePresence>
+   413→  );
+   414→
+   415→  return (
+   416→    <AnimatePresence>
+   417→      <motion.div
+   418→        initial={{ opacity: 0 }}
+   419→        animate={{ opacity: 1 }}
+   420→        exit={{ opacity: 0 }}
+   421→        transition={{ duration: 0.2 }}
+   422→        className="fixed inset-0 z-[100] bg-[#050505] flex flex-col"
+   423→        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+   424→      >
+   425→        {/* ── Header — safe from Dynamic Island ── */}
+   426→        <div className="flex items-center justify-between px-2 sm:px-4 h-12 sm:h-11 shrink-0 z-10 backdrop-blur-xl bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+   427→          <button
+   428→            onClick={onClose}
+   429→            className="flex items-center justify-center w-10 h-10 -ml-1 rounded-xl text-white/60 hover:text-white active:text-white active:bg-white/10 transition-all duration-200"
+   430→            aria-label="Go back"
+   431→          >
+   432→            <ArrowLeft className="w-5 h-5" />
+   433→          </button>
+   434→
+   435→          {/* Center: episode badge + title */}
+   436→          <div className="flex items-center gap-2.5 min-w-0 max-w-[60%]">
+   437→            {epLabel && (
+   438→              <span
+   439→                className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase"
+   440→                style={{ backgroundColor: provider.color + '20', color: provider.color }}
+   441→              >
+   442→                {epLabel}
+   443→              </span>
+   444→            )}
+   445→            <h3 className="text-white/80 text-sm font-semibold truncate">
+   446→              {title || 'Now Playing'}
+   447→            </h3>
+   448→          </div>
+   449→
+   450→          <button
+   451→            onClick={onClose}
+   452→            className="flex items-center justify-center w-10 h-10 -mr-1 rounded-xl text-white/30 hover:text-white/70 active:text-white active:bg-white/10 transition-all duration-200"
+   453→            aria-label="Close"
+   454→          >
+   455→            <X className="w-[18px] h-[18px]" />
+   456→          </button>
+   457→        </div>
+   458→
+   459→        {/* ── Main content area ── */}
+   460→        <div className="flex-1 flex min-h-0 overflow-hidden">
+   461→          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+   462→            {/* Video iframe area */}
+   463→            <div className="relative flex-1 min-h-0 bg-black">
+   464→              {/* Loading overlay */}
+   465→              <AnimatePresence>
+   466→                {loading && !error && (
+   467→                  <motion.div
+   468→                    initial={{ opacity: 0 }}
+   469→                    animate={{ opacity: 1 }}
+   470→                    exit={{ opacity: 0 }}
+   471→                    transition={{ duration: 0.3 }}
+   472→                    className="absolute inset-0 flex items-center justify-center z-[1] pointer-events-none bg-black/40"
+   473→                  >
+   474→                    <div className="flex flex-col items-center gap-4">
+   475→                      <div className="relative">
+   476→                        <div
+   477→                          className="w-16 h-16 rounded-2xl flex items-center justify-center"
+   478→                          style={{ backgroundColor: provider.color + '15' }}
+   479→                        >
+   480→                          <Loader2
+   481→                            className="w-7 h-7 animate-spin"
+   482→                            style={{ color: provider.color }}
+   483→                          />
+   484→                        </div>
+   485→                        <motion.div
+   486→                          className="absolute inset-0 rounded-2xl"
+   487→                          style={{ border: `2px solid ${provider.color}30` }}
+   488→                          animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.08, 1] }}
+   489→                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+   490→                        />
+   491→                      </div>
+   492→                      <div className="text-center">
+   493→                        <p className="text-white/50 text-sm font-medium">Connecting to {provider.name}</p>
+   494→                        <p className="text-white/25 text-xs mt-1">Please wait...</p>
+   495→                      </div>
+   496→                    </div>
+   497→                  </motion.div>
+   498→                )}
+   499→              </AnimatePresence>
+   500→
+   501→              {/* Error overlay */}
+   502→              <AnimatePresence>
+   503→                {error && (
+   504→                  <motion.div
+   505→                    initial={{ opacity: 0 }}
+   506→                    animate={{ opacity: 1 }}
+   507→                    exit={{ opacity: 0 }}
+   508→                    transition={{ duration: 0.2 }}
+   509→                    className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-[2] bg-[#050505]"
+   510→                  >
+   511→                    <div
+   512→                      className="w-16 h-16 rounded-2xl flex items-center justify-center"
+   513→                      style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+   514→                    >
+   515→                      <AlertTriangle className="w-7 h-7 text-red-400" />
+   516→                    </div>
+   517→                    <div className="text-center">
+   518→                      <p className="text-white/60 text-sm font-medium">Failed to load stream</p>
+   519→                      <p className="text-white/30 text-xs mt-1">{provider.name} couldn't serve this content</p>
+   520→                      <p className="text-white/20 text-xs mt-2.5 px-6 leading-relaxed">
+   521→                        Please try another server if the current one is not working.
+   522→                      </p>
+   523→                    </div>
+   524→                    <div className="flex items-center gap-2">
+   525→                      <button
+   526→                        onClick={doRetry}
+   527→                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] active:bg-white/[0.16] text-white text-sm font-medium transition-all duration-200"
+   528→                      >
+   529→                        <RefreshCw className="w-3.5 h-3.5" />
+   530→                        Retry
+   531→                      </button>
+   532→                      <button
+   533→                        onClick={() => setShowServerMenu(true)}
+   534→                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200"
+   535→                      >
+   536→                        <MonitorPlay className="w-3.5 h-3.5" />
+   537→                        Switch Server
+   538→                      </button>
+   539→                    </div>
+   540→                  </motion.div>
+   541→                )}
+   542→              </AnimatePresence>
+   543→
+   544→              <iframe
+   545→                ref={iframeRef}
+   546→                key={curSrc}
+   547→                src={curSrc}
+   548→                className="absolute inset-0 w-full h-full"
+   549→                allowFullScreen
+   550→                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+   551→                playsInline
+   552→                onLoad={() => { setLoading(false); if (timerRef.current) clearTimeout(timerRef.current); }}
+   553→                onError={() => { setLoading(false); setError(true); }}
+   554→                title={title || 'Video Player'}
+   555→              />
+   556→            </div>
+   557→
+   558→            {/* Server hint bar — always visible so users know to switch if video is dead */}
+   559→            {!error && (
+   560→              <div className="shrink-0 flex items-center justify-center gap-1.5 py-1.5 bg-white/[0.02] border-t border-white/[0.03]">
+   561→                <Minus className="w-3 h-3 text-white/15" />
+   562→                <p className="text-white/25 text-[10px] leading-none">
+   563→                  If the video isn't loading, please{' '}
+   564→                  <button
+   565→                    onClick={() => setShowServerMenu(true)}
+   566→                    className="text-white/40 hover:text-white/60 underline underline-offset-2 decoration-white/15 hover:decoration-white/30 transition-colors duration-200"
+   567→                  >
+   568→                    try another server
+   569→                  </button>
+   570→                </p>
+   571→                <Minus className="w-3 h-3 text-white/15" />
+   572→              </div>
+   573→            )}
+   574→
+   575→            {/* ── Bottom controls bar ── */}
+   576→            <div
+   577→              className="shrink-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/[0.05]"
+   578→              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+   579→            >
+   580→              {/* Content info toggle row */}
+   581→              <div className="flex items-center px-3 pt-2.5 gap-2">
+   582→                {/* Server selector trigger */}
+   583→                <div className="relative">
+   584→                  <button
+   585→                    onClick={() => setShowServerMenu(!showServerMenu)}
+   586→                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${
+   587→                      showServerMenu
+   588→                        ? 'border-white/15 bg-white/[0.08] text-white'
+   589→                        : 'border-white/[0.06] bg-white/[0.04] text-white/60 hover:bg-white/[0.06] hover:text-white/80'
+   590→                    }`}
+   591→                  >
+   592→                    <Zap className="w-3.5 h-3.5" style={{ color: provider.color }} />
+   593→                    <span className="hidden sm:inline">{provider.name}</span>
+   594→                    <span className="sm:hidden">Server</span>
+   595→                    <ChevronUp className={`w-3 h-3 transition-transform duration-200 ${showServerMenu ? 'rotate-180' : ''}`} />
+   596→                  </button>
+   597→                  {serverMenu}
+   598→                </div>
+   599→
+   600→                {/* Status with playing indicator */}
+   601→                <div className="flex items-center gap-2 min-w-0 flex-1">
+   602→                  {loading && !error && (
+   603→                    <Loader2 className="w-3 h-3 animate-spin shrink-0" style={{ color: provider.color }} />
+   604→                  )}
+   605→                  {!loading && !error && !showServerMenu && (
+   606→                    <PlayingBars color={provider.color} />
+   607→                  )}
+   608→                  <span className="text-white/25 text-[11px] truncate">
+   609→                    {error ? 'Connection failed' : loading ? 'Connecting...' : curEp?.name || epLabel || ('Playing on ' + provider.name)}
+   610→                  </span>
+   611→                </div>
+   612→
+   613→                {/* Info toggle */}
+   614→                <button
+   615→                  onClick={() => setShowInfo(!showInfo)}
+   616→                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${
+   617→                    showInfo
+   618→                      ? 'border-white/10 bg-white/[0.06] text-white'
+   619→                      : 'border-transparent text-white/40 active:text-white active:bg-white/[0.06]'
+   620→                  }`}
+   621→                >
+   622→                  <Film className="w-3.5 h-3.5" />
+   623→                  <span className="hidden sm:inline">Info</span>
+   624→                </button>
+   625→
+   626→                {/* Episodes toggle (TV only, mobile) */}
+   627→                {mediaType === 'tv' && isMobile && (
+   628→                  <button
+   629→                    onClick={() => setShowEps(!showEps)}
+   630→                    className={`flex items-center gap-1.5 px-3 py-2 -mr-1 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${
+   631→                      showEps
+   632→                        ? 'border-white/10 bg-white/[0.06] text-white'
+   633→                        : 'border-transparent text-white/40 active:text-white active:bg-white/[0.06]'
+   634→                    }`}
+   635→                  >
+   636→                    <LayoutGrid className="w-3.5 h-3.5" />
+   637→                    <span>Episodes</span>
+   638→                  </button>
+   639→                )}
+   640→
+   641→                {/* Episodes toggle (TV, desktop) */}
+   642→                {mediaType === 'tv' && !isMobile && (
+   643→                  <button
+   644→                    onClick={() => setShowEps(!showEps)}
+   645→                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${
+   646→                      showEps
+   647→                        ? 'border-white/10 bg-white/[0.06] text-white'
+   648→                        : 'border-transparent text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
+   649→                    }`}
+   650→                  >
+   651→                    <LayoutGrid className="w-3.5 h-3.5" />
+   652→                    Episodes
+   653→                  </button>
+   654→                )}
+   655→              </div>
+   656→
+   657→              {/* Expandable content info */}
+   658→              {contentInfoCard}
+   659→
+   660→              <div className="h-1" />
+   661→            </div>
+   662→          </div>
+   663→
+   664→          {/* ── Desktop episode sidebar ── */}
+   665→          <AnimatePresence>
+   666→            {!isMobile && mediaType === 'tv' && showEps && (
+   667→              <motion.div
+   668→                initial={{ width: 0, opacity: 0 }}
+   669→                animate={{ width: 360, opacity: 1 }}
+   670→                exit={{ width: 0, opacity: 0 }}
+   671→                transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+   672→                className="shrink-0 border-l border-white/[0.06] bg-[#0a0a0a] flex flex-col min-h-0 overflow-hidden"
+   673→              >
+   674→                <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
+   675→                  <div className="flex items-center gap-2">
+   676→                    <Tv className="w-4 h-4 text-white/40" />
+   677→                    <h4 className="text-white/70 text-sm font-semibold">Episodes</h4>
+   678→                    <span className="text-white/20 text-xs">{eps.length}</span>
+   679→                  </div>
+   680→                  <button
+   681→                    onClick={() => setShowEps(false)}
+   682→                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-white/60 active:text-white active:bg-white/10 transition-all duration-200"
+   683→                    aria-label="Close episodes"
+   684→                  >
+   685→                    <X className="w-4 h-4" />
+   686→                  </button>
+   687→                </div>
+   688→                {epsContent}
+   689→              </motion.div>
+   690→            )}
+   691→          </AnimatePresence>
+   692→        </div>
+   693→
+   694→        {/* ── Mobile episode bottom sheet ── */}
+   695→        <AnimatePresence>
+   696→          {isMobile && showEps && mediaType === 'tv' && (
+   697→            <motion.div
+   698→              initial={{ height: 0, opacity: 0 }}
+   699→              animate={{ height: 'auto', opacity: 1 }}
+   700→              exit={{ height: 0, opacity: 0 }}
+   701→              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+   702→              className="shrink-0 border-t border-white/[0.06] bg-[#0a0a0a] overflow-hidden"
+   703→            >
+   704→              <div className="flex justify-center py-2">
+   705→                <div className="w-8 h-1 rounded-full bg-white/15" />
+   706→              </div>
+   707→              <div className="max-h-[45vh] overflow-hidden flex flex-col -mt-1">
+   708→                {epsContent}
+   709→              </div>
+   710→            </motion.div>
+   711→          )}
+   712→        </AnimatePresence>
+   713→      </motion.div>
+   714→    </AnimatePresence>
+   715→  );
+   716→}
+   717→

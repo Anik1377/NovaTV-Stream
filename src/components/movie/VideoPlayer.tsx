@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  X, Loader2, ArrowLeft, Play, Tv, ChevronUp,
+  X, Loader2, ArrowLeft, Play, Tv, ChevronDown,
   Zap, AlertTriangle, RefreshCw, MonitorPlay, LayoutGrid,
-  Star, Calendar, Clock, Film, Minus,
+  Star, Calendar, Clock, Film, Minus, Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { providers, getProvider, getEmbedUrl } from '@/lib/providers';
@@ -162,13 +162,64 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
   const curEp = eps.find(e => e.episode_number === episode);
   const epLabel = mediaType === 'tv' && season && episode ? `S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}` : '';
 
-  /* ── Tier labels for server groups ── */
-  const tierLabels = ['Recommended', 'Alternatives', 'Fallbacks'] as const;
-  const tierProviders = [
-    providers.slice(0, 3),
-    providers.slice(3, 8),
-    providers.slice(8),
+  /* ── Tier config for server groups ── */
+  const tierConfig = [
+    { label: 'Recommended', sub: 'Best quality & reliability', list: providers.slice(0, 3) },
+    { label: 'Alternatives', sub: 'Good backups if primary fails', list: providers.slice(3, 10) },
+    { label: 'Fallbacks', sub: 'Last resort options', list: providers.slice(10) },
   ];
+
+  /* ── Server card component ── */
+  const ServerCard = ({ p, compact = false }: { p: typeof providers[0]; compact?: boolean }) => {
+    const active = p.id === selectedProvider;
+    if (compact) {
+      return (
+        <button
+          onClick={() => switchServer(p.id)}
+          className={`shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border transition-all duration-200 min-w-0 ${
+            active
+              ? 'bg-white/[0.08] border-white/[0.12]'
+              : 'bg-white/[0.03] border-white/[0.04] active:bg-white/[0.06]'
+          }`}
+        >
+          <span className="text-sm" style={{ color: active ? p.color : 'rgba(255,255,255,0.35)' }}>{p.icon}</span>
+          <span className={`text-xs font-semibold truncate ${active ? 'text-white' : 'text-white/50'}`}>{p.name}</span>
+          {active && <Check className="w-3 h-3 shrink-0" style={{ color: p.color }} />}
+        </button>
+      );
+    }
+    return (
+      <button
+        onClick={() => switchServer(p.id)}
+        className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all duration-200 group ${
+          active
+            ? 'bg-white/[0.07] ring-1 ring-white/[0.08]'
+            : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
+        }`}
+      >
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm transition-colors duration-200"
+          style={{ backgroundColor: active ? p.color + '20' : 'rgba(255,255,255,0.04)' }}
+        >
+          <span style={{ color: active ? p.color : 'rgba(255,255,255,0.3)' }}>{p.icon}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-white/60'}`}>{p.name}</span>
+            {p.primary && (
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-400/10 text-amber-400 text-[9px] font-bold uppercase tracking-wider">Best</span>
+            )}
+          </div>
+          <p className="text-white/25 text-[11px] truncate mt-0.5">{p.description}</p>
+        </div>
+        {active && (
+          <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: p.color + '20' }}>
+            <Check className="w-3.5 h-3.5" style={{ color: p.color }} />
+          </div>
+        )}
+      </button>
+    );
+  };
 
   /* ── Episode panel content (shared between mobile & desktop) ── */
   const epsContent = (
@@ -219,26 +270,17 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                   {/* Thumbnail */}
                   <div className="relative w-[88px] aspect-video rounded-xl overflow-hidden bg-white/[0.04] shrink-0">
                     {ep.still_path ? (
-                      <img
-                        src={getImageUrl(ep.still_path, 'w300')}
-                        alt={ep.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
+                      <img src={getImageUrl(ep.still_path, 'w300')} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-white/[0.06]">
                         <Play className="w-4 h-4 text-white/10" />
                       </div>
                     )}
-
-                    {/* Currently playing overlay */}
                     {cur && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
                         <PlayingBars color={provider.color} />
                       </div>
                     )}
-
-                    {/* Hover play overlay */}
                     {!cur && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/40">
                         <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -246,34 +288,23 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                         </div>
                       </div>
                     )}
-
-                    {/* Runtime badge */}
                     {ep.runtime && (
                       <div className="absolute bottom-1 right-1 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[9px] text-white/70 font-medium">
                         {ep.runtime}m
                       </div>
                     )}
                   </div>
-
                   {/* Info */}
                   <div className="flex-1 min-w-0 py-0.5">
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[11px] font-mono font-semibold tabular-nums ${cur ? 'text-white/50' : 'text-white/25'}`}>
-                        E{String(ep.episode_number).padStart(2, '0')}
-                      </span>
+                      <span className={`text-[11px] font-mono font-semibold tabular-nums ${cur ? 'text-white/50' : 'text-white/25'}`}>E{String(ep.episode_number).padStart(2, '0')}</span>
                       {ep.vote_average > 0 && (
-                        <span className="text-[10px] text-amber-400/70 font-medium">
-                          ★ {ep.vote_average.toFixed(1)}
-                        </span>
+                        <span className="text-[10px] text-amber-400/70 font-medium">★ {ep.vote_average.toFixed(1)}</span>
                       )}
                     </div>
-                    <p className={`text-xs font-medium truncate mt-0.5 ${cur ? 'text-white' : 'text-white/50'}`}>
-                      {ep.name}
-                    </p>
+                    <p className={`text-xs font-medium truncate mt-0.5 ${cur ? 'text-white' : 'text-white/50'}`}>{ep.name}</p>
                     {ep.overview && (
-                      <p className="text-[10px] text-white/20 line-clamp-1 mt-0.5 leading-relaxed">
-                        {ep.overview}
-                      </p>
+                      <p className="text-[10px] text-white/20 line-clamp-1 mt-0.5 leading-relaxed">{ep.overview}</p>
                     )}
                   </div>
                 </button>
@@ -285,66 +316,97 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
     </div>
   );
 
-  /* ── Server selector dropdown ── */
-  const serverMenu = (
+  /* ── Mobile: bottom sheet server selector ── */
+  const mobileServerSheet = (
     <AnimatePresence>
-      {showServerMenu && (
-        <motion.div
-          ref={serverMenuRef}
-          initial={{ opacity: 0, y: 8, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.97 }}
-          transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-          className="absolute bottom-full left-0 mb-2 w-[280px] bg-[#141414]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-50"
-        >
-          <div className="px-4 py-3 border-b border-white/[0.06]">
-            <p className="text-white/40 text-[11px] font-semibold uppercase tracking-wider">Select Server</p>
-          </div>
-          <div className="max-h-[340px] overflow-y-auto content-scroll py-1.5">
-            {tierProviders.map((tier, tIdx) => (
-              <div key={tIdx}>
-                <div className="px-4 pt-2 pb-1">
-                  <p className="text-white/20 text-[10px] font-semibold uppercase tracking-widest">{tierLabels[tIdx]}</p>
-                </div>
-                {tier.map((p) => {
-                  const active = p.id === selectedProvider;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => switchServer(p.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 ${
-                        active ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]'
-                      }`}
-                    >
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs"
-                        style={{ backgroundColor: active ? p.color + '25' : 'rgba(255,255,255,0.04)' }}
-                      >
-                        <span style={{ color: active ? p.color : 'rgba(255,255,255,0.3)' }}>{p.icon}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${active ? 'text-white' : 'text-white/60'}`}>
-                            {p.name}
-                          </span>
-                          {p.primary && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-amber-400/10 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
-                              Best
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-white/25 text-[11px] truncate">{p.description}</p>
-                      </div>
-                      {active && (
-                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                      )}
-                    </button>
-                  );
-                })}
+      {showServerMenu && isMobile && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 z-50"
+            onClick={() => setShowServerMenu(false)}
+          />
+          <motion.div
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="absolute bottom-0 left-0 right-0 z-50 bg-[#111]/98 backdrop-blur-2xl rounded-t-3xl border-t border-white/[0.08] max-h-[75vh] flex flex-col"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          >
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
+              <div>
+                <h3 className="text-white text-sm font-bold">Select Server</h3>
+                <p className="text-white/30 text-[11px] mt-0.5">{providers.length} servers available</p>
               </div>
-            ))}
-          </div>
-        </motion.div>
+              <button onClick={() => setShowServerMenu(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 active:bg-white/[0.08] transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="w-8 h-0.5 rounded-full bg-white/10 mx-auto mb-2" />
+            <div className="flex-1 overflow-y-auto content-scroll px-4 pb-4">
+              {tierConfig.map((tier) => (
+                <div key={tier.label} className="mb-4 last:mb-0">
+                  <div className="mb-2">
+                    <p className="text-white/40 text-[11px] font-bold uppercase tracking-wider">{tier.label}</p>
+                    <p className="text-white/15 text-[10px] mt-0.5">{tier.sub}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {tier.list.map((p) => (
+                      <ServerCard key={p.id} p={p} compact />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  /* ── Desktop: centered modal server selector ── */
+  const desktopServerModal = (
+    <AnimatePresence>
+      {showServerMenu && !isMobile && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 z-50"
+            onClick={() => setShowServerMenu(false)}
+          />
+          <motion.div
+            ref={serverMenuRef}
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[520px] bg-[#141414]/98 backdrop-blur-2xl border border-white/[0.08] rounded-3xl shadow-2xl shadow-black/80 overflow-hidden z-50"
+          >
+            <div className="flex items-center justify-between px-6 pt-5 pb-3">
+              <div>
+                <h3 className="text-white text-base font-bold">Select Server</h3>
+                <p className="text-white/30 text-xs mt-0.5">{providers.length} servers available</p>
+              </div>
+              <button onClick={() => setShowServerMenu(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 active:bg-white/[0.08] transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto content-scroll px-4 pb-5">
+              {tierConfig.map((tier) => (
+                <div key={tier.label} className="mb-4 last:mb-0">
+                  <div className="px-2 mb-2">
+                    <p className="text-white/40 text-[11px] font-bold uppercase tracking-wider">{tier.label}</p>
+                    <p className="text-white/15 text-[10px] mt-0.5">{tier.sub}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {tier.list.map((p) => (
+                      <ServerCard key={p.id} p={p} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
@@ -362,48 +424,29 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
         >
           <div className="px-4 py-3 border-t border-white/[0.05]">
             <div className="flex gap-3">
-              {/* Poster thumbnail */}
               {contentPoster && (
                 <div className="w-12 h-[68px] rounded-lg overflow-hidden bg-white/[0.04] shrink-0 border border-white/[0.06]">
-                  <img
-                    src={getImageUrl(contentPoster, 'w92')}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={getImageUrl(contentPoster, 'w92')} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <h4 className="text-white text-sm font-semibold truncate">{title || 'Now Playing'}</h4>
                 <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
                   {contentYear && (
-                    <span className="flex items-center gap-1 text-white/40 text-xs">
-                      <Calendar className="w-3 h-3" />{contentYear}
-                    </span>
+                    <span className="flex items-center gap-1 text-white/40 text-xs"><Calendar className="w-3 h-3" />{contentYear}</span>
                   )}
                   {contentRating && contentRating > 0 && (
-                    <span className="flex items-center gap-1 text-amber-400/80 text-xs font-medium">
-                      <Star className="w-3 h-3 fill-amber-400" />{contentRating.toFixed(1)}
-                    </span>
+                    <span className="flex items-center gap-1 text-amber-400/80 text-xs font-medium"><Star className="w-3 h-3 fill-amber-400" />{contentRating.toFixed(1)}</span>
                   )}
                   {contentRuntime && contentRuntime > 0 && (
-                    <span className="flex items-center gap-1 text-white/40 text-xs">
-                      <Clock className="w-3 h-3" />{Math.floor(contentRuntime / 60)}h {contentRuntime % 60}m
-                    </span>
+                    <span className="flex items-center gap-1 text-white/40 text-xs"><Clock className="w-3 h-3" />{Math.floor(contentRuntime / 60)}h {contentRuntime % 60}m</span>
                   )}
                   {mediaType === 'tv' && epLabel && (
-                    <span
-                      className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider"
-                      style={{ backgroundColor: provider.color + '20', color: provider.color }}
-                    >
-                      {epLabel}
-                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider" style={{ backgroundColor: provider.color + '20', color: provider.color }}>{epLabel}</span>
                   )}
                 </div>
                 {contentItem?.overview && (
-                  <p className="text-white/30 text-xs leading-relaxed line-clamp-2 mt-1.5">
-                    {contentItem.overview}
-                  </p>
+                  <p className="text-white/30 text-xs leading-relaxed line-clamp-2 mt-1.5">{contentItem.overview}</p>
                 )}
               </div>
             </div>
@@ -416,48 +459,28 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="fixed inset-0 z-[100] bg-[#050505] flex flex-col"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        {/* ── Header — safe from Dynamic Island ── */}
+        {/* Header */}
         <div className="flex items-center justify-between px-2 sm:px-4 h-12 sm:h-11 shrink-0 z-10 backdrop-blur-xl bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 -ml-1 rounded-xl text-white/60 hover:text-white active:text-white active:bg-white/10 transition-all duration-200"
-            aria-label="Go back"
-          >
+          <button onClick={onClose} className="flex items-center justify-center w-10 h-10 -ml-1 rounded-xl text-white/60 hover:text-white active:text-white active:bg-white/10 transition-all duration-200" aria-label="Go back">
             <ArrowLeft className="w-5 h-5" />
           </button>
-
-          {/* Center: episode badge + title */}
           <div className="flex items-center gap-2.5 min-w-0 max-w-[60%]">
             {epLabel && (
-              <span
-                className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase"
-                style={{ backgroundColor: provider.color + '20', color: provider.color }}
-              >
-                {epLabel}
-              </span>
+              <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase" style={{ backgroundColor: provider.color + '20', color: provider.color }}>{epLabel}</span>
             )}
-            <h3 className="text-white/80 text-sm font-semibold truncate">
-              {title || 'Now Playing'}
-            </h3>
+            <h3 className="text-white/80 text-sm font-semibold truncate">{title || 'Now Playing'}</h3>
           </div>
-
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center w-10 h-10 -mr-1 rounded-xl text-white/30 hover:text-white/70 active:text-white active:bg-white/10 transition-all duration-200"
-            aria-label="Close"
-          >
+          <button onClick={onClose} className="flex items-center justify-center w-10 h-10 -mr-1 rounded-xl text-white/30 hover:text-white/70 active:text-white active:bg-white/10 transition-all duration-200" aria-label="Close">
             <X className="w-[18px] h-[18px]" />
           </button>
         </div>
 
-        {/* ── Main content area ── */}
+        {/* Main content area */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             {/* Video iframe area */}
@@ -465,30 +488,13 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               {/* Loading overlay */}
               <AnimatePresence>
                 {loading && !error && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 flex items-center justify-center z-[1] pointer-events-none bg-black/40"
-                  >
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="absolute inset-0 flex items-center justify-center z-[1] pointer-events-none bg-black/40">
                     <div className="flex flex-col items-center gap-4">
                       <div className="relative">
-                        <div
-                          className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                          style={{ backgroundColor: provider.color + '15' }}
-                        >
-                          <Loader2
-                            className="w-7 h-7 animate-spin"
-                            style={{ color: provider.color }}
-                          />
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: provider.color + '15' }}>
+                          <Loader2 className="w-7 h-7 animate-spin" style={{ color: provider.color }} />
                         </div>
-                        <motion.div
-                          className="absolute inset-0 rounded-2xl"
-                          style={{ border: `2px solid ${provider.color}30` }}
-                          animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.08, 1] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                        />
+                        <motion.div className="absolute inset-0 rounded-2xl" style={{ border: `2px solid ${provider.color}30` }} animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.08, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} />
                       </div>
                       <div className="text-center">
                         <p className="text-white/50 text-sm font-medium">Connecting to {provider.name}</p>
@@ -502,110 +508,61 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
               {/* Error overlay */}
               <AnimatePresence>
                 {error && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-[2] bg-[#050505]"
-                  >
-                    <div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                      style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                    >
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-[2] bg-[#050505]">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
                       <AlertTriangle className="w-7 h-7 text-red-400" />
                     </div>
                     <div className="text-center">
                       <p className="text-white/60 text-sm font-medium">Failed to load stream</p>
                       <p className="text-white/30 text-xs mt-1">{provider.name} couldn't serve this content</p>
-                      <p className="text-white/20 text-xs mt-2.5 px-6 leading-relaxed">
-                        Please try another server if the current one is not working.
-                      </p>
+                      <p className="text-white/20 text-xs mt-2.5 px-6 leading-relaxed">Please try another server if the current one is not working.</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={doRetry}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] active:bg-white/[0.16] text-white text-sm font-medium transition-all duration-200"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Retry
+                      <button onClick={doRetry} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] active:bg-white/[0.16] text-white text-sm font-medium transition-all duration-200">
+                        <RefreshCw className="w-3.5 h-3.5" />Retry
                       </button>
-                      <button
-                        onClick={() => setShowServerMenu(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200"
-                      >
-                        <MonitorPlay className="w-3.5 h-3.5" />
-                        Switch Server
+                      <button onClick={() => setShowServerMenu(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
+                        <MonitorPlay className="w-3.5 h-3.5" />Switch Server
                       </button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <iframe
-                ref={iframeRef}
-                key={curSrc}
-                src={curSrc}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                playsInline
-                onLoad={() => { setLoading(false); if (timerRef.current) clearTimeout(timerRef.current); }}
-                onError={() => { setLoading(false); setError(true); }}
-                title={title || 'Video Player'}
-              />
+              <iframe ref={iframeRef} key={curSrc} src={curSrc} className="absolute inset-0 w-full h-full" allowFullScreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" playsInline onLoad={() => { setLoading(false); if (timerRef.current) clearTimeout(timerRef.current); }} onError={() => { setLoading(false); setError(true); }} title={title || 'Video Player'} />
             </div>
 
-            {/* Server hint bar — always visible so users know to switch if video is dead */}
+            {/* Server hint bar */}
             {!error && (
               <div className="shrink-0 flex items-center justify-center gap-1.5 py-1.5 bg-white/[0.02] border-t border-white/[0.03]">
                 <Minus className="w-3 h-3 text-white/15" />
-                <p className="text-white/25 text-[10px] leading-none">
-                  If the video isn't loading, please{' '}
-                  <button
-                    onClick={() => setShowServerMenu(true)}
-                    className="text-white/40 hover:text-white/60 underline underline-offset-2 decoration-white/15 hover:decoration-white/30 transition-colors duration-200"
-                  >
-                    try another server
-                  </button>
-                </p>
+                <p className="text-white/25 text-[10px] leading-none">If the video isn't loading, please <button onClick={() => setShowServerMenu(true)} className="text-white/40 hover:text-white/60 underline underline-offset-2 decoration-white/15 hover:decoration-white/30 transition-colors duration-200">try another server</button></p>
                 <Minus className="w-3 h-3 text-white/15" />
               </div>
             )}
 
-            {/* ── Bottom controls bar ── */}
-            <div
-              className="shrink-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/[0.05]"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-            >
-              {/* Content info toggle row */}
+            {/* Bottom controls bar */}
+            <div className="shrink-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/[0.05]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
               <div className="flex items-center px-3 pt-2.5 gap-2">
                 {/* Server selector trigger */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowServerMenu(!showServerMenu)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${
-                      showServerMenu
-                        ? 'border-white/15 bg-white/[0.08] text-white'
-                        : 'border-white/[0.06] bg-white/[0.04] text-white/60 hover:bg-white/[0.06] hover:text-white/80'
-                    }`}
-                  >
-                    <Zap className="w-3.5 h-3.5" style={{ color: provider.color }} />
-                    <span className="hidden sm:inline">{provider.name}</span>
-                    <span className="sm:hidden">Server</span>
-                    <ChevronUp className={`w-3 h-3 transition-transform duration-200 ${showServerMenu ? 'rotate-180' : ''}`} />
-                  </button>
-                  {serverMenu}
-                </div>
+                <button
+                  onClick={() => setShowServerMenu(!showServerMenu)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${
+                    showServerMenu
+                      ? 'border-white/15 bg-white/[0.08] text-white'
+                      : 'border-white/[0.06] bg-white/[0.04] text-white/60 hover:bg-white/[0.06] hover:text-white/80'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" style={{ color: provider.color }} />
+                  <span className="hidden sm:inline">{provider.name}</span>
+                  <span className="sm:hidden">Server</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showServerMenu ? 'rotate-180' : ''}`} />
+                </button>
 
                 {/* Status with playing indicator */}
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {loading && !error && (
-                    <Loader2 className="w-3 h-3 animate-spin shrink-0" style={{ color: provider.color }} />
-                  )}
-                  {!loading && !error && !showServerMenu && (
-                    <PlayingBars color={provider.color} />
-                  )}
+                  {loading && !error && <Loader2 className="w-3 h-3 animate-spin shrink-0" style={{ color: provider.color }} />}
+                  {!loading && !error && !showServerMenu && <PlayingBars color={provider.color} />}
                   <span className="text-white/25 text-[11px] truncate">
                     {error ? 'Connection failed' : loading ? 'Connecting...' : curEp?.name || epLabel || ('Playing on ' + provider.name)}
                   </span>
@@ -624,65 +581,37 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
                   <span className="hidden sm:inline">Info</span>
                 </button>
 
-                {/* Episodes toggle (TV only, mobile) */}
-                {mediaType === 'tv' && isMobile && (
+                {/* Episodes toggle */}
+                {mediaType === 'tv' && (
                   <button
                     onClick={() => setShowEps(!showEps)}
-                    className={`flex items-center gap-1.5 px-3 py-2 -mr-1 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${
+                    className={`flex items-center gap-1.5 px-3 py-2 ${isMobile ? '-mr-1' : ''} rounded-xl text-[11px] font-semibold transition-all duration-200 border ${
                       showEps
                         ? 'border-white/10 bg-white/[0.06] text-white'
-                        : 'border-transparent text-white/40 active:text-white active:bg-white/[0.06]'
+                        : `border-transparent text-white/40 ${!isMobile ? 'hover:text-white/70 hover:bg-white/[0.04]' : ''} active:text-white active:bg-white/[0.06]`
                     }`}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
-                    <span>Episodes</span>
-                  </button>
-                )}
-
-                {/* Episodes toggle (TV, desktop) */}
-                {mediaType === 'tv' && !isMobile && (
-                  <button
-                    onClick={() => setShowEps(!showEps)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all duration-200 border ${
-                      showEps
-                        ? 'border-white/10 bg-white/[0.06] text-white'
-                        : 'border-transparent text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
-                    }`}
-                  >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                    Episodes
+                    <span>{isMobile ? 'Episodes' : 'Episodes'}</span>
                   </button>
                 )}
               </div>
-
-              {/* Expandable content info */}
               {contentInfoCard}
-
               <div className="h-1" />
             </div>
           </div>
 
-          {/* ── Desktop episode sidebar ── */}
+          {/* Desktop episode sidebar */}
           <AnimatePresence>
             {!isMobile && mediaType === 'tv' && showEps && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 360, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-                className="shrink-0 border-l border-white/[0.06] bg-[#0a0a0a] flex flex-col min-h-0 overflow-hidden"
-              >
+              <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 360, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }} className="shrink-0 border-l border-white/[0.06] bg-[#0a0a0a] flex flex-col min-h-0 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] shrink-0">
                   <div className="flex items-center gap-2">
                     <Tv className="w-4 h-4 text-white/40" />
                     <h4 className="text-white/70 text-sm font-semibold">Episodes</h4>
                     <span className="text-white/20 text-xs">{eps.length}</span>
                   </div>
-                  <button
-                    onClick={() => setShowEps(false)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-white/60 active:text-white active:bg-white/10 transition-all duration-200"
-                    aria-label="Close episodes"
-                  >
+                  <button onClick={() => setShowEps(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-white/60 active:text-white active:bg-white/10 transition-all duration-200" aria-label="Close episodes">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -692,25 +621,19 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
           </AnimatePresence>
         </div>
 
-        {/* ── Mobile episode bottom sheet ── */}
+        {/* Mobile episode bottom sheet */}
         <AnimatePresence>
           {isMobile && showEps && mediaType === 'tv' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              className="shrink-0 border-t border-white/[0.06] bg-[#0a0a0a] overflow-hidden"
-            >
-              <div className="flex justify-center py-2">
-                <div className="w-8 h-1 rounded-full bg-white/15" />
-              </div>
-              <div className="max-h-[45vh] overflow-hidden flex flex-col -mt-1">
-                {epsContent}
-              </div>
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }} className="shrink-0 border-t border-white/[0.06] bg-[#0a0a0a] overflow-hidden">
+              <div className="flex justify-center py-2"><div className="w-8 h-1 rounded-full bg-white/15" /></div>
+              <div className="max-h-[45vh] overflow-hidden flex flex-col -mt-1">{epsContent}</div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Server menus */}
+        {mobileServerSheet}
+        {desktopServerModal}
       </motion.div>
     </AnimatePresence>
   );
