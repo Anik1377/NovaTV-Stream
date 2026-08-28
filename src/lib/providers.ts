@@ -84,8 +84,8 @@ export const providers: Provider[] = [
     description: 'Fast streams, wide library',
     color: '#f43f5e',
     icon: '♥',
-    movieUrl: (id) => `https://vidlove.cc/embed/movie/${id}`,
-    tvUrl: (id, s, e) => `https://vidlove.cc/embed/tv/${id}/${s}/${e}`,
+    movieUrl: (id) => `https://player.vidlove.cc/embed/movie/${id}`,
+    tvUrl: (id, s, e) => `https://player.vidlove.cc/embed/tv/${id}/${s}/${e}`,
   },
   {
     id: 'embed-su',
