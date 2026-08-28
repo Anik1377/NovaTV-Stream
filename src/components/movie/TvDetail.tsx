@@ -16,6 +16,7 @@ import { useRecordHistory } from '@/lib/useRecordHistory';
 import { recordWatchHistory } from '@/lib/watch-history';
 import { ShareModal } from '@/components/shared/ShareModal';
 import { TrailerEmbed } from './TrailerEmbed';
+import { AdBanner } from '@/components/ads';
 
 export function TvDetail() {
   const selectedTv = useAppStore(s => s.selectedTv);
@@ -403,6 +404,9 @@ export function TvDetail() {
               </div>
             )}
           </div>
+
+          {/* ── Ad Slot: Before similar shows ── */}
+          <AdBanner slot="native-detail" className="my-6" showPlaceholder />
 
           {/* Similar */}
           {similar.length > 0 && (

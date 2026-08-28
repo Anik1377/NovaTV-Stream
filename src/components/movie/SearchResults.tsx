@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { MovieCard } from './MovieCard';
 import { useSearch } from '@/hooks/use-search';
 import { BackButton } from '@/components/shared/BackButton';
+import { AdBanner } from '@/components/ads';
 import type { Movie } from '@/lib/types';
 import type { SearchPerson } from '@/store/app-store';
 import { getImageUrl } from '@/lib/tmdb';
@@ -381,6 +382,11 @@ export function SearchResults() {
       {/* No results state */}
       {!isLoading && !error && searchQuery && !hasAnyResults && (
         <NoResultsState query={searchQuery} onGoHome={goHome} />
+      )}
+
+      {/* ── Ad Slot: Below search results ── */}
+      {!isLoading && !error && filteredResults.length > 3 && (
+        <AdBanner slot="banner-mid" className="my-6" showPlaceholder />
       )}
 
       {/* People tab */}

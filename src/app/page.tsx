@@ -42,6 +42,7 @@ const DmcaPage = lazy(() => import('@/components/legal/LegalPages').then(m => ({
 /* ── Static imports (always visible) ── */
 import { SiteFooter } from '@/components/movie/SiteFooter';
 import { MobileSearchButton } from '@/components/movie/MobileSearchButton';
+import { AdBanner, AdSticky } from '@/components/ads';
 import { InstallAppModal, InstallBanner } from '@/components/movie/InstallAppModal';
 import { VisitDisclaimer } from '@/components/movie/VisitDisclaimer';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -311,6 +312,9 @@ function HomePage() {
       {/* Continue Watching — only on the main 'all' tab */}
       {mediaFilter === 'all' && <ContinueWatching />}
 
+      {/* ── Ad Slot: Below hero / above genres ── */}
+      <AdBanner slot="banner-top" className="my-4" showPlaceholder />
+
       {genres.length > 0 && (
         <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-4')}>
           <div className="flex gap-2 overflow-x-auto content-scroll pb-2">
@@ -348,6 +352,9 @@ function HomePage() {
         </div>
       )}
 
+      {/* ── Ad Slot: Between trending rows and movie rows ── */}
+      <AdBanner slot="banner-mid" className="my-2" showPlaceholder />
+
       {mediaFilter !== 'tv' && (
         <div>
           <ContentRow title="Popular Movies" movies={popularMovies} icon={<Film className="w-5 h-5" />} genreId={null} mediaType="movie" sortBy="popularity.desc" />
@@ -384,6 +391,9 @@ function HomePage() {
           />
         );
       })}
+
+      {/* ── Ad Slot: Above footer ── */}
+      <AdBanner slot="banner-bottom" className="my-8" showPlaceholder />
 
       <SiteFooter />
       <SurpriseMeButton movies={allMovies} />
@@ -462,6 +472,7 @@ export default function App() {
       <AuthModal key={String(authModalOpen)} open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <MobileSearchButton key={view} />
       <MobileTabBar />
+      <AdSticky />
       <VisitDisclaimer />
       {(view === 'anime' || view === 'asian' || view === 'desi' || view === 'showreels' || view === 'read' || view === 'people' || view === 'games' || view === 'comic-detail') && <MobileBackHome />}
     </div>

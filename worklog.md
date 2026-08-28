@@ -1756,3 +1756,31 @@ Stage Summary:
 - Real cover images from cdn.readcomicsonline.lol proxied through backend (CSP-compliant)
 - All 30 comics mapped with readcomicsonline.lol slugs and CDN cover URLs
 - ESLint passes with zero errors
+---
+Task ID: 12
+Agent: main
+Task: Add non-aggressive ad monetization system (PropellerAds/Adsterra alternative to Google Ads)
+
+Work Log:
+- Created src/lib/ads.ts — ad configuration module with zone IDs, network selection (PropellerAds/Adsterra), and slot type system
+- Created src/components/ads/AdBanner.tsx — horizontal display ad component (728x90 desktop, 320x50 mobile) with placeholder mode
+- Created src/components/ads/AdNative.tsx — in-content native ad with "Sponsored" label, card-like styling
+- Created src/components/ads/AdSticky.tsx — dismissable sticky bottom bar ad with close button and animation
+- Created src/components/ads/index.ts — barrel export
+- Integrated AdBanner into homepage: banner-top (after hero), banner-mid (between rows), banner-bottom (above footer)
+- Integrated AdBanner into MovieDetail page (before "More Like This" section)
+- Integrated AdBanner into TvDetail page (before "Similar Shows" section)
+- Integrated AdBanner into SearchResults page (after search results)
+- Added AdSticky to global layout (above MobileTabBar)
+- Updated CSP middleware to whitelist ad domains: a.magsrv.com, www.highperformanceformat.com
+- All components use conditional rendering pattern to avoid React hooks rules violations
+- Ads are disabled by default (enabled flag in config) — placeholders show for layout preview
+- ESLint passes with zero errors
+
+Stage Summary:
+- Ad system uses PropellerAds (primary) and Adsterra (fallback) as Google Ads alternatives
+- 8 ad placements across the site: 3 on homepage, 1 on movie detail, 1 on TV detail, 1 on search, 1 sticky
+- Non-aggressive approach: no popunders, no interstitials, no redirects — only banners and native ads
+- To activate: edit src/lib/ads.ts, set enabled=true and add zone IDs from ad network dashboard
+- Files created: src/lib/ads.ts, src/components/ads/AdBanner.tsx, src/components/ads/AdNative.tsx, src/components/ads/AdSticky.tsx, src/components/ads/index.ts
+- Files modified: src/app/page.tsx, src/components/movie/MovieDetail.tsx, src/components/movie/TvDetail.tsx, src/components/movie/SearchResults.tsx, src/middleware.ts

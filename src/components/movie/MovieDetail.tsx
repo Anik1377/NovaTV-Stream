@@ -16,6 +16,7 @@ import { useRecordHistory } from '@/lib/useRecordHistory';
 import { recordWatchHistory } from '@/lib/watch-history';
 import { ShareModal } from '@/components/shared/ShareModal';
 import { TrailerEmbed } from './TrailerEmbed';
+import { AdBanner } from '@/components/ads';
 
 export function MovieDetail() {
   const selectedMovie = useAppStore(s => s.selectedMovie);
@@ -333,6 +334,9 @@ export function MovieDetail() {
               )}
             </div>
           </div>
+
+          {/* ── Ad Slot: Between info and similar movies ── */}
+          <AdBanner slot="native-detail" className="my-6" showPlaceholder />
 
           {/* More Like This */}
           {similar.length > 0 && (
