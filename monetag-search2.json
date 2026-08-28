@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://help.monetag.com/en/articles/6726312-how-do-i-get-started-as-a-publisher-add-and-verify-your-website-s",
+    "name": "How do I get started as a Publisher? Add and verify your",
+    "snippet": "Aug 18, 2025 — While using this verification method, you need to download the sw . js file and save it in your site's root folder. Help Center support@ monetag . ...",
+    "host_name": "help.monetag.com",
+    "rank": 0,
+    "date": "Aug 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.justanswer.com/laptop/t3n3h-posted-special-links-ad-network-monetag.html",
+    "name": "Monetag Account Issues? Expert Help & Troubleshooting",
+    "snippet": "Removing the Monetag links could potentially stabilize your earnings with Adsterra, particularly if those links were incorrectly set up and causing conflicts.",
+    "host_name": "www.justanswer.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.monetag.com/en/articles/6726280-my-site-didn-t-pass-the-verification-process-what-should-i-do",
+    "name": "My site didn't pass the verification process. What should I do?",
+    "snippet": "Aug 7, 2025 — Check if you have inserted the code correctly . Check if you saved the changes. Make sure that the code has not been modified. code may not be ...",
+    "host_name": "help.monetag.com",
+    "rank": 2,
+    "date": "Aug 7, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.monetag.com/docs/ad-integration/debugging-error-handling",
+    "name": "Debugging & Error Handling",
+    "snippet": "This section covers common sources of problems and how to detect, debug, and resolve them when using the Monetag SDK. failed requests, or JS errors .",
+    "host_name": "docs.monetag.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.monetag.com/en/articles/6726670-multitag-all-in-one",
+    "name": "Multitag (all-in-one)",
+    "snippet": "Feb 3, 2026 — You should also download a sw . js file from the Monetag platform for correct work if you're using HTTPS. If you have any questions, feel free to ...",
+    "host_name": "help.monetag.com",
+    "rank": 4,
+    "date": "Feb 3, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.monetag.com/en/articles/6745828-instructions-for-wordpress-how-to-verify-my-site",
+    "name": "Instructions for WordPress. How to verify my site?",
+    "snippet": "Aug 18, 2025 — 1. Click on the Sites section of your Monetag account and choose the \"Add site” option, then enter your website domain name and click on the “ ... Read more",
+    "host_name": "help.monetag.com",
+    "rank": 5,
+    "date": "Aug 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://support.google.com/google-ads/answer/17231523?hl=en",
+    "name": "Set up your Google tag installation correctly for gtag.js",
+    "snippet": "2 days ago — Open the Network tab and refresh the page. Check that requests are going to googletagmanager.com/gtag/ js instead of /gtm. js . For Google Ads, ... Read more",
+    "host_name": "support.google.com",
+    "rank": 6,
+    "date": "Aug 26, 2026",
+    "favicon": ""
+  }
+]

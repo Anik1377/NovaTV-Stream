@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://help.monetag.com/en/articles/6726312-how-do-i-get-started-as-a-publisher-add-and-verify-your-website-s",
+    "name": "How do I get started as a Publisher? Add and verify your",
+    "snippet": "Aug 18, 2025 — Click on the Sites tab in your Monetag account, you need to download the sw . js file and save it in your site's root folder. Help Center support ...",
+    "host_name": "help.monetag.com",
+    "rank": 0,
+    "date": "Aug 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers",
+    "name": "Using Service Workers - Web APIs | MDN",
+    "snippet": "May 29, 2026 — This article provides information on getting started with service workers , including basic architecture, registering a service worker , ...",
+    "host_name": "developer.mozilla.org",
+    "rank": 1,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://monetag.com/blog/website-monetization",
+    "name": "How to Monetize a Website: 9 Methods That Work in 2026",
+    "snippet": "Oct 20, 2025 — Learn how to monetize your traffic with Monetag – the easiest way to earn from every visit. Fast setup, smart ads, and zero traffic limits !",
+    "host_name": "monetag.com",
+    "rank": 2,
+    "date": "Oct 20, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.monetag.com/en/articles/6745879-instructions-for-wordpress-how-do-i-install-push-notifications-on-a-wordpress-based-site",
+    "name": "Instructions for WordPress. How do I install Push",
+    "snippet": "Aug 18, 2025 — Go to the Sites section in your Monetag account, choose your WordPress-based website, then click on the \"Add zone\" button. Read more",
+    "host_name": "help.monetag.com",
+    "rank": 3,
+    "date": "Aug 18, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API",
+    "name": "Service Worker API - MDN Web Docs",
+    "snippet": "Aug 15, 2026 — Service workers essentially act as proxy servers that sit between web applications, the browser, and the network. Download, install and activate",
+    "host_name": "developer.mozilla.org",
+    "rank": 4,
+    "date": "Aug 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://web.dev/learn/pwa/service-workers",
+    "name": "Service workers",
+    "snippet": "Dec 3, 2021 — Installation happens when a registered service worker exists, can be parsed as JavaScript , and doesn't throw any errors during its first ...",
+    "host_name": "web.dev",
+    "rank": 5,
+    "date": "Dec 3, 2021",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.mendix.com/refguide/mobile/introduction-to-mobile-technologies/pwa-service-worker",
+    "name": "PWA Service Worker",
+    "snippet": "May 6, 2026 — A service worker is a specialized type of web worker , essentially a JavaScript file. The new service worker starts to install and cache assets. ...",
+    "host_name": "docs.mendix.com",
+    "rank": 6,
+    "date": "May 6, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.chrome.com/docs/workbox/service-worker-lifecycle",
+    "name": "A service worker's life | Workbox - Chrome for Developers",
+    "snippet": "Understanding the way that service workers behave to make offline applications possible.",
+    "host_name": "developer.chrome.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]
