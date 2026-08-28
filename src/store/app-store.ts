@@ -284,6 +284,12 @@ let _prevView = '';
 useAppStore.subscribe((state) => {
   if (state.view !== _prevView) {
     _prevView = state.view;
-    syncViewToUrl(state.view, state.mediaFilter, state.searchQuery);
+    syncViewToUrl(
+      state.view,
+      state.mediaFilter,
+      state.searchQuery,
+      state.selectedMovie?.id,
+      state.selectedTv?.id,
+    );
   }
 });

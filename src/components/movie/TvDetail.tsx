@@ -16,6 +16,7 @@ import { recordWatchHistory } from '@/lib/watch-history';
 import { ShareModal } from '@/components/shared/ShareModal';
 import { TrailerEmbed } from './TrailerEmbed';
 import { AdBanner } from '@/components/ads';
+import { updatePageMeta, injectJsonLd, removeJsonLd, resetPageMeta, buildTvShowJsonLd } from '@/lib/seo-meta';
 
 export function TvDetail() {
   const selectedTv = useAppStore(s => s.selectedTv);
@@ -39,20 +40,53 @@ export function TvDetail() {
   useEffect(() => {
     if (!selectedTv) return;
     let cancelled = false;
+    const tvTitle = selectedTv.name || 'TV Show';
     Promise.resolve().then(() => { if (!cancelled) setLoading(true); });
     fetch(`/api/tmdb/tv/${selectedTv.id}`)
       .then((res) => res.json())
-      .then((data) => { if (!cancelled) setDetails(data); })
+      .then((data) => {
+        if (!cancelled) {
+          setDetails(data);
+          // SEO: update meta + JSON-LD
+          const year = (data.first_air_date || '').split('-')[0];
+          const desc = data.overview?.slice(0, 160) || `Watch ${tvTitle} on StreamVault. Free streaming in HD.`;
+          updatePageMeta({
+            title: `${tvTitle} (${year})`,
+            description: desc,
+            image: getImageUrl(data.poster_path, 'w780'),
+            type: 'tv',
+          });
+          const creators = data.created_by?.map((c: any) => c.name) || [];
+          injectJsonLd(
+            buildTvShowJsonLd({
+              title: tvTitle,
+              overview: data.overview || '',
+              firstAirDate: data.first_air_date,
+              posterUrl: getImageUrl(data.poster_path, 'w780'),
+              tmdbId: selectedTv.id,
+              genres: data.genres?.map((g: any) => g.name) || [],
+              rating: data.vote_average,
+              numberOfSeasons: data.number_of_seasons,
+              creators,
+            }),
+            `tv-${selectedTv.id}`,
+          );
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
     record({
       tmdbId: selectedTv.id,
-      title: selectedTv.name || 'TV Show',
+      title: tvTitle,
       posterPath: selectedTv.poster_path,
       mediaType: 'tv',
       subtitle: (selectedTv.first_air_date || '').split('-')[0] || undefined,
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      removeJsonLd(`tv-${selectedTv.id}`);
+      resetPageMeta();
+    };
   }, [selectedTv, record]);
 
   // Close season dropdown on outside click

@@ -397,17 +397,30 @@ function HomePage() {
 }
 
 export default function App() {
-  const { view, navCounter, showSearch, setView, setMediaFilter, setSearchQuery } = useAppStore();
+  const { view, navCounter, showSearch, setView, setMediaFilter, setSearchQuery, selectMovie, selectTv } = useAppStore();
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const fetchUser = useAuthStore(s => s.fetchUser);
 
-  // On mount, read URL params (?v=anime, ?v=movies, etc.) and set initial view
+  // On mount, read URL params (?v=anime, ?movie=123, ?tv=456, etc.) and set initial view
   useEffect(() => {
     const urlState = readUrlParams();
-    if (urlState) {
-      setView(urlState.view);
-      if (urlState.mediaFilter !== 'all') setMediaFilter(urlState.mediaFilter);
+    if (!urlState) return;
+
+    if (urlState.kind === 'movie' && urlState.tmdbId) {
+      // Fetch minimal movie data then navigate to detail
+      fetch(`/api/tmdb/preview?id=${urlState.tmdbId}&type=movie`)
+        .then(r => r.json())
+        .then(data => { if (data.id) selectMovie({ ...data, media_type: 'movie' }); })
+        .catch(() => {});
+    } else if (urlState.kind === 'tvshow' && urlState.tmdbId) {
+      fetch(`/api/tmdb/preview?id=${urlState.tmdbId}&type=tv`)
+        .then(r => r.json())
+        .then(data => { if (data.id) selectTv({ ...data, media_type: 'tv' }); })
+        .catch(() => {});
+    } else if (urlState.kind === 'view') {
+      if (urlState.view) setView(urlState.view);
+      if (urlState.mediaFilter && urlState.mediaFilter !== 'all') setMediaFilter(urlState.mediaFilter);
       if (urlState.searchQuery) setSearchQuery(urlState.searchQuery);
     }
   }, []);

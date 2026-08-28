@@ -17,6 +17,7 @@ import { recordWatchHistory } from '@/lib/watch-history';
 import { ShareModal } from '@/components/shared/ShareModal';
 import { TrailerEmbed } from './TrailerEmbed';
 import { AdBanner } from '@/components/ads';
+import { updatePageMeta, injectJsonLd, removeJsonLd, resetPageMeta, buildMovieJsonLd } from '@/lib/seo-meta';
 
 export function MovieDetail() {
   const selectedMovie = useAppStore(s => s.selectedMovie);
@@ -36,14 +37,41 @@ export function MovieDetail() {
     if (!selectedMovie || selectedMovie.id === prevIdRef.current) return;
     prevIdRef.current = selectedMovie.id;
     window.scrollTo({ top: 0 });
+    const movieTitle = selectedMovie.title || selectedMovie.name || '';
     startTransition(async () => {
       try {
         const res = await fetch(`/api/tmdb/movie/${selectedMovie.id}`);
         const data = await res.json();
         setDetails(data);
+        // SEO: update meta + JSON-LD once we have full details
+        const year = (data.release_date || '').split('-')[0];
+        const desc = data.overview?.slice(0, 160) || `Watch ${movieTitle} on StreamVault. Free streaming in HD.`;
+        updatePageMeta({
+          title: `${movieTitle} (${year})`,
+          description: desc,
+          image: getImageUrl(data.poster_path, 'w780'),
+          type: 'movie',
+        });
+        const directors = data.credits?.crew?.filter((c: any) => c.job === 'Director').map((c: any) => c.name) || [];
+        const actors = data.credits?.cast?.slice(0, 5).map((c: any) => c.name) || [];
+        injectJsonLd(
+          buildMovieJsonLd({
+            title: movieTitle,
+            overview: data.overview || '',
+            releaseDate: data.release_date,
+            posterUrl: getImageUrl(data.poster_path, 'w780'),
+            tmdbId: selectedMovie.id,
+            genres: data.genres?.map((g: any) => g.name) || [],
+            rating: data.vote_average,
+            runtime: data.runtime,
+            directors,
+            actors,
+          }),
+          `movie-${selectedMovie.id}`,
+        );
         record({
           tmdbId: selectedMovie.id,
-          title: selectedMovie.title || 'Movie',
+          title: movieTitle,
           posterPath: selectedMovie.poster_path,
           mediaType: 'movie',
           subtitle: (selectedMovie.release_date || '').split('-')[0] || undefined,
@@ -51,6 +79,10 @@ export function MovieDetail() {
       } catch {
       }
     });
+    return () => {
+      removeJsonLd(`movie-${selectedMovie.id}`);
+      resetPageMeta();
+    };
   }, [selectedMovie, startTransition, record]);
 
   if (!selectedMovie) return null;
@@ -120,7 +152,7 @@ export function MovieDetail() {
           {movie.backdrop_path && (
             <img
               src={getBackdropUrl(movie.backdrop_path)}
-              alt=""
+              alt={`${title} backdrop`}
               className="w-full h-full object-cover"
             />
           )}
