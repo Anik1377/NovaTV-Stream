@@ -172,7 +172,7 @@ export function MobileTabBar() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-lg">More</h3>
                 <DrawerClose asChild>
-                  <button className="text-white/50 hover:text-white/80 transition-colors p-1">
+                  <button className="text-white/50 hover:text-white/80 transition-colors p-1" aria-label="Close menu">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                     </svg>

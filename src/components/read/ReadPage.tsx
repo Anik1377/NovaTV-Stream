@@ -3,16 +3,12 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Loader2,
   Search,
   BookOpen,
   ArrowLeft,
   AlertCircle,
   BookText,
   Sparkles,
-  Flame,
-  TrendingUp,
-  Star,
   Shield,
   Zap,
   Crown,

@@ -193,7 +193,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                   className="pl-8 pr-8 h-8 bg-white/[0.06] border-white/[0.06] text-[13px] text-white placeholder:text-white/20 focus:border-red-500/40 rounded-lg"
                 />
                 {inputValue && (
-                  <button onClick={() => { clearSearch(); goHome(); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                  <button onClick={() => { clearSearch(); goHome(); }} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
                     <X className="w-3 h-3" />
                   </button>
                 )}
@@ -329,7 +329,7 @@ export function Sidebar({ onInstallClick, onAuthClick }: SidebarProps) {
                   className="pl-9 pr-9 h-9 bg-white/[0.06] border-white/[0.06] text-[13px] text-white placeholder:text-white/20 focus:border-red-500/40 rounded-lg"
                 />
                 {inputValue && (
-                  <button onClick={() => { clearSearch(); goHome(); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                  <button onClick={() => { clearSearch(); goHome(); }} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}

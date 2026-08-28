@@ -114,7 +114,14 @@ export function ShowReelDetail() {
 
   const handleBack = useCallback(() => { showShowreels(); }, [showShowreels]);
 
-  if (!movie) return null;
+  if (!movie) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+      <p className="text-white/40 text-sm">ShowReel not found</p>
+      <button onClick={handleBack} className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-colors">
+        Back to ShowReels
+      </button>
+    </div>
+  );
 
   const hype = getHypeConfig(movie.hypeScore);
   const isOffCharts = movie.hypeScore > 80;

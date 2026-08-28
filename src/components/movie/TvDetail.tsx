@@ -1,16 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Play, Star, Calendar, ChevronDown, Tv, Heart, Youtube, Zap, Crown, Share2 } from 'lucide-react';
+import { Play, Star, Calendar, ChevronDown, Tv, Heart, Youtube, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getImageUrl, getBackdropUrl } from '@/lib/tmdb';
 import { useAppStore } from '@/store/app-store';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VideoPlayer } from './VideoPlayer';
 import { MovieCard } from './MovieCard';
 import { BackButton } from '@/components/shared/BackButton';
-import { getEmbedUrl, getProvider } from '@/lib/providers';
+import { getEmbedUrl } from '@/lib/providers';
 import type { TvShowDetails, SeasonDetails, Episode } from '@/lib/types';
 import { useRecordHistory } from '@/lib/useRecordHistory';
 import { recordWatchHistory } from '@/lib/watch-history';
@@ -111,7 +110,6 @@ export function TvDetail() {
     });
   };
 
-  const activeProvider = getProvider(selectedProvider);
   const epNum = selectedEpisode?.episode_number || 1;
   const playerUrl = getEmbedUrl(selectedProvider, 'tv', show.id, selectedSeason, epNum);
 

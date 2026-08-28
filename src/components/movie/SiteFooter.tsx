@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/app-store';
 export function SiteFooter() {
   const { showWarning, showPrivacy, showDmca } = useAppStore();
   return (
-    <footer className="mt-16 border-t border-white/10 px-4 md:px-8 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <footer className="mt-auto border-t border-white/10 px-4 md:px-8 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
         <div className="flex items-center gap-2">
           <img src="/logo.png" alt="StreamVault" className="w-7 h-7 rounded-[8px]" />

@@ -6,7 +6,6 @@ import {
   Star,
   Play,
   Film,
-  Zap,
   ChevronRight,
   Swords,
   Heart,
@@ -138,7 +137,7 @@ export function AnimePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="relative">
             <AnimeIcon className="w-12 h-12 text-purple-500 animate-pulse mx-auto mb-4" />
@@ -151,7 +150,7 @@ export function AnimePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       {/* Anime Hero Section */}
       {heroItem && (
         <div className="relative h-[70vh] min-h-[500px] overflow-hidden">

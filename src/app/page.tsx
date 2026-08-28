@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import {
   Film, Star, Clock, Tv, Home, Swords, Heart, Ghost, Zap,
-  Shield, Globe, Baby, Clapperboard, Popcorn, Shuffle,
+  Shield, Baby, Clapperboard, Popcorn, Shuffle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/app-store';
@@ -304,7 +304,7 @@ function HomePage() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col min-h-[calc(100vh-3.5rem)] md:min-h-screen">
       {mediaFilter === 'all' && <Hero key="hero-all" movies={trending.slice(0, 8)} />}
       {mediaFilter === 'movie' && filteredTrending.length > 0 && <Hero key="hero-movie" movies={filteredTrending.slice(0, 8)} />}
       {mediaFilter === 'tv' && filteredTrending.length > 0 && <Hero key="hero-tv" movies={filteredTrending.slice(0, 8)} />}
