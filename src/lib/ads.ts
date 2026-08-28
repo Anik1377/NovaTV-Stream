@@ -16,6 +16,8 @@
 export interface AdConfig {
   enabled: boolean;
   network: 'monetag' | 'adsterra';
+  /** Publisher-specific Monetag script domain (e.g. 'quge5.com') */
+  monetagDomain: string;
   zones: {
     // Banner ad zones (create "Banner 320x50" and "Banner 728x90" in Monetag)
     bannerTop: string;      // Leaderboard below hero
@@ -33,16 +35,17 @@ export interface AdConfig {
 
 /* ─── Default config — replace zone IDs with your own from Monetag dashboard ─── */
 const defaultConfig: AdConfig = {
-  enabled: false, // ← Set to true after adding your zone IDs
+  enabled: true,
   network: 'monetag',
+  monetagDomain: 'quge5.com', // Your publisher-specific Monetag script domain
   zones: {
-    bannerTop: '',      // e.g. '5378291'
-    bannerMid: '',      // e.g. '5378292'
-    bannerBottom: '',   // e.g. '5378293'
-    nativeHome: '',     // e.g. '5378294'
-    nativeDetail: '',   // e.g. '5378295'
-    stickyBar: '',      // e.g. '5378296'
-    playerBanner: '',   // e.g. '5378297'
+    bannerTop: '273907',
+    bannerMid: '',
+    bannerBottom: '',
+    nativeHome: '',
+    nativeDetail: '',
+    stickyBar: '',
+    playerBanner: '',
   },
 };
 
@@ -79,7 +82,7 @@ export function getZoneId(slot: AdSlot): string {
 /**
  * Build the <script> element for a given zone.
  * Monetag format:
- *   <script async src="https://alwingulla.com/88/tag.min.js" data-zone="ZONE_ID"></script>
+ *   <script async src="https://{PUBLISHER_DOMAIN}/88/tag.min.js" data-zone="ZONE_ID" data-cfasync="false"></script>
  *
  * Adsterra format:
  *   <script async src="https://www.highperformanceformat.com/ZONE_ID"></script>
@@ -91,8 +94,11 @@ export function createAdScript(zoneId: string, network: AdConfig['network']): HT
   script.async = true;
 
   if (network === 'monetag') {
-    script.src = 'https://alwingulla.com/88/tag.min.js';
+    const config = getAdConfig();
+    const domain = config.monetagDomain || 'alwingulla.com';
+    script.src = `https://${domain}/88/tag.min.js`;
     script.setAttribute('data-zone', zoneId);
+    script.setAttribute('data-cfasync', 'false');
   } else if (network === 'adsterra') {
     script.src = `//www.highperformanceformat.com/${zoneId}`;
   }
