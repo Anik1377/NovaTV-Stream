@@ -112,6 +112,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Google Tag Manager */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-TD2CZN4R');",
+          }}
+        />
+        {/* Google Analytics (GA4) */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-QBS4R7BNGT"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QBS4R7BNGT');",
+          }}
+        />
         {/* Google Search Console verification */}
         <meta name="google-site-verification" content="rdgkyfp5VPdQnJCl6hxceAqlIy5unb6UtC8HnEC_o0E" />
         <meta name="monetag" content="016b92e7b7b1413c51e03befb765714e" />
@@ -148,6 +164,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-TD2CZN4R"
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
         {/* Monetag banner ad — appends script to body to bypass Next.js head hoisting */}
         <script
           dangerouslySetInnerHTML={{
