@@ -1,41 +1,38 @@
 /**
  * Ad Network Configuration — Monetag (by PropellerAds)
  *
- * Monetag Multitag (zone 273907) is loaded in layout.tsx — it handles
- * Push Notifications, In-Page Push, and Vignette Banner automatically.
+ * Banner zone 11671790 is loaded in layout.tsx via dynamic body-append script.
+ * The same zone is reused for all ad placements (banner, native, sticky).
  *
- * The zones below are for BANNER ads — create them in your Monetag dashboard:
- *   1. Go to https://publishers.monetag.com/
- *   2. Click "Add zone" → choose "Banner" format
- *   3. Copy the zone ID from the script tag
- *   4. Paste it below
+ * Script approach: dynamically creates <script> and appends to body,
+ * bypassing Next.js's automatic <head> hoisting.
  */
 
 export interface AdConfig {
   enabled: boolean;
   monetagDomain: string;
   zones: {
-    bannerTop: string;      // 728x90 below hero
-    bannerMid: string;      // 728x90 between content rows
-    bannerBottom: string;   // 728x90 above footer
-    nativeHome: string;     // Native ad on homepage
-    nativeDetail: string;   // Native ad on movie/tv detail
-    stickyBar: string;      // Bottom sticky bar
-    playerBanner: string;   // Banner near video player
+    bannerTop: string;
+    bannerMid: string;
+    bannerBottom: string;
+    nativeHome: string;
+    nativeDetail: string;
+    stickyBar: string;
+    playerBanner: string;
   };
 }
 
 const defaultConfig: AdConfig = {
   enabled: true,
-  monetagDomain: 'quge5.com',
+  monetagDomain: 'nap5k.com',
   zones: {
-    bannerTop: '',
-    bannerMid: '',
-    bannerBottom: '',
-    nativeHome: '',
-    nativeDetail: '',
-    stickyBar: '',
-    playerBanner: '',
+    bannerTop: '11671790',
+    bannerMid: '11671790',
+    bannerBottom: '11671790',
+    nativeHome: '11671790',
+    nativeDetail: '11671790',
+    stickyBar: '11671790',
+    playerBanner: '11671790',
   },
 };
 
@@ -72,7 +69,7 @@ export function createAdScript(zoneId: string): HTMLScriptElement | null {
   const domain = config.monetagDomain || 'alwingulla.com';
   const script = document.createElement('script');
   script.async = true;
-  script.src = `https://${domain}/88/tag.min.js`;
+  script.src = `https://${domain}/tag.min.js`;
   script.setAttribute('data-zone', zoneId);
   script.setAttribute('data-cfasync', 'false');
   return script;

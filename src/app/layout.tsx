@@ -49,7 +49,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="monetag" content="016b92e7b7b1413c51e03befb765714e" />
-        <script src="https://quge5.com/88/tag.min.js" data-zone="273907" async data-cfasync="false"></script>
         <link rel="apple-touch-icon" href="/icon-512.png" />
         <link rel="manifest" href="/manifest.json" />
         <script
@@ -62,6 +61,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
+        {/* Monetag banner ad — appends script to body to bypass Next.js head hoisting */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "(function(s){s.dataset.zone='11671790',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))"
+          }}
+        />
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-red-600 focus:text-white focus:rounded-lg focus:text-sm focus:outline-none">Skip to content</a>
         <div id="main-content">
           {children}
