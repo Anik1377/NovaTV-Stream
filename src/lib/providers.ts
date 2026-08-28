@@ -88,6 +88,15 @@ export const providers: Provider[] = [
     tvUrl: (id, s, e) => `https://player.vidlove.cc/embed/tv/${id}/${s}/${e}`,
   },
   {
+    id: 'cinezo',
+    name: 'Cinezo',
+    description: 'Full player with server selection',
+    color: '#a855f7',
+    icon: '◉',
+    movieUrl: (id) => `https://cinezo.org/watch/movie/${id}`,
+    tvUrl: (id, s, e) => `https://cinezo.org/watch/tv/${id}/${s}/${e}`,
+  },
+  {
     id: 'embed-su',
     name: 'Embed.su',
     description: 'Direct streams, minimal ads',
