@@ -1820,3 +1820,31 @@ Stage Summary:
 - CSP whitelisting nap5k.com - no blocked requests
 - Zero console errors on live site
 - Ad scripts returning HTTP 200, Monetag tag injecting 90px-height containers
+---
+Task ID: 1
+Agent: Main
+Task: Phase 1 — Codebase cleanup and stabilization
+
+Work Log:
+- Mapped full project structure (142 components, 63 API routes, 25 lib files)
+- Identified and removed 15 VideoPlayer .bak backup files
+- Removed 4 duplicate components (movie/AnimePage, GamesPage, LiveTV, LiveTvPage)
+- Removed 26 dead API route files across 8 route groups
+- Removed entire magicui/ directory (6 unused animation components)
+- Removed 37 unused shadcn/ui components (kept 8 in-use ones)
+- Removed 4 dead lib files (content-split.ts, gd-games-data.ts, server-rankings.ts, saavn.ts)
+- Removed dead src/app/sw.js
+- Fixed unused imports in 4 files (page.tsx, TvDetail.tsx, AnimePage.tsx, ReadPage.tsx)
+- Removed dead variable (activeProvider) in TvDetail.tsx
+- Removed 20 unused npm dependencies
+- Fixed sticky footer behavior (flex-col + mt-auto)
+- Fixed semantic bg-black → bg-background in AnimePage
+- Added aria-label to 3 icon-only button instances
+- Added ShowReelDetail fallback UI
+- Verified: lint passes clean, dev server compiles, all views render
+
+Stage Summary:
+- 111 files changed, -15,052 net lines removed
+- Zero lint errors
+- All existing features preserved (verified via browser automation)
+- Pushed to GitHub: commit 13ba6b2
