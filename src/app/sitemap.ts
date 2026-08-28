@@ -10,22 +10,23 @@ interface TmdbItem {
   media_type?: string
 }
 
-async function fetchTrending(): Promise<TmdbItem[]> {
+async function tmdbFetch(endpoint: string): Promise<TmdbItem[]> {
   if (!TMDB_API) return []
   try {
     const res = await fetch(
-      `https://api.themoviedb.org/3/trending/all/week?api_key=${TMDB_API}`,
-      { next: { revalidate: 86400 } }, // cache for 24h
+      `https://api.themoviedb.org/3${endpoint}?api_key=${TMDB_API}`,
+      { next: { revalidate: 86400 } },
     )
     const data = await res.json()
-    return (data.results || []).slice(0, 50)
+    return (data.results || []).slice(0, 30)
   } catch {
     return []
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages: MetadataRoute.Sitemap = [
+  // Static section pages
+  const sections: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/?v=movies`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/?v=tv`, changeFrequency: 'daily', priority: 0.9 },
@@ -39,13 +40,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/?v=people`, changeFrequency: 'weekly', priority: 0.5 },
   ]
 
-  // Dynamic: trending movies & TV shows
-  const trending = await fetchTrending()
-  const dynamicPages: MetadataRoute.Sitemap = trending.map((item) => ({
-    url: `${SITE_URL}/?movie=${item.id}`,
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }))
+  // Fetch multiple TMDB endpoints in parallel for maximum coverage
+  const [trending, popularMovies, popularTv, topRated, upcoming, anime] = await Promise.all([
+    tmdbFetch('/trending/all/week'),
+    tmdbFetch('/movie/popular'),
+    tmdbFetch('/tv/popular'),
+    tmdbFetch('/movie/top_rated'),
+    tmdbFetch('/movie/upcoming'),
+    tmdbFetch('/trending/tv/week'),
+  ])
 
-  return [...staticPages, ...dynamicPages]
+  // Deduplicate by ID
+  const seen = new Set<number>()
+  const allItems: TmdbItem[] = []
+  for (const list of [trending, popularMovies, popularTv, topRated, upcoming, anime]) {
+    for (const item of list) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id)
+        allItems.push(item)
+      }
+    }
+  }
+
+  // Convert to sitemap entries with proper URL format
+  const dynamicPages: MetadataRoute.Sitemap = allItems.map((item) => {
+    const isTv = item.media_type === 'tv' || (!!item.name && !item.title)
+    return {
+      url: `${SITE_URL}/?${isTv ? 'tv' : 'movie'}=${item.id}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    }
+  })
+
+  return [...sections, ...dynamicPages]
 }

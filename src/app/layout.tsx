@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { NoscriptLinks } from "@/components/seo/NoscriptLinks";
+import { HomeStructuredData } from "@/components/seo/HomeStructuredData";
 
 const SITE_URL = "https://stvault.vercel.app";
 
@@ -153,6 +155,8 @@ export default function RootLayout({
           }}
         />
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-red-600 focus:text-white focus:rounded-lg focus:text-sm focus:outline-none">Skip to content</a>
+        <NoscriptLinks />
+        <HomeStructuredData />
         <div id="main-content">
           {children}
         </div>
