@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { getAdConfig, getZoneId, type AdSlot } from '@/lib/ads';
+import { getAdConfig, getZoneId, createAdScript, type AdSlot } from '@/lib/ads';
 
 interface AdBannerProps {
   slot: AdSlot;
@@ -25,7 +25,7 @@ function AdPlaceholder({ className }: { className?: string }) {
   );
 }
 
-/** Active ad banner that injects the ad script */
+/** Active ad banner that injects the Monetag/Adsterra script */
 function ActiveAdBanner({ slot, className }: AdBannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const zoneId = getZoneId(slot);
@@ -35,16 +35,8 @@ function ActiveAdBanner({ slot, className }: AdBannerProps) {
     const container = containerRef.current;
     if (!container || !zoneId) return;
 
-    const script = document.createElement('script');
-    script.async = true;
-    script.type = 'text/javascript';
-
-    if (config.network === 'propellerads') {
-      script.src = 'https://a.magsrv.com/ad-provider.js';
-      script.dataset.zoneid = zoneId;
-    } else if (config.network === 'adsterra') {
-      script.src = `//www.highperformanceformat.com/${zoneId}`;
-    }
+    const script = createAdScript(zoneId, config.network);
+    if (!script) return;
 
     container.innerHTML = '';
     container.appendChild(script);

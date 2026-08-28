@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Megaphone } from 'lucide-react';
-import { getAdConfig, getZoneId, type AdSlot } from '@/lib/ads';
+import { getAdConfig, getZoneId, createAdScript, type AdSlot } from '@/lib/ads';
 
 interface AdNativeProps {
   slot: AdSlot;
@@ -37,16 +37,8 @@ function ActiveAdNative({ slot, className }: AdNativeProps) {
     const container = containerRef.current;
     if (!container || !zoneId) return;
 
-    const script = document.createElement('script');
-    script.async = true;
-    script.type = 'text/javascript';
-
-    if (config.network === 'propellerads') {
-      script.src = 'https://a.magsrv.com/ad-provider.js';
-      script.dataset.zoneid = zoneId;
-    } else if (config.network === 'adsterra') {
-      script.src = `//www.highperformanceformat.com/${zoneId}`;
-    }
+    const script = createAdScript(zoneId, config.network);
+    if (!script) return;
 
     container.innerHTML = '';
     container.appendChild(script);

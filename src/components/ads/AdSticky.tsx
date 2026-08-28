@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAdConfig } from '@/lib/ads';
+import { getAdConfig, createAdScript } from '@/lib/ads';
 
 /**
- * AdSticky — Subtle sticky bottom ad bar on mobile.
+ * AdSticky — Subtle sticky bottom ad bar.
  * Can be dismissed by the user. Reappears on next page navigation.
  * Very non-aggressive: small, closeable, respects safe areas.
  */
@@ -22,16 +22,8 @@ export function AdSticky() {
     const container = containerRef.current;
     if (!container || !config.enabled || !zoneId) return;
 
-    const script = document.createElement('script');
-    script.async = true;
-    script.type = 'text/javascript';
-
-    if (config.network === 'propellerads') {
-      script.src = 'https://a.magsrv.com/ad-provider.js';
-      script.dataset.zoneid = zoneId;
-    } else if (config.network === 'adsterra') {
-      script.src = `//www.highperformanceformat.com/${zoneId}`;
-    }
+    const script = createAdScript(zoneId, config.network);
+    if (!script) return;
 
     container.innerHTML = '';
     container.appendChild(script);

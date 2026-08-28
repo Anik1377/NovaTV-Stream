@@ -1,73 +1,54 @@
 /**
- * Ad Network Configuration
+ * Ad Network Configuration — Monetag (by PropellerAds)
  *
- * Supports: PropellerAds (primary), Adsterra (fallback)
+ * Monetag is the best Google AdSense alternative for streaming sites.
+ * Sign up at https://publishers.monetag.com/
+ *
  * All placements are non-aggressive: banners, native, sticky bar only.
  * No popunders, no interstitials, no redirect ads.
  *
- * To activate ads, set your publisher zone IDs below.
- * Sign up at https://propellerads.com or https://adsterra.com
+ * To activate:
+ *   1. Create zones in your Monetag dashboard
+ *   2. Copy the zone IDs (the number in data-zone="XXXXXX")
+ *   3. Paste them below and set enabled = true
  */
 
 export interface AdConfig {
   enabled: boolean;
-  network: 'propellerads' | 'adsterra';
+  network: 'monetag' | 'adsterra';
   zones: {
-    // Banner ad zones
-    bannerTop: string;      // 728x90 leaderboard below hero
-    bannerMid: string;      // 728x90 between content rows
-    bannerBottom: string;   // 728x90 above footer
-    bannerMobile: string;   // 320x50 mobile banner
-    // Native ad zones
+    // Banner ad zones (create "Banner 320x50" and "Banner 728x90" in Monetag)
+    bannerTop: string;      // Leaderboard below hero
+    bannerMid: string;      // Banner between content rows
+    bannerBottom: string;   // Banner above footer
+    // Native ad zones (create "Native Banner" in Monetag)
     nativeHome: string;     // Native ad on homepage
     nativeDetail: string;   // Native ad on movie/tv detail
-    // Sticky bar zone
-    stickyBar: string;      // Bottom sticky bar (mobile)
+    // Sticky bar zone (create "Social Bar" in Monetag)
+    stickyBar: string;      // Bottom sticky bar
     // Video player area
     playerBanner: string;   // Banner near video player
   };
 }
 
-/* ─── Default config — replace zone IDs with your own ─── */
+/* ─── Default config — replace zone IDs with your own from Monetag dashboard ─── */
 const defaultConfig: AdConfig = {
-  enabled: false, // Set to true after adding your zone IDs
-  network: 'propellerads',
+  enabled: false, // ← Set to true after adding your zone IDs
+  network: 'monetag',
   zones: {
-    bannerTop: '',
-    bannerMid: '',
-    bannerBottom: '',
-    bannerMobile: '',
-    nativeHome: '',
-    nativeDetail: '',
-    stickyBar: '',
-    playerBanner: '',
+    bannerTop: '',      // e.g. '5378291'
+    bannerMid: '',      // e.g. '5378292'
+    bannerBottom: '',   // e.g. '5378293'
+    nativeHome: '',     // e.g. '5378294'
+    nativeDetail: '',   // e.g. '5378295'
+    stickyBar: '',      // e.g. '5378296'
+    playerBanner: '',   // e.g. '5378297'
   },
 };
 
-/**
- * Get ad config — can be extended to read from env vars later.
- * For now, edit the defaultConfig above.
- */
+/** Get ad config */
 export function getAdConfig(): AdConfig {
   return defaultConfig;
-}
-
-/** Check if a specific ad slot should render */
-export function shouldShowAd(zoneId: string): boolean {
-  const config = getAdConfig();
-  return config.enabled && !!zoneId;
-}
-
-/** Get the script domain for the chosen ad network */
-export function getAdDomain(network: AdConfig['network']): string {
-  switch (network) {
-    case 'propellerads':
-      return 'a.magsrv.com';
-    case 'adsterra':
-      return 'adsterra.com';
-    default:
-      return 'a.magsrv.com';
-  }
 }
 
 /** Ad slot type definitions */
@@ -75,7 +56,6 @@ export type AdSlot =
   | 'banner-top'
   | 'banner-mid'
   | 'banner-bottom'
-  | 'banner-mobile'
   | 'native-home'
   | 'native-detail'
   | 'sticky-bar'
@@ -88,11 +68,34 @@ export function getZoneId(slot: AdSlot): string {
     'banner-top': 'bannerTop',
     'banner-mid': 'bannerMid',
     'banner-bottom': 'bannerBottom',
-    'banner-mobile': 'bannerMobile',
     'native-home': 'nativeHome',
     'native-detail': 'nativeDetail',
     'sticky-bar': 'stickyBar',
     'player-banner': 'playerBanner',
   };
   return config.zones[zoneMap[slot]];
+}
+
+/**
+ * Build the <script> element for a given zone.
+ * Monetag format:
+ *   <script async src="https://alwingulla.com/88/tag.min.js" data-zone="ZONE_ID"></script>
+ *
+ * Adsterra format:
+ *   <script async src="https://www.highperformanceformat.com/ZONE_ID"></script>
+ */
+export function createAdScript(zoneId: string, network: AdConfig['network']): HTMLScriptElement | null {
+  if (!zoneId) return null;
+
+  const script = document.createElement('script');
+  script.async = true;
+
+  if (network === 'monetag') {
+    script.src = 'https://alwingulla.com/88/tag.min.js';
+    script.setAttribute('data-zone', zoneId);
+  } else if (network === 'adsterra') {
+    script.src = `//www.highperformanceformat.com/${zoneId}`;
+  }
+
+  return script;
 }
