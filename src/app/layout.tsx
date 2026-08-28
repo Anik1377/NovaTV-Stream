@@ -48,6 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script src="https://quge5.com/88/tag.min.js" data-zone="273907" async data-cfasync="false"></script>
         <script src="https://quge5.com/88/tag.min.js" data-zone="273910" async data-cfasync="false"></script>
         <meta name="monetag" content="016b92e7b7b1413c51e03befb765714e" />
         <link rel="apple-touch-icon" href="/icon-512.png" />
