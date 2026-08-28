@@ -1784,3 +1784,18 @@ Stage Summary:
 - To activate: edit src/lib/ads.ts, set enabled=true and add zone IDs from ad network dashboard
 - Files created: src/lib/ads.ts, src/components/ads/AdBanner.tsx, src/components/ads/AdNative.tsx, src/components/ads/AdSticky.tsx, src/components/ads/index.ts
 - Files modified: src/app/page.tsx, src/components/movie/MovieDetail.tsx, src/components/movie/TvDetail.tsx, src/components/movie/SearchResults.tsx, src/middleware.ts
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add Monetag verification meta tag to <head> and clean up legacy CSP entries
+
+Work Log:
+- Added `<meta name="monetag" content="016b92e7b7b1413c51e03befb765714e" />` to `src/app/layout.tsx` <head>
+- Removed legacy `a.magsrv.com` from CSP in `src/middleware.ts` (script-src, img-src, connect-src)
+- Kept `alwingulla.com` (Monetag's actual script domain) in CSP
+- Verified lint passes with zero errors
+
+Stage Summary:
+- Monetag verification meta tag is now in the page <head> for site ownership verification
+- Ad system was already fully updated to Monetag format from previous session (alwingulla.com + data-zone attribute)
+- CSP cleaned up: removed old propellerads a.magsrv.com, kept alwingulla.com and highperformanceformat.com (adsterra fallback)
