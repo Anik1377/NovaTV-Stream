@@ -1875,3 +1875,25 @@ Stage Summary:
 - JSON-LD with SearchAction for Google Sitelinks Search Box
 - No noindex/follow directives blocking crawlers
 - Commit 674b577 pushed to GitHub
+---
+Task ID: 3
+Agent: main
+Task: Phase 3 — Comprehensive SEO
+
+Work Log:
+- Created src/lib/seo-meta.ts with updatePageMeta(), injectJsonLd(), removeJsonLd(), resetPageMeta(), buildMovieJsonLd(), buildTvShowJsonLd()
+- Integrated dynamic meta + JSON-LD into MovieDetail.tsx and TvDetail.tsx
+- Made sitemap.ts async with dynamic trending content URLs (50 TMDB trending items)
+- Updated url-sync.ts to handle ?movie=<id> and ?tv=<id> params
+- Updated page.tsx to read ?movie=/?tv= params on load and navigate to content
+- Updated store subscriber to pass movie/tv IDs for URL sync
+- Fixed alt="" on MovieDetail backdrop image
+- Created not-found.tsx (404 page)
+- Verified sitemap has 61 URLs (11 sections + 50 trending)
+- Verified Google verification file returns 200
+
+Stage Summary:
+- Phase 3 complete: dynamic meta, JSON-LD, 61-URL sitemap, content URLs, 404 page
+- Site now has individual URLs for movies (?movie=123) and TV shows (?tv=456)
+- Googlebot will see Movie/TVSeries JSON-LD on content pages
+- All 3 phases (cleanup, indexing, SEO) are complete
