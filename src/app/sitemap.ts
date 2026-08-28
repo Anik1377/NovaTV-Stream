@@ -3,62 +3,17 @@ import type { MetadataRoute } from 'next'
 const SITE_URL = 'https://stvault.vercel.app'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date()
-
   return [
-    {
-      url: SITE_URL,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    {
-      url: `${SITE_URL}/#anime`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/#asian`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/#desi`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/#showreels`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    },
-    {
-      url: `${SITE_URL}/#read`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/#games`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    },
-    {
-      url: `${SITE_URL}/#livetv`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/#people`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.5,
-    },
+    { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
+    { url: `${SITE_URL}/?v=movies`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${SITE_URL}/?v=tv`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${SITE_URL}/?v=anime`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/?v=livetv`, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${SITE_URL}/?v=asian`, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${SITE_URL}/?v=desi`, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${SITE_URL}/?v=read`, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${SITE_URL}/?v=games`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${SITE_URL}/?v=showreels`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${SITE_URL}/?v=people`, changeFrequency: 'weekly', priority: 0.5 },
   ]
 }

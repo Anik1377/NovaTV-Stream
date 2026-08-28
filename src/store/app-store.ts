@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Movie, Episode } from '@/lib/types';
+import { syncViewToUrl } from '@/lib/url-sync';
 
 /* ── Person result from search ── */
 export interface SearchPerson {
@@ -277,3 +278,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     return get().watchlist.includes(id);
   },
 }));
+
+/* ── Auto-sync view → URL on every state change ── */
+let _prevView = '';
+useAppStore.subscribe((state) => {
+  if (state.view !== _prevView) {
+    _prevView = state.view;
+    syncViewToUrl(state.view, state.mediaFilter, state.searchQuery);
+  }
+});

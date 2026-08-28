@@ -49,6 +49,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ContinueWatching } from '@/components/movie/ContinueWatching';
 import { useAuthStore } from '@/store/auth-store';
+import { readUrlParams } from '@/lib/url-sync';
 import type { Movie, Genre } from '@/lib/types';
 import { OTT_PLATFORMS, mergeProviderLogos, type OttPlatform } from '@/lib/ott-platforms';
 import { useLazyLoad } from '@/hooks/use-lazy-load';
@@ -396,10 +397,20 @@ function HomePage() {
 }
 
 export default function App() {
-  const { view, navCounter, showSearch } = useAppStore();
+  const { view, navCounter, showSearch, setView, setMediaFilter, setSearchQuery } = useAppStore();
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const fetchUser = useAuthStore(s => s.fetchUser);
+
+  // On mount, read URL params (?v=anime, ?v=movies, etc.) and set initial view
+  useEffect(() => {
+    const urlState = readUrlParams();
+    if (urlState) {
+      setView(urlState.view);
+      if (urlState.mediaFilter !== 'all') setMediaFilter(urlState.mediaFilter);
+      if (urlState.searchQuery) setSearchQuery(urlState.searchQuery);
+    }
+  }, []);
 
   useEffect(() => { fetchUser(); }, [fetchUser]);
 
