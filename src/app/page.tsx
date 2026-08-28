@@ -312,8 +312,8 @@ function HomePage() {
       {/* Continue Watching — only on the main 'all' tab */}
       {mediaFilter === 'all' && <ContinueWatching />}
 
-      {/* ── Ad Slot: Below hero / above genres ── */}
-      <AdBanner slot="banner-top" className="my-4" showPlaceholder />
+      {/* ── Ad Slot: Below hero ── */}
+      <AdBanner slot="banner-top" className="my-4" />
 
       {genres.length > 0 && (
         <div className={"px-4 md:px-8 relative z-10 mb-6 " + (mediaFilter === 'all' ? '-mt-4' : 'mt-4')}>
@@ -352,9 +352,6 @@ function HomePage() {
         </div>
       )}
 
-      {/* ── Ad Slot: Between trending rows and movie rows ── */}
-      <AdBanner slot="banner-mid" className="my-2" showPlaceholder />
-
       {mediaFilter !== 'tv' && (
         <div>
           <ContentRow title="Popular Movies" movies={popularMovies} icon={<Film className="w-5 h-5" />} genreId={null} mediaType="movie" sortBy="popularity.desc" />
@@ -391,9 +388,6 @@ function HomePage() {
           />
         );
       })}
-
-      {/* ── Ad Slot: Above footer ── */}
-      <AdBanner slot="banner-bottom" className="my-8" showPlaceholder />
 
       <SiteFooter />
       <SurpriseMeButton movies={allMovies} />
