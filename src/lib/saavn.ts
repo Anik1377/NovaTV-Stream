@@ -131,3 +131,30 @@ export async function getTrending(query: string, limit = 25): Promise<SaavnSong[
     return [];
   }
 }
+
+export async function saavnSongDetails(ids: string[]): Promise<Map<string, SaavnSong>> {
+  const result = new Map<string, SaavnSong>();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const res = await fetch(
+      `${JIOSAAVN_API}/api/songs?id=${ids.join(',')}`,
+      { signal: controller.signal, headers: { 'Accept': 'application/json' } },
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const songs: RawSearchResult[] = json.songs || json.data || [];
+      for (const raw of songs) {
+        if (raw.id) result.set(raw.id, mapSong(raw));
+      }
+    }
+  } catch {
+    /* ignore — return partial results */
+  } finally {
+    clearTimeout(timer);
+  }
+
+  return result;
+}
