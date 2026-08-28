@@ -164,9 +164,9 @@ export function VideoPlayer({ src, title, onClose, mediaType, tmdbId, season, ep
 
   /* ── Tier config for server groups ── */
   const tierConfig = [
-    { label: 'Recommended', sub: 'Best quality & reliability', list: providers.slice(0, 3) },
-    { label: 'Alternatives', sub: 'Good backups if primary fails', list: providers.slice(3, 10) },
-    { label: 'Fallbacks', sub: 'Last resort options', list: providers.slice(10) },
+    { label: 'Recommended', sub: 'Best quality & reliability', list: providers.slice(0, 4) },
+    { label: 'Alternatives', sub: 'Good backups if primary fails', list: providers.slice(4, 11) },
+    { label: 'Fallbacks', sub: 'Last resort options', list: providers.slice(11) },
   ];
 
   /* ── Server card component ── */

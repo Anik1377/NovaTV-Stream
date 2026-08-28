@@ -40,6 +40,15 @@ export const providers: Provider[] = [
     movieUrl: (id) => `https://vidsrc.icu/embed/movie/${id}`,
     tvUrl: (id, s, e) => `https://vidsrc.icu/embed/tv/${id}/${s}/${e}`,
   },
+  {
+    id: 'cinezo',
+    name: 'Cinezo',
+    description: 'Full player with server selection',
+    color: '#a855f7',
+    icon: '◉',
+    movieUrl: (id) => `https://cinezo.org/watch/movie/${id}`,
+    tvUrl: (id, s, e) => `https://cinezo.org/watch/tv/${id}/${s}/${e}`,
+  },
 
   /* ── Tier 2: Good backups ── */
   {
@@ -86,15 +95,6 @@ export const providers: Provider[] = [
     icon: '♥',
     movieUrl: (id) => `https://player.vidlove.cc/embed/movie/${id}`,
     tvUrl: (id, s, e) => `https://player.vidlove.cc/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: 'cinezo',
-    name: 'Cinezo',
-    description: 'Full player with server selection',
-    color: '#a855f7',
-    icon: '◉',
-    movieUrl: (id) => `https://cinezo.org/watch/movie/${id}`,
-    tvUrl: (id, s, e) => `https://cinezo.org/watch/tv/${id}/${s}/${e}`,
   },
   {
     id: 'embed-su',
