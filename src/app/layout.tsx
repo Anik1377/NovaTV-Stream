@@ -112,6 +112,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script src="https://quge5.com/88/tag.min.js" data-zone="273907" async data-cfasync="false"></script>
         <script src="https://quge5.com/88/tag.min.js" data-zone="273910" async data-cfasync="false"></script>
         {/* Google Tag Manager */}
         <script
